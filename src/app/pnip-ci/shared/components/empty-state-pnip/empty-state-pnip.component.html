@@ -1,0 +1,9 @@
+<div class="vacio" role="status">
+    <app-pnip-icono class="icono" [nombre]="icono" [tamano]="36" />
+    <p class="texto">{{ texto }}</p>
+    @if (textoAccion) {
+        <button type="button" class="accion" (click)="accion.emit()">
+            {{ textoAccion }}
+        </button>
+    }
+</div>

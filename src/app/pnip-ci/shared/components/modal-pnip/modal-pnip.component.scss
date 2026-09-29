@@ -1,9 +1,10 @@
 $duracion: 160ms;
 
+// z-index por encima de la cabecera sticky de la app host (100).
 .fondo {
     position: fixed;
     inset: 0;
-    z-index: 100;
+    z-index: 1000;
     display: grid;
     place-items: center;
     padding: 24px;

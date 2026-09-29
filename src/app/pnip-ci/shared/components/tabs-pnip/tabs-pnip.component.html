@@ -1,0 +1,17 @@
+<div class="pestanas" role="tablist" [attr.aria-label]="etiqueta || null">
+    @for (pestana of pestanas; track pestana.valor; let i = $index) {
+        <button
+            #boton
+            type="button"
+            role="tab"
+            class="pestana"
+            [class.pestana--activa]="pestana.valor === seleccionada"
+            [class.pestana--atenuada]="pestana.atenuada"
+            [id]="idPestana(pestana.valor)"
+            [attr.aria-selected]="pestana.valor === seleccionada"
+            [attr.aria-controls]="idPanel(pestana.valor)"
+            [attr.tabindex]="pestana.valor === seleccionada ? 0 : -1"
+            (click)="elegir(pestana.valor)"
+            (keydown)="alPresionarTecla($event, i)">{{ texto(pestana) }}</button>
+    }
+</div>

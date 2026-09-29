@@ -5,7 +5,7 @@ import { Component } from '@angular/core';
  *
  * PLACEHOLDER del Dia 1: solo muestra el nombre de la pantalla.
  *
- * @author EEASA
+ * @author Elvis Flores
  */
 @Component({
     selector: 'app-pnip-mis-planes',

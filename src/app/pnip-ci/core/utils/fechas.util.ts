@@ -4,7 +4,7 @@
  * Todas trabajan con fechas de calendario (sin hora) en hora local, para
  * que el cambio de zona horaria nunca mueva un dia.
  *
- * @author EEASA
+ * @author Elvis Flores
  */
 
 /** Milisegundos de un dia. */
@@ -122,6 +122,27 @@ export function calcularFechaLimite(
     limite.setDate(limite.getDate() + dias);
 
     return formatearFecha(limite);
+}
+
+/**
+ * Indica si una fecha esta dentro de un rango de dias, ambos extremos
+ * incluidos. Compara solo la parte `aaaa-mm-dd`, como el filtro de fechas
+ * de «Formularios recibidos» de la app host.
+ *
+ * @param fechaIso Fecha ISO (con o sin hora).
+ * @param desde Inicio `aaaa-mm-dd` (valor de `<input type="date">`); vacio
+ * = sin limite.
+ * @param hasta Fin `aaaa-mm-dd`; vacio = sin limite.
+ * @returns `true` si la fecha esta en el rango.
+ */
+export function estaEnRangoFechas(
+    fechaIso: string,
+    desde: string,
+    hasta: string
+): boolean {
+    const dia = fechaIso.substring(0, 10);
+
+    return (desde === '' || dia >= desde) && (hasta === '' || dia <= hasta);
 }
 
 /**

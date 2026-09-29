@@ -1,7 +1,7 @@
 /**
  * Empleado o persona involucrada en un conflicto de interes.
  *
- * @author EEASA
+ * @author Elvis Flores
  */
 export interface Persona {
     /** Identificador interno de la persona. */

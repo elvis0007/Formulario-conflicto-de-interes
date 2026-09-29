@@ -38,7 +38,7 @@ let contadorModales = 0;
  * `<app-pnip-modal titulo="Rechazar evidencia" [abierto]="abierto"
  *     (cerrar)="abierto = false"> ... </app-pnip-modal>`
  *
- * @author EEASA
+ * @author Elvis Flores
  */
 @Component({
     selector: 'app-pnip-modal',

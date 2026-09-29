@@ -6,7 +6,7 @@
  * `app.routes.ts` y `AppComponent` puedan importarlas sin arrastrar las rutas
  * del modulo al bundle inicial: estas se cargan de forma diferida.
  *
- * @author EEASA
+ * @author Elvis Flores
  */
 
 /** Segmento base bajo el que cuelgan todas las rutas del modulo. */
@@ -21,7 +21,7 @@ export const PNIP_CI_RUTA_BASE = 'pnip';
  *
  * @param url URL sin query string, con `/` inicial (p. ej. `/pnip/rrhh`).
  * @returns `true` si la URL es `/pnip` o cuelga de `/pnip/`.
- * @author EEASA
+ * @author Elvis Flores
  */
 export function esRutaPnipCi(url: string): boolean {
     const prefijo = '/' + PNIP_CI_RUTA_BASE;

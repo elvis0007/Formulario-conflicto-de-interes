@@ -1,0 +1,39 @@
+.vacio {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 40px 20px;
+    text-align: center;
+}
+
+.icono {
+    color: var(--text3);
+}
+
+.texto {
+    margin: 0;
+    color: var(--text2);
+    font-size: 14px;
+}
+
+.accion {
+    padding: 7px 14px;
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    background-color: var(--paper);
+    color: var(--accent-700);
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+
+    &:hover {
+        background-color: var(--accent-100);
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+    }
+}

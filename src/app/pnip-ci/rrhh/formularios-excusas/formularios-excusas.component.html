@@ -1,0 +1,129 @@
+<header class="encabezado">
+    <h1 class="titulo">Formularios de Excusa</h1>
+</header>
+
+<div class="listado">
+    <h2 class="banda">Excusas recibidas ({{ filtradas.length }})</h2>
+    <div class="filtros">
+        <label class="campo">
+            <span class="campo-etiqueta">Origen</span>
+            <select class="control" [(ngModel)]="filtros.origen"
+                (ngModelChange)="aplicarFiltros()">
+                <option value="">Todos</option>
+                <option value="Interno">Interno</option>
+                <option value="Externo">Externo</option>
+            </select>
+        </label>
+        <label class="campo">
+            <span class="campo-etiqueta">Tipo de proceso</span>
+            <select class="control" [(ngModel)]="filtros.proceso"
+                (ngModelChange)="aplicarFiltros()">
+                <option value="">Todos los procesos</option>
+                @for (tipo of tiposProceso; track tipo) {
+                    <option [value]="tipo">{{ tipo }}</option>
+                }
+            </select>
+        </label>
+        <label class="campo">
+            <span class="campo-etiqueta">Desde</span>
+            <input type="date" class="control" [(ngModel)]="filtros.desde"
+                (ngModelChange)="aplicarFiltros()" />
+        </label>
+        <label class="campo">
+            <span class="campo-etiqueta">Hasta</span>
+            <input type="date" class="control" [(ngModel)]="filtros.hasta"
+                (ngModelChange)="aplicarFiltros()" />
+        </label>
+        <label class="campo campo--buscador">
+            <span class="campo-etiqueta">Buscar</span>
+            <input type="search" class="control"
+                placeholder="Nombre, cédula, proceso, familiar…"
+                [(ngModel)]="filtros.busqueda"
+                (ngModelChange)="aplicarFiltros()" />
+        </label>
+        <button
+            type="button"
+            class="boton boton--primario"
+            [class.boton--hecho]="exportado.activa"
+            [attr.aria-disabled]="exportado.activa"
+            (click)="exportar()">
+            <app-pnip-icono [nombre]="exportado.activa ? 'check' : 'excel'" />
+            {{ exportado.activa ? 'Exportado ✓' : 'Exportar' }}
+        </button>
+    </div>
+</div>
+
+<app-pnip-data-table
+    variante="navy"
+    etiqueta="Excusas recibidas"
+    [filas]="filtradas"
+    [columnas]="columnas"
+    [claveFila]="clave">
+    <ng-template pnipFila [pnipFilaDe]="filtradas" let-e
+        let-expandida="expandida" let-alternar="alternar"
+        let-idDetalle="idDetalle">
+        <td class="nombre">{{ e.nombre | nombreFormal }}</td>
+        <td>{{ e.cedula }}</td>
+        <td>
+            <app-pnip-badge
+                [tono]="e.origen === 'Interno' ? 'verde' : 'naranja'"
+                [texto]="e.origen" />
+        </td>
+        <td>
+            {{ e.proceso }}
+            <span class="secundario">{{ e.detalleProceso }}</span>
+        </td>
+        <td>
+            {{ e.familiar }}
+            <span class="secundario">{{ e.parentesco }}</span>
+        </td>
+        <td>{{ e.fecha | fechaLarga }}</td>
+        <td>
+            <div class="acciones">
+                <button
+                    type="button"
+                    class="boton-icono"
+                    [attr.aria-label]="'Ver excusa de ' + e.nombre"
+                    title="Ver excusa"
+                    (click)="excusaAbierta = e">
+                    <app-pnip-icono nombre="ojo" />
+                </button>
+                <app-pnip-expand-arrow-button
+                    [expandido]="expandida"
+                    [controla]="idDetalle"
+                    [etiqueta]="'motivo y reemplazo de ' + e.nombre"
+                    (alternar)="alternar()" />
+            </div>
+        </td>
+    </ng-template>
+
+    <ng-template pnipDetalle [pnipDetalleDe]="filtradas" let-e>
+        <dl class="detalle">
+            <div>
+                <dt>Motivo de la excusa</dt>
+                <dd>{{ e.motivo }}</dd>
+            </div>
+            <div>
+                <dt>Reemplazo designado</dt>
+                <dd>{{ e.reemplazo }}</dd>
+            </div>
+        </dl>
+    </ng-template>
+
+    <app-pnip-empty-state
+        pnipVacio
+        [texto]="cargando
+            ? 'Cargando excusas…'
+            : 'No hay excusas que coincidan con los filtros.'"
+        [textoAccion]="!cargando && hayFiltros ? 'Limpiar filtros' : null"
+        (accion)="limpiarFiltros()" />
+</app-pnip-data-table>
+
+<app-pnip-modal
+    titulo="Formulario de excusa"
+    [abierto]="excusaAbierta !== null"
+    (cerrar)="excusaAbierta = null">
+    @if (excusaAbierta) {
+        <app-pnip-detalle-excusa [excusa]="excusaAbierta" />
+    }
+</app-pnip-modal>

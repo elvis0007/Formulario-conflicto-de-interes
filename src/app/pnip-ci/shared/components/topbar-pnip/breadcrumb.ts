@@ -13,7 +13,7 @@ export const DATO_BREADCRUMB = 'breadcrumb';
  *
  * @param raiz Snapshot raiz (`router.routerState.snapshot.root`).
  * @returns Textos de las migas; vacio si ninguna ruta las declara.
- * @author EEASA
+ * @author Elvis Flores
  */
 export function obtenerBreadcrumb(raiz: ActivatedRouteSnapshot): string[] {
     let ruta: ActivatedRouteSnapshot | null = raiz;

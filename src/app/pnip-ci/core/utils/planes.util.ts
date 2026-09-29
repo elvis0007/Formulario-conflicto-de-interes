@@ -3,7 +3,7 @@ import { Actividad, EstadoPlan, PlanAccion } from '../models';
 /**
  * Utilidades puras de reglas de negocio de planes de accion.
  *
- * @author EEASA
+ * @author Elvis Flores
  */
 
 /**

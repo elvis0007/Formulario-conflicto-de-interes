@@ -10,7 +10,7 @@ import { Tono } from '../../../core/utils/tono.util';
  *
  * Uso: `<app-pnip-badge tono="rojo" texto="Alto" />`
  *
- * @author EEASA
+ * @author Elvis Flores
  */
 @Component({
     selector: 'app-pnip-badge',

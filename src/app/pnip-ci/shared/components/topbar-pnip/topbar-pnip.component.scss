@@ -1,4 +1,9 @@
+// Fija debajo de la cabecera de la app host (z-index 100), por encima del
+// contenido del modulo.
 :host {
+    position: sticky;
+    top: var(--alto-cabecera-host);
+    z-index: 50;
     display: block;
     flex: 0 0 64px;
 }

@@ -6,7 +6,7 @@ import { Clasificacion, Relacion, Riesgo } from './tipos';
  * Relacion de parentesco detectada entre dos personas de la empresa que
  * puede generar un conflicto de interes.
  *
- * @author EEASA
+ * @author Elvis Flores
  */
 export interface Conflicto {
     id: string;

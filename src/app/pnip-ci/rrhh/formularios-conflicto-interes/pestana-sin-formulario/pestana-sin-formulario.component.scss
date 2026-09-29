@@ -1,0 +1,28 @@
+@use '../../../styles/listados';
+
+@include listados.estilos;
+
+.banda--con-accion {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 12px 8px 20px;
+    border-radius: 10px;
+}
+
+.banda-titulo {
+    margin: 0;
+    font-size: inherit;
+    font-weight: inherit;
+}
+
+.boton--fila {
+    padding: 6px 12px;
+    font-size: 12.5px;
+}
+
+.nunca {
+    color: var(--text3);
+}

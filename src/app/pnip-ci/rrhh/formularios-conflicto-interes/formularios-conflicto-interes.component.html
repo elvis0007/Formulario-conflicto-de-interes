@@ -1,0 +1,140 @@
+<header class="encabezado">
+    <div>
+        <h1 class="titulo">Formulario de Conflicto de Interés</h1>
+        <span class="codigo">PNIP.CI.RG.01</span>
+    </div>
+    <a class="boton boton--primario" routerLink="/pnip/rrhh/conflictos/analisis">
+        <app-pnip-icono nombre="analisis" />
+        Generar análisis de conflictos
+    </a>
+</header>
+
+<app-pnip-tabs
+    etiqueta="Formularios de conflicto de interés"
+    [idBase]="idPestanas"
+    [pestanas]="pestanas"
+    [seleccionada]="pestana"
+    (cambio)="cambiarPestana($event)" />
+
+<section
+    class="panel"
+    role="tabpanel"
+    [id]="idPestanas + '-panel-recibidos'"
+    [attr.aria-labelledby]="idPestanas + '-pestana-recibidos'"
+    [hidden]="pestana !== 'recibidos'">
+    <div class="listado">
+        <h2 class="banda">Formularios recibidos ({{ filtrados.length }})</h2>
+        <div class="filtros">
+            <label class="campo">
+                <span class="campo-etiqueta">Origen</span>
+                <select class="control" [(ngModel)]="filtros.origen"
+                    (ngModelChange)="aplicarFiltros()">
+                    <option value="">Todos</option>
+                    <option value="Interno">Interno</option>
+                    <option value="Externo">Externo</option>
+                </select>
+            </label>
+            <label class="campo">
+                <span class="campo-etiqueta">Tipo de contrato</span>
+                <select class="control" [(ngModel)]="filtros.tipoContrato"
+                    (ngModelChange)="aplicarFiltros()">
+                    <option value="">Todos los contratos</option>
+                    @for (tipo of tiposContrato; track tipo) {
+                        <option [value]="tipo">{{ tipo }}</option>
+                    }
+                </select>
+            </label>
+            <label class="campo">
+                <span class="campo-etiqueta">Desde</span>
+                <input type="date" class="control" [(ngModel)]="filtros.desde"
+                    (ngModelChange)="aplicarFiltros()" />
+            </label>
+            <label class="campo">
+                <span class="campo-etiqueta">Hasta</span>
+                <input type="date" class="control" [(ngModel)]="filtros.hasta"
+                    (ngModelChange)="aplicarFiltros()" />
+            </label>
+            <label class="campo campo--buscador">
+                <span class="campo-etiqueta">Buscar</span>
+                <input type="search" class="control"
+                    placeholder="Nombre, cédula, cargo, familiar…"
+                    [(ngModel)]="filtros.busqueda"
+                    (ngModelChange)="aplicarFiltros()" />
+            </label>
+            <button
+                type="button"
+                class="boton boton--primario"
+                [class.boton--hecho]="exportado.activa"
+                [attr.aria-disabled]="exportado.activa"
+                (click)="exportar()">
+                <app-pnip-icono [nombre]="exportado.activa ? 'check' : 'excel'" />
+                {{ exportado.activa ? 'Exportado ✓' : 'Exportar' }}
+            </button>
+        </div>
+    </div>
+
+    <app-pnip-data-table
+        variante="navy"
+        etiqueta="Formularios recibidos"
+        [filas]="filtrados"
+        [columnas]="columnas"
+        [claveFila]="clave">
+        <ng-template pnipFila [pnipFilaDe]="filtrados" let-f
+            let-expandida="expandida" let-alternar="alternar"
+            let-idDetalle="idDetalle">
+            <td class="nombre">{{ f.nombre | nombreFormal }}</td>
+            <td>{{ f.cedula }}</td>
+            <td><app-pnip-badge [tono]="tonoOrigen(f.origen)" [texto]="f.origen" /></td>
+            <td>{{ f.tipo }}</td>
+            <td>{{ f.tipoContrato }}</td>
+            <td>{{ f.fecha | fechaLarga }}</td>
+            <td>
+                <div class="acciones">
+                    <button
+                        type="button"
+                        class="boton-icono"
+                        [attr.aria-label]="'Ver formulario de ' + f.nombre"
+                        [title]="'Ver formulario'"
+                        (click)="formularioAbierto = f">
+                        <app-pnip-icono nombre="ojo" />
+                    </button>
+                    <app-pnip-expand-arrow-button
+                        [expandido]="expandida"
+                        [controla]="idDetalle"
+                        [etiqueta]="'familiares de ' + f.nombre"
+                        (alternar)="alternar()" />
+                </div>
+            </td>
+        </ng-template>
+
+        <ng-template pnipDetalle [pnipDetalleDe]="filtrados" let-f>
+            <app-pnip-tabla-familiares [familiares]="f.familiares" />
+        </ng-template>
+
+        <app-pnip-empty-state
+            pnipVacio
+            [texto]="cargando
+                ? 'Cargando formularios…'
+                : 'No hay formularios que coincidan con los filtros.'"
+            [textoAccion]="!cargando && hayFiltros ? 'Limpiar filtros' : null"
+            (accion)="limpiarFiltros()" />
+    </app-pnip-data-table>
+</section>
+
+<section
+    class="panel"
+    role="tabpanel"
+    [id]="idPestanas + '-panel-pendientes'"
+    [attr.aria-labelledby]="idPestanas + '-pestana-pendientes'"
+    [hidden]="pestana !== 'pendientes'">
+    <app-pnip-pestana-sin-formulario (total)="alCargarPendientes($event)" />
+</section>
+
+<app-pnip-modal
+    titulo="Formulario de conflicto de interés"
+    [abierto]="formularioAbierto !== null"
+    (cerrar)="formularioAbierto = null">
+    @if (formularioAbierto) {
+        <app-pnip-detalle-formulario [formulario]="formularioAbierto" />
+    }
+</app-pnip-modal>

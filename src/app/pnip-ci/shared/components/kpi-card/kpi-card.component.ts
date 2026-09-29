@@ -14,7 +14,7 @@ import { Tono } from '../../../core/utils/tono.util';
  *     [clicable]="true" [activo]="filtro === 'alto'"
  *     (seleccionado)="filtrar('alto')" />`
  *
- * @author EEASA
+ * @author Elvis Flores
  */
 @Component({
     selector: 'app-pnip-kpi-card',

@@ -9,7 +9,7 @@ import { simularRespuesta } from './mock-data/simular-respuesta';
  * Consulta de planes de accion con datos simulados. Se sustituira por un
  * servicio HTTP con los mismos metodos.
  *
- * @author EEASA
+ * @author Elvis Flores
  */
 @Injectable({
     providedIn: 'root'

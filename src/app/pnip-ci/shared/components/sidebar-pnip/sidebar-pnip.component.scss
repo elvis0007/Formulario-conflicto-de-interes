@@ -1,15 +1,25 @@
+// El fondo ocupa todo el alto del layout (hasta el pie de la app host).
+// El contenido (.sidebar) se fija justo debajo de la cabecera del host (su
+// alto real lo publica el shell en --alto-cabecera-host) con su ALTURA
+// NATURAL, como maximo el alto visible.
+//
+// No se usa un sidebar fijo de alto completo: al llegar al final de la
+// pagina, el pie del host empujaria el sidebar hacia arriba y la marca y
+// los primeros items quedarian tapados por la cabecera.
 :host {
     display: block;
     flex: 0 0 240px;
+    align-self: stretch;
     width: 240px;
-    height: 100%;
+    background-color: var(--accent-900);
 }
 
 .sidebar {
+    position: sticky;
+    top: var(--alto-cabecera-host);
     display: flex;
     flex-direction: column;
-    height: 100%;
-    background-color: var(--accent-900);
+    max-height: calc(100vh - var(--alto-cabecera-host));
     color: rgba(255, 255, 255, 0.82);
 }
 
@@ -42,8 +52,11 @@
     list-style: none;
 }
 
+// Si el menu no cabe (grupos abiertos en pantallas bajas), solo el menu
+// hace scroll; marca y usuario quedan visibles.
 .menu {
-    flex: 1;
+    flex: 0 1 auto;
+    min-height: 0;
     overflow-y: auto;
     padding: 12px 10px;
 }

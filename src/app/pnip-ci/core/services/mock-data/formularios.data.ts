@@ -1,4 +1,8 @@
-import { FormularioCI, Persona } from '../../models';
+import {
+    EmpleadoSinFormulario,
+    FormularioCI,
+    Persona
+} from '../../models';
 import { buscarPersona } from './personas.data';
 
 /**
@@ -6,7 +10,7 @@ import { buscarPersona } from './personas.data';
  * (`Interno`) y uno de un proveedor (`Externo`), con familiares que
  * trabajan y que no trabajan en la empresa.
  *
- * @author EEASA
+ * @author Elvis Flores
  */
 export const FORMULARIOS: readonly FormularioCI[] = [
     {
@@ -15,7 +19,7 @@ export const FORMULARIOS: readonly FormularioCI[] = [
         cedula: '1800000011',
         origen: 'Interno',
         tipo: 'Inicial',
-        tipoContrato: 'Nombramiento definitivo',
+        tipoContrato: 'Permanente',
         fecha: '2025-10-06',
         cargo: 'Jefe de Adquisiciones',
         departamento: 'Adquisiciones',
@@ -42,7 +46,7 @@ export const FORMULARIOS: readonly FormularioCI[] = [
         cedula: '1800000052',
         origen: 'Interno',
         tipo: 'Inicial',
-        tipoContrato: 'Código de Trabajo',
+        tipoContrato: 'Ocasional',
         fecha: '2026-07-21',
         cargo: 'Liniero',
         departamento: 'Distribución',
@@ -69,7 +73,7 @@ export const FORMULARIOS: readonly FormularioCI[] = [
         cedula: '1800000086',
         origen: 'Interno',
         tipo: 'Actualización',
-        tipoContrato: 'Nombramiento definitivo',
+        tipoContrato: 'Permanente',
         fecha: '2025-12-02',
         cargo: 'Analista de Talento Humano',
         departamento: 'Talento Humano',
@@ -102,7 +106,7 @@ export const FORMULARIOS: readonly FormularioCI[] = [
         cedula: '1800000078',
         origen: 'Interno',
         tipo: 'Inicial',
-        tipoContrato: 'Nombramiento provisional',
+        tipoContrato: 'Nombramientos provisionales LOEP',
         fecha: '2026-09-08',
         cargo: 'Contador General',
         departamento: 'Financiero',
@@ -129,7 +133,7 @@ export const FORMULARIOS: readonly FormularioCI[] = [
         cedula: '1800000102',
         origen: 'Interno',
         tipo: 'Actualización',
-        tipoContrato: 'Contrato de servicios ocasionales',
+        tipoContrato: 'Servicios ocasionales LOEP',
         fecha: '2026-09-19',
         cargo: 'Ingeniero de Sistemas',
         departamento: 'Tecnologías de la Información',
@@ -156,7 +160,7 @@ export const FORMULARIOS: readonly FormularioCI[] = [
         cedula: '1800000342',
         origen: 'Externo',
         tipo: 'Inicial',
-        tipoContrato: 'Proveedor de servicios',
+        tipoContrato: 'Ocasional',
         fecha: '2026-08-05',
         cargo: 'Representante legal',
         departamento: 'Proveedor externo',
@@ -180,14 +184,36 @@ export const FORMULARIOS: readonly FormularioCI[] = [
 ];
 
 /**
- * Empleados de ejemplo que todavia no han llenado el formulario (segunda
- * pestana de la pantalla de formularios).
- *
- * @author EEASA
+ * Proveedor externo de ejemplo que debe llenar el formulario. No es
+ * empleado, por eso no esta en `PERSONAS`.
  */
-export const EMPLEADOS_SIN_FORMULARIO: readonly Persona[] = [
-    buscarPersona('EMP-002'),
-    buscarPersona('EMP-004'),
-    buscarPersona('EMP-006'),
-    buscarPersona('EMP-012')
+const EXTERNO_SIN_FORMULARIO: Persona = {
+    id: 'EXT-001',
+    nombres: 'Mónica Paola Villacrés Ruiz',
+    cedula: '1800000367',
+    cargo: 'Representante legal',
+    departamento: 'Proveedor externo'
+};
+
+/**
+ * Personas de ejemplo que todavia no han llenado el formulario (segunda
+ * pestana de la pantalla de formularios): cuatro empleados y un externo, con
+ * y sin recordatorios previos.
+ *
+ * @author Elvis Flores
+ */
+export const EMPLEADOS_SIN_FORMULARIO: readonly EmpleadoSinFormulario[] = [
+    { persona: buscarPersona('EMP-002'), origen: 'Interno' },
+    {
+        persona: buscarPersona('EMP-004'),
+        origen: 'Interno',
+        ultimoRecordatorio: '2026-09-20T10:05:00'
+    },
+    { persona: buscarPersona('EMP-006'), origen: 'Interno' },
+    {
+        persona: buscarPersona('EMP-012'),
+        origen: 'Interno',
+        ultimoRecordatorio: '2026-08-31T08:30:00'
+    },
+    { persona: EXTERNO_SIN_FORMULARIO, origen: 'Externo' }
 ];

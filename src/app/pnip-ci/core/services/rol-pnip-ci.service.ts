@@ -51,7 +51,7 @@ const RUTA_INICIO_RESPONSABLE = '/pnip/responsable/dashboard';
  * `localStorage` (`PNIP-CI-ROL-SIMULADO`, `PNIP-CI-EMPLEADO-SIMULADO`). En
  * produccion la simulacion no se aplica nunca.
  *
- * @author EEASA
+ * @author Elvis Flores
  */
 @Injectable({
     providedIn: 'root'

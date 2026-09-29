@@ -1,7 +1,7 @@
 /**
  * Tipos enumerados del dominio PNIP-CI.
  *
- * @author EEASA
+ * @author Elvis Flores
  */
 
 /** Nivel de riesgo asignado a un conflicto de interes. */

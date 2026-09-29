@@ -29,7 +29,7 @@ export const DATO_ROL_REQUERIDO = 'rolRequerido';
  *
  * @param route Ruta que se intenta activar.
  * @returns `true` o el `UrlTree` al que redirigir.
- * @author EEASA
+ * @author Elvis Flores
  */
 export const rolGuard: CanActivateFn = (route) => {
     const authService = inject(AuthService);

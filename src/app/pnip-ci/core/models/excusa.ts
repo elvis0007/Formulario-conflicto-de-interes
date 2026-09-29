@@ -2,7 +2,7 @@
  * Formulario de excusa: una persona se aparta de un proceso en el que
  * participa un familiar suyo.
  *
- * @author EEASA
+ * @author Elvis Flores
  */
 export interface Excusa {
     id: string;

@@ -603,7 +603,9 @@ crea hoy porque todavía no hay pantalla que lo use.
     y `dd/mm/aaaa` a partir de 7 días).
   - **Pendiente con backend:** las notificaciones no se filtran por
     usuario, así que el Responsable ve las mismas que RRHH.
-- **El módulo ocupa toda la ventana** (`position: fixed`, `z-index: 1000`),
+- ~~**El módulo ocupa toda la ventana**~~ **Superado el Día 4:** el módulo
+  convive con la cabecera y el pie del host (ver «Decisiones del Día 4»).
+  Texto original: el módulo ocupaba toda la ventana (`position: fixed`, `z-index: 1000`),
   por encima de la cabecera y el pie que `AppComponent` pinta en **todas**
   las rutas. Ocultarlos exigiría tocar `AppComponent`, y eso queda fuera de
   lo acordado.
@@ -613,7 +615,7 @@ crea hoy porque todavía no hay pantalla que lo use.
     en `AppComponent`.
 - **Vitrina temporal:** `VitrinaPnipComponent`, dentro del placeholder del
   dashboard de RRHH, sirve para revisar insignias, KPIs, píldoras y el
-  modal. Se elimina al construir el dashboard.
+  modal. Se elimina al construir el dashboard. **Eliminada el Día 4.**
 - El menú no tiene iconos por ahora; solo el chevron de los grupos.
 
 ### Pruebas
@@ -661,3 +663,187 @@ crea hoy porque todavía no hay pantalla que lo use.
   shell de PNIP-CI.
 - En frío, la primera entrada a `/pnip` tarda ~1 s en el servidor de
   desarrollo, porque carga el chunk diferido.
+
+---
+
+## Decisiones del Día 4
+
+### Paso 0.1 — Autoría
+
+Se cambiaron las 61 apariciones de `@author EEASA` por `@author Elvis
+Flores` en `src/app/pnip-ci/`, incluido `CONVENTIONS.md`. Solo se tocaron
+comentarios. En `CONVENTIONS.md` sigue la mención al «Manual de estándares
+de programación de EEASA», porque se refiere a la empresa, no a la autoría.
+
+### Paso 0.2 — Layout conviviendo con la app host
+
+- **Hallazgo:** el menú lateral de íconos (`app-sidebar-menu`) **no lo pinta
+  `AppComponent`**, sino `AdminComponent`, y solo en la ruta `/admin`. En
+  `/pnip` nunca aparece.
+- Por eso **no hizo falta tocar ningún archivo del host**:
+  - ni una salida temprana más en `AppComponent`;
+  - ni una condición en su plantilla.
+  
+  `app.component.ts` y `app.routes.ts` siguen exactamente como quedaron el
+  Día 1.
+- Qué cambió en el módulo:
+  - **Shell (`PnipCiShellComponent`):** ya no es `position: fixed`; se
+    pinta en el flujo normal entre la cabecera y el pie del host. Mide el
+    alto **real** de la cabecera (`app-header`, con `ResizeObserver`, en
+    solo lectura) y lo publica en `--alto-cabecera-host`. Así no se asume
+    `100vh` ni 64 px fijos: la cabecera puede crecer si su título ocupa dos
+    líneas.
+  - **Layout:** `min-height: calc(100vh - --alto-cabecera-host)`. La página
+    hace scroll normal y el pie del host queda al final.
+  - **Topbar:** se fija justo bajo la cabecera del host (`sticky`,
+    `top: --alto-cabecera-host`).
+  - **Sidebar:** su fondo ocupa todo el alto del layout. Su contenido se fija
+    bajo la cabecera con su **altura natural**, como máximo el alto visible.
+
+    La primera versión fijaba el sidebar a alto completo, y la verificación
+    visual mostró un problema: al llegar al final de la página, el pie del
+    host empujaba el sidebar hacia arriba y la marca y los primeros ítems
+    quedaban tapados por la cabecera.
+
+    Consecuencia de la corrección: el bloque de usuario queda justo debajo
+    del menú, no pegado al fondo de la ventana.
+  - **Modal:** `z-index` subido a 1000, por encima de la cabecera sticky del
+    host (100).
+- **Vitrina temporal eliminada** del dashboard de RRHH.
+- **Cerrar sesión desde `/pnip`:** funciona.
+  - `HeaderComponent.logout()` borra los tokens y redirige a la intranet
+    (`https://app.eeasa.com.ec/intranet#/inicio`). Verificado: el navegador
+    fue a esa URL.
+  - Al volver después a `/pnip/rrhh/dashboard`, `rolGuard` no ve sesión y
+    manda a `/login`. No queda ningún estado intermedio.
+  - Nota de la prueba: quise bloquear esa URL en el navegador de prueba y
+    no funcionó. Edge headless cargó la página pública de la intranet
+    real, sin tokens, porque la sesión ya se había borrado.
+- **Modo oscuro dentro de `/pnip`:** el botón del host funciona (pone
+  `body.dark-mode`, lo guarda en `localStorage` y cambia el ícono). **PNIP-CI
+  no tiene tema oscuro propio**, así que su contenido no cambia.
+  **Pendiente de decidir** si el módulo debe soportarlo; con los tokens
+  bastaría redefinirlos bajo `:host-context(body.dark-mode)` en el shell.
+
+### Paso 0.3 — Referencia: «Formularios recibidos» existente
+
+Se revisaron `admin.component.html/.scss/.ts` sin modificarlos.
+
+**No hay un componente de tabla reutilizable:** la tabla, los filtros y la
+paginación están escritos directamente en `AdminComponent`, con sus estilos
+en su SCSS. Se **copió el estilo, no el código**.
+
+| Tomado del host | Cómo quedó en PNIP-CI |
+|---|---|
+| Banda oscura con el título en mayúsculas y el total: «Formularios Recibidos (n)» | Clase `.banda` (`--navy-form`) en `styles/_listados.scss`. |
+| Panel blanco de filtros pegado bajo la banda: selects de tipo y contrato, fechas «desde/hasta», buscador y botón azul «EXPORTAR» con ícono de Excel | Clase `.filtros`, con etiquetas visibles en cada campo (el host no las tiene). Filtro de origen añadido. |
+| Tabla con cabecera oscura en mayúsculas de 11 px, filas pares sombreadas, hover azul claro y borde inferior por fila | `DataTablePnipComponent`, `variante="navy"`. |
+| Columnas: Nombre, Cédula, Origen, Tipo, Tipo de contrato, Fecha, Acciones | Las mismas. |
+| Badge de origen verde (Interno) / naranja (Externo) | `BadgePnipComponent` con tono `verde` / `naranja`. |
+| Acciones: botón 👁 (ver PDF) y ⌄ (desplegar historial) con borde | 👁 abre el modal; ⌄ despliega los familiares (`ExpandArrowButtonPnipComponent`). |
+| Paginación «Mostrar [5/10/15] registros · Página X de Y · « Anterior / Siguiente »», 10 por defecto | La misma, dentro de `DataTablePnipComponent`. |
+| Filtro de fechas comparando solo `aaaa-mm-dd` | `estaEnRangoFechas()`. |
+| Pestañas «Formularios recibidos» / «No han llenado formulario» | `TabsPnipComponent` (el host usa dos botones sueltos). |
+| Fecha con `toLocaleDateString('es-EC', …)` y hora | `FechaLargaPipe`. |
+
+Lo construido nuevo, sin equivalente en el host:
+- modal con el formulario completo;
+- fila desplegable con los familiares declarados;
+- filtros combinados sin distinguir tildes;
+- estado vacío con «Limpiar filtros»;
+- confirmación visual de Exportar y Descargar PDF;
+- recordatorios con estado «Enviado ✓».
+
+### Paso 1 — Componentes compartidos nuevos
+
+| Componente | Decisión |
+|---|---|
+| `DataTablePnipComponent` | Las celdas se escriben en plantillas (`<ng-template pnipFila>`, `<ng-template pnipDetalle>`), no en una configuración de columnas. Las directivas reciben la lista (`[pnipFilaDe]`) solo para que `strictTemplates` conozca el tipo de la fila. La tabla guarda qué filas están desplegadas (por `claveFila`) y pasa a la plantilla `expandida`, `alternar()` e `idDetalle` (para `aria-controls`). Vuelve a la página 1 cuando cambian las filas, por ejemplo al filtrar. |
+| `ExpandArrowButtonPnipComponent` | `aria-expanded`, `aria-label` «Mostrar/Ocultar …» y `aria-controls` opcional. La flecha rota 180°. |
+| `EmptyStatePnipComponent` | Ícono, texto y botón opcional, con `role="status"`. |
+| `TabsPnipComponent` | Creado hoy, porque ya hay pantalla que lo usa (decisión del Día 3). Usa `tablist`/`tab`, `aria-selected`, *roving tabindex* y flechas, Inicio y Fin. La pantalla pinta los paneles con `role="tabpanel"`. Los dos paneles se renderizan y el inactivo se oculta con `hidden`, para que el contador de «No han llenado formulario (n)» se conozca sin abrir la pestaña. Admite `atenuada` para los planes cerrados de los días 7-8. |
+| `IconoPnipComponent` | **No se agregó una librería de íconos.** El Día 3 no se eligió ninguna (solo SVG en línea), y la app host también dibuja sus íconos como SVG en línea estilo Feather. Se usan trazos de Lucide/Feather (licencia ISC/MIT) en un componente, sin dependencias. |
+
+### Pasos 2 y 3 — Pantallas
+
+- **Formularios › Conflicto de Interés.** La pestaña «No han llenado» es un
+  subcomponente propio (`PestanaSinFormularioComponent`). El modal usa
+  `DetalleFormularioComponent`, y la tabla de familiares
+  (`TablaFamiliaresComponent`) se reutiliza en la fila desplegada y en el
+  modal. Así cada archivo queda pequeño, como pide `CONVENTIONS.md`.
+- **Formularios › Excusas.** Mismo patrón. La flecha despliega el motivo y
+  el reemplazo designado; el modal (`DetalleExcusaComponent`) muestra todos
+  los campos.
+- **Filtros.** Funciones puras en `core/utils/filtros-listados.util.ts`
+  (`filtrarFormularios`, `filtrarExcusas`), probadas aparte. Todos los
+  filtros se combinan. La búsqueda de texto no distingue mayúsculas ni
+  tildes, y en formularios también busca en los nombres de los familiares
+  declarados.
+- **Exportar y Descargar PDF.** Solo muestran «Exportado ✓» o «PDF
+  descargado ✓» durante 2 s (`ConfirmacionTemporal`), sin generar archivos.
+- **Recordatorios.**
+  - `FormulariosMockService.enviarRecordatorio()` guarda la fecha en
+    memoria; no hay llamada real.
+  - Cada fila pasa a «Enviado ✓» y la columna «Recordatorio» muestra la
+    fecha del envío.
+  - «Enviar recordatorio a todos» se aplica a toda la lista de esa pestaña,
+    que no tiene filtros.
+- **Botones de acciones ya hechas.** Usan `aria-disabled`, no `disabled`,
+  para no perder el foco (regla añadida a `CONVENTIONS.md`).
+- **Nombre en MAYÚSCULAS con apellidos primero** (`NombreFormalPipe`, no
+  existía un pipe equivalente).
+  - Los datos traen el nombre completo en un solo campo, así que se asume
+    que las dos últimas palabras son los apellidos.
+  - Las partículas (`de`, `del`, `la`…) se unen a la palabra siguiente para
+    no partir apellidos compuestos.
+  - **Pendiente:** si el backend envía nombres y apellidos por separado,
+    usarlos.
+- **Modelo nuevo `EmpleadoSinFormulario`** (persona + origen + fecha del
+  último recordatorio). `Persona` no tiene esos datos. Se añadió un
+  externo de ejemplo que no está en `PERSONAS`.
+- El botón «Generar análisis de conflictos» es un enlace (`routerLink`),
+  porque por ahora solo navega. La lógica real llega el Día 5.
+
+### Catálogos PROVISIONALES (pendientes de confirmar con backend)
+
+Viven en `core/services/mock-data/catalogos.data.ts` y se sirven con
+`CatalogosMockService`.
+
+| Catálogo | Valores | Por qué es provisional |
+|---|---|---|
+| Tipo de contrato | Ocasional, Permanente, Servicios ocasionales LOEP, Nombramientos provisionales LOEP | La app host usa el catálogo de modalidades de nómina por régimen, que tiene muchos más valores. Hay que decidir cuál usa PNIP-CI. |
+| Tipo de proceso (excusas) | Proceso de selección, Proceso de compra, Evaluación de desempeño | La especificación dice que los campos exactos del formulario de excusa están por confirmar. |
+
+Los datos de ejemplo de formularios y excusas se ajustaron a estos
+catálogos. Un spec lo comprueba.
+
+### Pruebas y verificación
+
+- **Módulo: 147 de 147 correctas**, en dos ejecuciones seguidas.
+  - Specs nuevos: DataTable (paginación, cambio de tamaño, vuelta a la
+    página 1, detalle, variante navy, vacío), ExpandArrow, EmptyState, Tabs
+    (ARIA y teclado), filtros combinados, texto, rango de fechas,
+    `ConfirmacionTemporal`, `NombreFormalPipe`, las dos pantallas completas
+    y la coherencia de los mocks con los catálogos.
+- **Builds de development y production:** sin errores. Solo queda el aviso
+  preexistente del presupuesto de estilos de `conflict-form`.
+- **Verificación visual** (usuario `R`, Edge headless, eventos reales):
+  - **Convivencia con el host:** cabecera (64 px) y pie visibles, sin menú de
+    íconos ni vitrina. Sidebar y topbar empiezan justo bajo la cabecera y, al
+    final de la página, la marca sigue visible con el pie a la vista.
+  - **Formularios recibidos:**
+    - 6 filas con nombre formal.
+    - Filtros combinados: Interno → 5, + Permanente → 2, + «freire» → 1,
+      + Externo → 0; «Limpiar filtros» → 6.
+    - Exportar → «Exportado ✓» y vuelve a su texto a los 2 s.
+    - La flecha despliega los familiares; el 👁 abre el modal con
+      «Descargar PDF ✓», y se cierra con Esc.
+  - **No han llenado (5):** «Nunca» en 3; enviar una fila → «Enviado ✓» con
+    la fecha de hoy; enviar a todos → «Enviado a todos ✓» y ya ningún
+    «Nunca».
+  - **Excusas:** 4 filas; «Proceso de compra» → 2, + Externo → 1. La flecha
+    muestra motivo y reemplazo; el 👁 abre el modal.
+  - **Modo oscuro y cerrar sesión:** ver Paso 0.2.
+- **Servidor de desarrollo:** había un `node` escuchando en el puerto 4200
+  que no se lanzó en esta sesión (posiblemente un `ng serve` de Elvis). No
+  se tocó; la verificación usó el puerto 4300.

@@ -1,7 +1,7 @@
 /**
  * Familiar que un empleado declara en su formulario de conflicto de interes.
  *
- * @author EEASA
+ * @author Elvis Flores
  */
 export interface FamiliarDeclarado {
     /** Parentesco con el declarante (p. ej. `Hermano`, `Suegra`). */

@@ -3,7 +3,7 @@ import { FamiliarDeclarado } from './familiar-declarado';
 /**
  * Formulario de declaracion de conflicto de interes, visto desde RRHH.
  *
- * @author EEASA
+ * @author Elvis Flores
  */
 export interface FormularioCI {
     id: string;

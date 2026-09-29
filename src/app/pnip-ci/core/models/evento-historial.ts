@@ -1,7 +1,7 @@
 /**
  * Entrada del historial de cambios de un conflicto, plan o actividad.
  *
- * @author EEASA
+ * @author Elvis Flores
  */
 export interface EventoHistorial {
     /** Fecha y hora del evento (ISO 8601). */

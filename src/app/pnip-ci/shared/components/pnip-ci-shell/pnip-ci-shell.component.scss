@@ -6,17 +6,14 @@
 // `font-family: var(--font-sans)` o `var(--font-condensed)`.
 @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@400;500;600;700&display=swap');
 
-// El modulo ocupa toda la ventana, por encima de la cabecera y el pie que
-// AppComponent pinta alrededor de todas las rutas (no se pueden ocultar sin
-// modificar AppComponent). La cabecera existente es sticky con z-index 100.
+// Convive con la cabecera y el pie de la app host: flujo normal de la
+// pagina. `--alto-cabecera-host` lo publica el componente con el alto real
+// de la cabecera (64px es solo el valor inicial hasta medirla).
 :host {
     @include tokens.variables;
+    --alto-cabecera-host: 64px;
 
-    position: fixed;
-    inset: 0;
-    z-index: 1000;
     display: block;
-    overflow: hidden;
     background-color: var(--bg);
     color: var(--ink);
     font-family: var(--font-sans);

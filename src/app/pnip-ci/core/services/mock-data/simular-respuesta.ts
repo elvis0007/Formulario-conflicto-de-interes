@@ -12,7 +12,7 @@ export const LATENCIA_SIMULADA_MS = 300;
  *
  * @param datos Datos a devolver.
  * @returns Observable que emite la copia y completa.
- * @author EEASA
+ * @author Elvis Flores
  */
 export function simularRespuesta<T>(datos: T): Observable<T> {
     return of(structuredClone(datos)).pipe(delay(LATENCIA_SIMULADA_MS));

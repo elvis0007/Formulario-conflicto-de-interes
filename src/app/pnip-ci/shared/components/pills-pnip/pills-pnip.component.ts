@@ -37,7 +37,7 @@ const TONO_POR_DEFECTO: Tono = 'azul';
  * `<app-pnip-pills [opciones]="filtros" [seleccionado]="filtro"
  *     (cambio)="filtro = $event" />`
  *
- * @author EEASA
+ * @author Elvis Flores
  */
 @Component({
     selector: 'app-pnip-pills',

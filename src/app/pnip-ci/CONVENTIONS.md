@@ -9,7 +9,7 @@ Adaptación del *Manual de estándares de programación* de EEASA
 - Comentario TSDoc (`/** ... */`) en cada clase, componente, servicio,
   guard, interfaz, tipo y método o función pública.
 - Etiquetas: `@param nombre descripción`, `@returns descripción` y
-  `@author EEASA` en clases, componentes, servicios, guards e interfaces.
+  `@author Elvis Flores` en clases, componentes, servicios, guards e interfaces.
 - En interfaces, documentar cada propiedad cuyo significado no sea evidente
   por su nombre (formatos de fecha, unidades, de dónde sale el valor…).
 - Comentarios en español. Explican el *por qué*, no repiten el código.
@@ -124,5 +124,22 @@ pnip-ci/
 | `app-pnip-modal` | Ventana modal (X, fondo, Esc; foco atrapado). |
 | `app-pnip-pills` | Filtros de un solo valor. **No** para pestañas. |
 | `app-pnip-layout` | Sidebar + topbar + contenido; menú por `data.menu`. |
+| `app-pnip-tabs` | Pestañas que controlan paneles (`role="tablist"`). |
+| `app-pnip-data-table` | Tabla con paginación y filas desplegables; celdas en `<ng-template pnipFila>`, detalle en `<ng-template pnipDetalle>`, vacío en `[pnipVacio]`. `variante="navy"` en pantallas de Formularios. |
+| `app-pnip-expand-arrow-button` | Flecha para desplegar filas o secciones. |
+| `app-pnip-empty-state` | Lista vacía: ícono, texto y acción opcional. |
+| `app-pnip-icono` | Íconos SVG en línea (sin librería externa). |
 
 Cada pantalla nueva declara en su ruta `data: { breadcrumb: [...] }`.
+
+Las pantallas de listado incluyen `@include listados.estilos;`
+(`styles/_listados.scss`): banda azul marino, panel de filtros y botones con
+el mismo aspecto que «Formularios recibidos» de la app host.
+
+## Accesibilidad de botones de acción
+
+- Un botón que ya cumplió su acción («Exportado ✓», «Enviado ✓») se marca
+  con `aria-disabled` y se ignora el clic en el código; **no** con
+  `disabled`, porque un botón deshabilitado pierde el foco (y dentro de un
+  modal el foco saldría de la trampa).
+- Los botones solo con ícono llevan `aria-label` descriptivo.

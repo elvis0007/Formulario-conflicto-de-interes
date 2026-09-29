@@ -20,7 +20,7 @@ const PATRON_SOLO_FECHA = /^(\d{4})-(\d{2})-(\d{2})$/;
  *
  * Uso: `{{ evidencia.fechaSubida | fechaLarga }}`
  *
- * @author EEASA
+ * @author Elvis Flores
  */
 @Pipe({
     name: 'fechaLarga'

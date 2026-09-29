@@ -12,7 +12,7 @@ import { obtenerBreadcrumb } from './breadcrumb';
  * `data.breadcrumb` de la ruta activa, y campana de notificaciones a la
  * derecha.
  *
- * @author EEASA
+ * @author Elvis Flores
  */
 @Component({
     selector: 'app-pnip-topbar',

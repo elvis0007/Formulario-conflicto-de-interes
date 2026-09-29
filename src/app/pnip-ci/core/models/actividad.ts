@@ -4,7 +4,7 @@ import { EstadoActividad } from './tipos';
 /**
  * Tarea concreta dentro de un plan de accion, asignada a un responsable.
  *
- * @author EEASA
+ * @author Elvis Flores
  */
 export interface Actividad {
     id: string;

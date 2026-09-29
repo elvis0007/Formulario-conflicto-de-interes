@@ -1,0 +1,11 @@
+<button
+    type="button"
+    class="boton"
+    [class.boton--expandido]="expandido"
+    [attr.aria-label]="etiquetaAccesible"
+    [attr.aria-expanded]="expandido"
+    [attr.aria-controls]="controla"
+    [title]="etiquetaAccesible"
+    (click)="alternar.emit()">
+    <app-pnip-icono class="flecha" nombre="chevron-abajo" [tamano]="18" />
+</button>

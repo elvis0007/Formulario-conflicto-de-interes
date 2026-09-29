@@ -1,7 +1,7 @@
 /**
  * Referencia a un archivo almacenado (documento firmado, evidencia...).
  *
- * @author EEASA
+ * @author Elvis Flores
  */
 export interface Archivo {
     /** Nombre original del archivo, con extension. */

@@ -28,7 +28,7 @@ function pdfSimulado(nombre: string): Archivo {
  * Las fechas limite estan calculadas con `calcularFechaLimite` sobre
  * `fechaInicio`; los planes en borrador no tienen ni una ni otra.
  *
- * @author EEASA
+ * @author Elvis Flores
  */
 export const PLANES: readonly PlanAccion[] = [
     {

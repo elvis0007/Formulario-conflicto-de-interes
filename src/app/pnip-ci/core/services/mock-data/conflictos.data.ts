@@ -169,7 +169,7 @@ const CONFLICTOS_SIN_PLANES: readonly ConflictoSinPlanes[] = [
  * Conflictos de ejemplo con sus planes enlazados desde `PLANES` (por
  * `conflictoId`), para que ambos servicios devuelvan los mismos datos.
  *
- * @author EEASA
+ * @author Elvis Flores
  */
 export const CONFLICTOS: readonly Conflicto[] = CONFLICTOS_SIN_PLANES.map(
     (conflicto) => ({

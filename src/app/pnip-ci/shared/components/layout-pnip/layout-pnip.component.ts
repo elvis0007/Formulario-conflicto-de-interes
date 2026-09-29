@@ -16,7 +16,7 @@ export const DATO_MENU = 'menu';
  * pasa por `data.menu` de la ruta (`MENU_RRHH` / `MENU_RESPONSABLE`); dos
  * componentes serian dos copias de la misma estructura.
  *
- * @author EEASA
+ * @author Elvis Flores
  */
 @Component({
     selector: 'app-pnip-layout',

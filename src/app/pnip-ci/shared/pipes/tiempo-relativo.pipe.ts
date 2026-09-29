@@ -26,7 +26,7 @@ const MS_DIA = 24 * MS_HORA;
  *
  * Uso: `{{ notificacion.fecha | tiempoRelativo }}`
  *
- * @author EEASA
+ * @author Elvis Flores
  */
 @Pipe({
     name: 'tiempoRelativo'

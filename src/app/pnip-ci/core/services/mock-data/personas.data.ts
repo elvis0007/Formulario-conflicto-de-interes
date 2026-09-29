@@ -13,7 +13,7 @@ import { Persona } from '../../models';
  * - EMP-004 es suegro de EMP-008 (casada con su hijo).
  * - EMP-012 comparte apellidos con EMP-002 pero no es pariente (homonimo).
  *
- * @author EEASA
+ * @author Elvis Flores
  */
 export const PERSONAS: readonly Persona[] = [
     {

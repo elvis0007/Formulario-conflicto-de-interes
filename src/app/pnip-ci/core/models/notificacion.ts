@@ -1,7 +1,7 @@
 /**
  * Aviso dirigido al usuario (nueva evidencia, rechazo, vencimiento...).
  *
- * @author EEASA
+ * @author Elvis Flores
  */
 export interface Notificacion {
     id: string;

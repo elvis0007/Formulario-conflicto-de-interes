@@ -21,7 +21,7 @@ import {
  *
  * La tabla es fija del sistema de diseno, por eso vive en codigo.
  *
- * @author EEASA
+ * @author Elvis Flores
  */
 export type Tono = 'rojo' | 'ambar' | 'verde' | 'azul' | 'naranja' | 'gris';
 

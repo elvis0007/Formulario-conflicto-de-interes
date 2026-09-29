@@ -11,7 +11,7 @@ import { MonoTypeOperatorFunction, catchError, of } from 'rxjs';
  * @param origen `Clase.metodo` que hizo la consulta, para el log.
  * @param valorPorDefecto Valor que se emite si la consulta falla.
  * @returns Operador que captura el error y emite `valorPorDefecto`.
- * @author EEASA
+ * @author Elvis Flores
  */
 export function manejarError<T>(
     origen: string,

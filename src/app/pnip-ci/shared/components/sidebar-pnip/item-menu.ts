@@ -2,7 +2,7 @@
  * Entrada del menu lateral. Es una hoja (con `ruta`) o un grupo
  * desplegable (con `hijos`).
  *
- * @author EEASA
+ * @author Elvis Flores
  */
 export interface ItemMenu {
     /** Texto visible. */

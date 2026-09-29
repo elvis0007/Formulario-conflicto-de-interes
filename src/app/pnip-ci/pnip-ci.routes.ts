@@ -141,7 +141,7 @@ const RUTAS_RESPONSABLE: Routes = [
  * `/pnip` a secas lleva a la pantalla de inicio del usuario
  * (`RolPnipCiService.obtenerRutaInicio`).
  *
- * @author EEASA
+ * @author Elvis Flores
  */
 export const PNIP_CI_ROUTES: Routes = [
     {

@@ -18,7 +18,7 @@ import { Actividad } from '../../core/models';
  *
  * Uso: `{{ actividad | plazoTexto }}`, `{{ actividad | plazoTexto:true }}`
  *
- * @author EEASA
+ * @author Elvis Flores
  */
 @Pipe({
     name: 'plazoTexto'

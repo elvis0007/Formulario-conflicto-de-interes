@@ -1,9 +1,10 @@
 import { Excusa } from '../../models';
 
 /**
- * Formularios de excusa de ejemplo.
+ * Formularios de excusa de ejemplo. `proceso` usa el catalogo provisional
+ * `TIPOS_PROCESO_EXCUSA`.
  *
- * @author EEASA
+ * @author Elvis Flores
  */
 export const EXCUSAS: readonly Excusa[] = [
     {
@@ -11,7 +12,7 @@ export const EXCUSAS: readonly Excusa[] = [
         nombre: 'Carlos Andrés Mayorga Sánchez',
         cedula: '1800000011',
         origen: 'Interno',
-        proceso: 'Contratación pública',
+        proceso: 'Proceso de compra',
         detalleProceso: 'Adquisición de medidores monofásicos '
             + '(proceso SIE-EEASA-2026-014)',
         familiar: 'Jorge Luis Mayorga Sánchez',
@@ -26,7 +27,7 @@ export const EXCUSAS: readonly Excusa[] = [
         nombre: 'Lucía Alejandra Freire Ortiz',
         cedula: '1800000086',
         origen: 'Interno',
-        proceso: 'Selección de personal',
+        proceso: 'Proceso de selección',
         detalleProceso: 'Concurso para Asistente de Comercialización',
         familiar: 'Paola Cristina Freire Naranjo',
         parentesco: 'Prima',
@@ -52,7 +53,7 @@ export const EXCUSAS: readonly Excusa[] = [
         nombre: 'Verónica Alexandra Salazar Pinto',
         cedula: '1800000342',
         origen: 'Externo',
-        proceso: 'Contratación pública',
+        proceso: 'Proceso de compra',
         detalleProceso: 'Servicio de atención telefónica '
             + '(proceso CDC-EEASA-2026-003)',
         familiar: 'Paola Cristina Freire Naranjo',

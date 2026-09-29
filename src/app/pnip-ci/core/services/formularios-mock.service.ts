@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { FormularioCI, Persona } from '../models';
+import { EmpleadoSinFormulario, FormularioCI } from '../models';
 import { manejarError } from '../utils/manejar-error';
 import {
     EMPLEADOS_SIN_FORMULARIO,
@@ -9,15 +9,21 @@ import {
 import { simularRespuesta } from './mock-data/simular-respuesta';
 
 /**
- * Consulta de formularios de conflicto de interes con datos simulados. Se
- * sustituira por un servicio HTTP con los mismos metodos.
+ * Formularios de conflicto de interes con datos simulados. Se sustituira
+ * por un servicio HTTP con los mismos metodos.
  *
- * @author EEASA
+ * Guarda su propia copia de las personas sin formulario para simular el
+ * envio de recordatorios durante la sesion (sin correo real).
+ *
+ * @author Elvis Flores
  */
 @Injectable({
     providedIn: 'root'
 })
 export class FormulariosMockService {
+    /** Estado en memoria de quienes no han llenado el formulario. */
+    private readonly sinFormulario: EmpleadoSinFormulario[] =
+        structuredClone([...EMPLEADOS_SIN_FORMULARIO]);
 
     /**
      * Obtiene todos los formularios recibidos.
@@ -51,15 +57,39 @@ export class FormulariosMockService {
     }
 
     /**
-     * Obtiene los empleados que aun no han llenado el formulario.
+     * Obtiene quienes aun no han llenado el formulario.
      *
-     * @returns Lista de empleados; vacia si la consulta falla.
+     * @returns Lista de personas; vacia si la consulta falla.
      */
-    obtenerEmpleadosSinFormulario(): Observable<Persona[]> {
-        return simularRespuesta([...EMPLEADOS_SIN_FORMULARIO]).pipe(
-            manejarError<Persona[]>(
+    obtenerEmpleadosSinFormulario(): Observable<EmpleadoSinFormulario[]> {
+        return simularRespuesta([...this.sinFormulario]).pipe(
+            manejarError<EmpleadoSinFormulario[]>(
                 'FormulariosMockService.obtenerEmpleadosSinFormulario',
                 []
+            )
+        );
+    }
+
+    /**
+     * Registra el envio de un recordatorio a las personas indicadas. Sin
+     * backend no se envia ningun correo: solo se actualiza la fecha.
+     *
+     * @param personaIds Ids de las personas.
+     * @returns Fecha ISO del envio; `null` si la operacion falla.
+     */
+    enviarRecordatorio(personaIds: readonly string[]): Observable<string | null> {
+        const fecha = new Date().toISOString();
+
+        for (const empleado of this.sinFormulario) {
+            if (personaIds.includes(empleado.persona.id)) {
+                empleado.ultimoRecordatorio = fecha;
+            }
+        }
+
+        return simularRespuesta<string | null>(fecha).pipe(
+            manejarError<string | null>(
+                'FormulariosMockService.enviarRecordatorio',
+                null
             )
         );
     }

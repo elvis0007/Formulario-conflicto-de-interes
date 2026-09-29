@@ -22,7 +22,7 @@ import { ItemMenu, buscarGrupo, buscarItemActivo } from './item-menu';
  *   Los demas grupos se abren y cierran a mano.
  * - Al pie muestra iniciales, nombre y rol del usuario.
  *
- * @author EEASA
+ * @author Elvis Flores
  */
 @Component({
     selector: 'app-pnip-sidebar',

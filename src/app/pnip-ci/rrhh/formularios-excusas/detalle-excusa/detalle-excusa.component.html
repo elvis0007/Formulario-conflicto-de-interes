@@ -1,0 +1,33 @@
+<section class="declarante" aria-label="Datos de la excusa">
+    <div class="cabecera">
+        <p class="nombre">{{ excusa.nombre | nombreFormal }}</p>
+        <app-pnip-badge
+            [tono]="excusa.origen === 'Interno' ? 'verde' : 'naranja'"
+            [texto]="excusa.origen" />
+    </div>
+    <dl class="datos">
+        <div><dt>Cédula</dt><dd>{{ excusa.cedula }}</dd></div>
+        <div><dt>Fecha</dt><dd>{{ excusa.fecha | fechaLarga }}</dd></div>
+        <div><dt>Proceso</dt><dd>{{ excusa.proceso }}</dd></div>
+        <div><dt>Detalle del proceso</dt><dd>{{ excusa.detalleProceso }}</dd></div>
+        <div><dt>Familiar relacionado</dt><dd>{{ excusa.familiar }}</dd></div>
+        <div><dt>Parentesco</dt><dd>{{ excusa.parentesco }}</dd></div>
+        <div class="dato-ancho"><dt>Motivo</dt><dd>{{ excusa.motivo }}</dd></div>
+        <div class="dato-ancho"><dt>Reemplazo designado</dt><dd>{{ excusa.reemplazo }}</dd></div>
+    </dl>
+</section>
+
+<div class="pie">
+    <button
+        type="button"
+        class="descargar"
+        [class.descargar--hecho]="descargado.activa"
+        [attr.aria-disabled]="descargado.activa"
+        (click)="descargar()">
+        <app-pnip-icono [nombre]="descargado.activa ? 'check' : 'descargar'" />
+        {{ descargado.activa ? 'PDF descargado ✓' : 'Descargar PDF' }}
+    </button>
+    <span class="solo-lectores" aria-live="polite">
+        {{ descargado.activa ? 'PDF descargado' : '' }}
+    </span>
+</div>

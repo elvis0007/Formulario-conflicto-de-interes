@@ -32,7 +32,7 @@ const DIAS_VISIBLES = 7;
  * - «Marcar todas como leídas» actualiza el servicio y recarga.
  * - El panel se cierra con clic fuera o con Esc.
  *
- * @author EEASA
+ * @author Elvis Flores
  */
 @Component({
     selector: 'app-pnip-notification-bell',

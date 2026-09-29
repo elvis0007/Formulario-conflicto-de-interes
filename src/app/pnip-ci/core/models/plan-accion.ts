@@ -5,7 +5,7 @@ import { EstadoPlan } from './tipos';
 /**
  * Plan de accion definido por RRHH para mitigar un conflicto de interes.
  *
- * @author EEASA
+ * @author Elvis Flores
  */
 export interface PlanAccion {
     id: string;

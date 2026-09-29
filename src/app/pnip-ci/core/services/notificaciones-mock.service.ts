@@ -12,7 +12,7 @@ import { simularRespuesta } from './mock-data/simular-respuesta';
  * (marcar como leidas) durante la sesion. Se sustituira por un servicio
  * HTTP con los mismos metodos.
  *
- * @author EEASA
+ * @author Elvis Flores
  */
 @Injectable({
     providedIn: 'root'

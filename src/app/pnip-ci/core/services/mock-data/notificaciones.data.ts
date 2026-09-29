@@ -24,7 +24,7 @@ const DIA = 24 * HORA;
  * Notificaciones de ejemplo, leidas y no leidas, de todos los `tipo`. Dos
  * (N-006 y N-010) tienen mas de 7 dias, para ver el filtro de la campana.
  *
- * @author EEASA
+ * @author Elvis Flores
  */
 export const NOTIFICACIONES: readonly Notificacion[] = [
     {

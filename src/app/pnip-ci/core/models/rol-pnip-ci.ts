@@ -10,6 +10,6 @@
  * No coincide con las abreviaturas de rol del backend (`A`, `R`, `E`...):
  * la traduccion la hace `RolPnipCiService`.
  *
- * @author EEASA
+ * @author Elvis Flores
  */
 export type RolPnipCi = 'rrhh';

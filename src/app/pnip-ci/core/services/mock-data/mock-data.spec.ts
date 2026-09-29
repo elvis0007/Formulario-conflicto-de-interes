@@ -1,6 +1,9 @@
 import { calcularFechaLimite, parsearFecha } from '../../utils/fechas.util';
 import { derivarEstadoPlan, hayPlanActivo } from '../../utils/planes.util';
+import { TIPOS_CONTRATO, TIPOS_PROCESO_EXCUSA } from './catalogos.data';
 import { CONFLICTOS } from './conflictos.data';
+import { EXCUSAS } from './excusas.data';
+import { FORMULARIOS } from './formularios.data';
 import { PERSONAS } from './personas.data';
 import { PLANES } from './planes.data';
 
@@ -54,6 +57,17 @@ describe('datos de ejemplo PNIP-CI', () => {
                 expect(ids).withContext(actividad.id)
                     .toContain(actividad.responsableId);
             }
+        }
+    });
+
+    it('formularios y excusas usan los catálogos provisionales', () => {
+        for (const formulario of FORMULARIOS) {
+            expect(TIPOS_CONTRATO).withContext(formulario.id)
+                .toContain(formulario.tipoContrato);
+        }
+        for (const excusa of EXCUSAS) {
+            expect(TIPOS_PROCESO_EXCUSA).withContext(excusa.id)
+                .toContain(excusa.proceso);
         }
     });
 

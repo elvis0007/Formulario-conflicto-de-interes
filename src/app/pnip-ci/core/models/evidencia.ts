@@ -4,7 +4,7 @@ import { Archivo } from './archivo';
  * Evidencia que sube un responsable para demostrar que cumplio una
  * actividad, y el resultado de su revision por RRHH.
  *
- * @author EEASA
+ * @author Elvis Flores
  */
 export interface Evidencia {
     archivo: Archivo;

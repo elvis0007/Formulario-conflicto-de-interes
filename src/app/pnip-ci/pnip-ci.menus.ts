@@ -7,7 +7,7 @@ import { ItemMenu } from './shared/components/sidebar-pnip/item-menu';
  * mientras se esta en un plan se resalta «Análisis de Conflictos» gracias a
  * `prefijosAdicionales` (ver `buscarItemActivo`).
  *
- * @author EEASA
+ * @author Elvis Flores
  */
 export const MENU_RRHH: readonly ItemMenu[] = [
     { etiqueta: 'Dashboard', ruta: '/pnip/rrhh/dashboard' },
@@ -48,7 +48,7 @@ export const MENU_RRHH: readonly ItemMenu[] = [
  * (`/pnip/responsable/planes/:planId`) resalta «Bandeja de Tareas» por
  * prefijo de su propia ruta.
  *
- * @author EEASA
+ * @author Elvis Flores
  */
 export const MENU_RESPONSABLE: readonly ItemMenu[] = [
     { etiqueta: 'Dashboard', ruta: '/pnip/responsable/dashboard' },
