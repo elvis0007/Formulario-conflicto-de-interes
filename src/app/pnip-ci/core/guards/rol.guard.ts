@@ -4,17 +4,26 @@ import { AuthService } from '../../../services/auth.service';
 import { RolPnipCi } from '../models';
 import { RolPnipCiService } from '../services/rol-pnip-ci.service';
 
-/** Clave de `Route.data` donde cada ruta indica el rol que exige. */
+/**
+ * Clave de `Route.data` donde cada ruta indica el rol que exige.
+ *
+ * - Un `RolPnipCi` (`'rrhh'`): exige sesion y ese rol.
+ * - `null`: exige solo sesion (pantallas de responsable: cualquier
+ *   empleado puede ser responsable de una actividad).
+ *
+ * Es obligatorio declararla: si falta, el guard niega el paso, para que
+ * olvidarla nunca abra una pantalla de RRHH.
+ */
 export const DATO_ROL_REQUERIDO = 'rolRequerido';
 
 /**
- * Guard de rol del modulo PNIP-CI.
+ * Guard de acceso del modulo PNIP-CI.
  *
- * Lee el rol exigido en `data.rolRequerido` de la ruta y:
- * - sin sesion, envia a `/login` (igual que `authGuard`);
- * - con el rol, deja pasar;
- * - sin el rol, envia al inicio del rol que si tenga, o a `/` si no tiene
- *   ninguno (y `authGuard` decide desde ahi).
+ * - Sin sesion (`AuthService.isAuthenticated()`, lo mismo que usa
+ *   `authGuard`): envia a `/login`.
+ * - `data.rolRequerido === null`: deja pasar a cualquier autenticado.
+ * - Con el rol exigido: deja pasar.
+ * - Sin el rol exigido: envia a su pantalla de inicio (la de responsable).
  *
  * @param route Ruta que se intenta activar.
  * @returns `true` o el `UrlTree` al que redirigir.
@@ -24,15 +33,13 @@ export const rolGuard: CanActivateFn = (route) => {
     const authService = inject(AuthService);
     const rolService = inject(RolPnipCiService);
     const router = inject(Router);
-    const rolRequerido = route.data[DATO_ROL_REQUERIDO] as
-        RolPnipCi | undefined;
-    let rutaInicio: string | null = null;
+    let rolRequerido: RolPnipCi | null = null;
 
     if (!authService.isAuthenticated()) {
         return router.createUrlTree(['/login']);
     }
 
-    if (rolRequerido === undefined) {
+    if (!(DATO_ROL_REQUERIDO in route.data)) {
         console.error(
             '[rolGuard] La ruta no define data.' + DATO_ROL_REQUERIDO,
             route
@@ -40,11 +47,11 @@ export const rolGuard: CanActivateFn = (route) => {
         return router.createUrlTree(['/']);
     }
 
-    if (rolService.tieneRol(rolRequerido)) {
+    rolRequerido = route.data[DATO_ROL_REQUERIDO] as RolPnipCi | null;
+
+    if (rolRequerido === null || rolService.tieneRol(rolRequerido)) {
         return true;
     }
 
-    rutaInicio = rolService.obtenerRutaInicio();
-
-    return router.parseUrl(rutaInicio ?? '/');
+    return router.parseUrl(rolService.obtenerRutaInicio());
 };

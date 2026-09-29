@@ -77,12 +77,30 @@ pnip-ci/
 ├── core/
 │   ├── guards/            guards funcionales (CanActivateFn)
 │   ├── services/          servicios providedIn: 'root'
+│   │   └── mock-data/     datos de ejemplo de los *-mock.service.ts
+│   ├── utils/             funciones puras (fechas, reglas de planes...)
 │   └── models/            interfaces y tipos de dominio
-├── shared/components/     componentes reutilizables (incluye el shell)
+├── shared/
+│   ├── components/        componentes reutilizables (incluye el shell)
+│   └── pipes/             pipes standalone
 ├── rrhh/                  pantallas del rol RRHH
 ├── responsable/           pantallas del rol Responsable
 └── styles/_tokens.scss    variables de diseño (solo dentro del módulo)
 ```
+
+## Servicios de datos
+
+- Todo método de consulta devuelve `Observable`, aunque hoy los datos sean
+  simulados, y termina con `manejarError(origen, valorPorDefecto)`
+  (`core/utils/manejar-error.ts`).
+- Los componentes solo dependen de los métodos públicos del servicio: al
+  cambiar `*MockService` por la versión HTTP no se tocan.
+
+## Pruebas
+
+- Cada función de `core/utils/` y cada guard tiene su `.spec.ts` al lado.
+- Las funciones que dependen de «hoy» reciben la fecha como parámetro
+  opcional, para poder probarlas con una fecha fija.
 
 ## Estilos
 

@@ -106,7 +106,8 @@ const RUTAS_RESPONSABLE: Routes = [
  * con `loadChildren`, asi que este archivo y todo lo que importa se cargan
  * solo cuando el usuario entra al modulo.
  *
- * `/pnip` a secas lleva al inicio del rol del usuario.
+ * `/pnip` a secas lleva al dashboard de RRHH o, si el usuario no es de
+ * RRHH, al de responsable.
  *
  * @author EEASA
  */
@@ -118,12 +119,8 @@ export const PNIP_CI_ROUTES: Routes = [
             {
                 path: '',
                 pathMatch: 'full',
-                redirectTo: () => {
-                    const rutaInicio = inject(RolPnipCiService)
-                        .obtenerRutaInicio();
-
-                    return rutaInicio ?? '/';
-                }
+                redirectTo: () => inject(RolPnipCiService)
+                    .obtenerRutaInicio()
             },
             {
                 path: 'rrhh',
@@ -134,7 +131,9 @@ export const PNIP_CI_ROUTES: Routes = [
             {
                 path: 'responsable',
                 canActivate: [rolGuard],
-                data: { [DATO_ROL_REQUERIDO]: 'responsable' },
+                // Sin rol: cualquier empleado autenticado puede ser
+                // responsable de una actividad.
+                data: { [DATO_ROL_REQUERIDO]: null },
                 children: RUTAS_RESPONSABLE
             }
         ]

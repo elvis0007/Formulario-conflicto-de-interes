@@ -250,11 +250,14 @@ src/app/pnip-ci/
 | Fuentes Barlow con alcance limitado | `@import url(Google Fonts)` en el SCSS del shell; `font-family: var(--font-sans)` en su `:host`. Se añadieron los tokens `--font-sans` y `--font-condensed` | Los estilos de un componente se inyectan solo cuando se crea, así que la fuente solo se descarga al entrar a `/pnip`. `@font-face` es global por naturaleza, pero nada fuera del módulo usa la familia Barlow. |
 | Indentación de 4 espacios | `.editorconfig` anidado en `src/app/pnip-ci/` | El `.editorconfig` raíz dice 2 espacios; así el editor aplica 4 solo dentro del módulo sin tocar el resto. |
 | Modelos | Nombres tal cual se pidieron (`Persona`, no `IPersona`), un archivo por interfaz como en `models/` | El proyecto usa prefijo `I` (`IUsuario`), pero la especificación y `CONVENTIONS.md` piden PascalCase sin prefijo. Anotado en `CONVENTIONS.md`. |
-| Tipo `RolPnipCi` | Nuevo, en `core/models/rol-pnip-ci.ts` (`'rrhh' \| 'responsable'`) | Hacía falta un tipo para el guard y el servicio. |
+| Tipo `RolPnipCi` | Nuevo, en `core/models/rol-pnip-ci.ts`. Día 1: `'rrhh' \| 'responsable'`; **desde el Día 2 solo `'rrhh'`** | Hacía falta un tipo para el guard y el servicio. |
 | Placeholders | Plantilla inline (`template: '<h2>…</h2>'`) | Son temporales; cuando se construya cada pantalla pasará a `templateUrl` + `styleUrl` como el resto del proyecto. |
 | Selectores | Prefijo `app-pnip-` | `angular.json` define el prefijo `app`. |
 
 ### Rol y guard (pendiente de confirmar con backend)
+
+> **Superado el Día 2.** El punto 1 quedó confirmado y el punto 2 se
+> corrigió: ver «Decisiones del Día 2».
 
 Sí había un mecanismo real (`AuthService.hasRole()`), así que
 `RolPnipCiService` lo usa, con esta traducción:
@@ -343,3 +346,144 @@ Solo dos, y solo con adiciones:
   que llevar estos cambios allí.
 - Se ejecutó `npm ci` para poder compilar (no había `node_modules`); no se
   cambió `package.json` ni `package-lock.json`.
+
+---
+
+## Decisiones del Día 2
+
+### Paso 0 — «Responsable» deja de ser un rol
+
+Confirmado por Elvis:
+
+1. El Administrador (`A`) entra a RRHH igual que el Jefe de RRHH (`R`).
+   Ya era así; no cambió.
+2. **«Responsable» no es ni será un rol de autenticación.** Cualquier
+   empleado autenticado puede ser responsable de una o varias actividades,
+   porque el backend se las asigna dentro de un plan. Ser responsable es una
+   relación con una actividad concreta (`Actividad.responsableId`), no un
+   permiso. Por eso tratarlo como rol (Día 1) era un error de modelo.
+
+Cambios:
+
+| Archivo | Cambio |
+|---|---|
+| `core/models/rol-pnip-ci.ts` | `RolPnipCi` pasa de `'rrhh' \| 'responsable'` a solo `'rrhh'`. |
+| `core/guards/rol.guard.ts` | `data.rolRequerido` admite `null` = «solo sesión». Con `'rrhh'` exige R/A. Si la ruta **no declara** la clave, el guard niega el paso (así, si alguien la olvida, nunca se abre una pantalla de RRHH). Sin el rol pedido redirige a `/pnip/responsable/dashboard`, que siempre es accesible. |
+| `pnip-ci.routes.ts` | `/pnip/responsable/**` usa `data: { rolRequerido: null }`. `/pnip` redirige al dashboard de RRHH si el usuario es R/A y, si no, al de responsable. |
+| `core/services/rol-pnip-ci.service.ts` | Eliminada la simulación del rol `'responsable'` (en `PNIP-CI-ROL-SIMULADO` solo valen `rrhh` o `ninguno`). Añadido `obtenerEmpleadoActualId()`. |
+
+La sesión se comprueba con `AuthService.isAuthenticated()`, el mismo
+mecanismo que usa `auth.guard.ts`.
+
+**Consecuencia a tener en cuenta:** los usuarios externos (rol `E`, entran
+con cédula y clave temporal) también están autenticados, así que pueden abrir
+`/pnip/responsable/**`. No verán nada, porque no tienen código de empleado y
+nunca serán responsables de actividades. Si se quiere bloquearlos
+explícitamente, basta con una condición más en el guard. **Pendiente de
+decidir.**
+
+### Empleado actual (`obtenerEmpleadoActualId()`)
+
+- **Fuera de producción:** el valor de
+  `localStorage.getItem('PNIP-CI-EMPLEADO-SIMULADO')` o, si no hay, `EMP-010`
+  (Fernando José Andrade Vela). Por defecto es él porque tiene actividades
+  aprobadas, rechazadas y pendientes en varios planes.
+  ```js
+  localStorage.setItem('PNIP-CI-EMPLEADO-SIMULADO', 'EMP-001'); // ver datos de otro empleado
+  ```
+- **En producción:** `AuthService.getCurrentUser()` **sí expone** un código
+  de empleado: `DMPER_CODIGO` (o `CODIGO`). Se toma igual que ya lo hace
+  `BackendService` al guardar el formulario
+  (`currentUser?.DMPER_CODIGO || currentUser?.CODIGO`).
+- **Pendiente de confirmar con backend:** que `Actividad.responsableId`
+  vendrá con **ese mismo código** (DMPER) y no con la cédula u otro id.
+- **Adaptación:** devuelve `string | null` en vez de `string`, porque hay
+  sesiones sin código de empleado (externos). Devolver `''` escondería ese
+  caso.
+
+### Servicios mock y datos de ejemplo
+
+- Servicios en `core/services/*-mock.service.ts` y datos en
+  `core/services/mock-data/*.data.ts`. Separarlos deja cada servicio pequeño y
+  permite que conflictos y planes compartan los mismos objetos: los planes de
+  cada conflicto se enlazan desde `PLANES` por `conflictoId`, en lugar de
+  copiarse.
+- Todos devuelven `Observable` con 300 ms de latencia simulada
+  (`simularRespuesta`) y una **copia profunda** (`structuredClone`): si un
+  componente modifica lo que recibe, no altera los datos de ejemplo del resto
+  de la app.
+- Todos llevan ya `manejarError(origen, valorPorDefecto)`
+  (`core/utils/manejar-error.ts`): registra el error y emite una lista vacía o
+  `undefined`.
+- Métodos extra, además de los pedidos:
+  `PlanesMockService.obtenerPlanesPorConflicto()`,
+  `obtenerPlanesPorResponsable()`,
+  `FormulariosMockService.obtenerEmpleadosSinFormulario()` y
+  `NotificacionesMockService.contarNoLeidas()`.
+- Hay 12 personas ficticias (pedidas ~10), con parentescos coherentes entre
+  sí: los padres, los cónyuges y los apellidos cuadran con cada conflicto.
+  Las tablas de cobertura (riesgo, relación, grado, clasificación, número de
+  planes, estados) están en el TSDoc de `conflictos.data.ts` y
+  `planes.data.ts`. Los correos usan `@ejemplo.com` y las URLs de archivos
+  apuntan a `/mock/pnip-ci/…`, que no existe.
+- `mock-data.spec.ts` verifica que los datos respetan las propias reglas: el
+  estado de cada plan coincide con `derivarEstadoPlan`, cada fecha límite con
+  `calcularFechaLimite`, ningún conflicto tiene más de un plan vigente, y todo
+  responsable existe.
+
+### Utilidades y pipes
+
+Ubicación: el proyecto no tenía carpeta de utilidades.
+
+- **Funciones puras de dominio** en `core/utils/`: `fechas.util.ts`,
+  `planes.util.ts` y `manejar-error.ts`. Son lógica de negocio sin interfaz
+  visual.
+- **Pipes** en `shared/pipes/`, porque son de presentación.
+
+Decisiones:
+
+| Función | Decisión |
+|---|---|
+| `calcularFechaLimite` | Suma primero los meses y después los días. Si el día no existe en el mes destino, usa el **último día del mes** (31/01 + 1 mes = 28/02), no desborda al mes siguiente como `Date.setMonth`. Acepta `aaaa-mm-dd` y `dd/mm/aaaa`. Lanza `RangeError` si la fecha o el plazo no son válidos. |
+| `calcularDiasRestantes` | Recibe `hoy` como segundo parámetro opcional, para poder probarla. La fecha límite **es el último día válido**: si es hoy devuelve `Vence hoy` con `vencida: false`. `dias` lleva signo (negativo si ya venció); el texto usa el valor absoluto, con singular «1 día». |
+| `derivarEstadoPlan` | **Adaptación de firma:** `derivarEstadoPlan(actividades, fechaInicio)`. Solo con las actividades no se puede saber si el plan se envió. Un plan enviado **sin actividades** queda `activo`, no `cerrado`. |
+| `calcularAvance` | Cuenta como cumplidas solo las `aprobada`. Porcentaje entero redondeado; 0 si no hay actividades. |
+| **`hayPlanActivo`** | **Un plan en `borrador` SÍ cuenta** y bloquea «+ Nuevo plan». Si no contara, se podría crear un borrador junto a un plan activo y, al enviarlo, quedarían dos activos; o se podrían acumular varios borradores y enviarlos todos. Con esta regla cada conflicto tiene como máximo un plan vigente (`borrador`, `activo` o `activo_vencidas`), y solo se crea otro cuando todos están `cerrado`. |
+| `FechaLargaPipe` | Implementado a mano: registrar el locale `es` para `DatePipe` afectaría a toda la app. Si la fecha no trae hora, omite «a las …». Si la fecha no es válida, devuelve el texto tal cual para que el error se vea. |
+| `PlazoTextoPipe` | El pedido mezclaba «0 meses 15 días» y «Plazo: 15 días». No pude comprobarlo en el mockup porque el HTML está empaquetado y comprimido. Por eso admite tres formatos: `compacto` (por defecto, omite la unidad en cero: `15 días`), `etiqueta` (`Plazo: 15 días`) y `completo` (`0 meses 15 días`). Recibe el objeto (`{{ actividad \| plazoTexto }}`), no dos números. |
+
+### Pruebas
+
+- Specs del módulo:
+  - `fechas.util.spec.ts`
+  - `planes.util.spec.ts`
+  - `rol.guard.spec.ts`
+  - `shared/pipes/pipes.spec.ts`
+  - `mock-data.spec.ts`
+- Para correrlas en esta máquina (no hay Chrome, se usa Edge):
+  ```bash
+  CHROME_BIN="C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe" \
+    npx ng test --watch=false --browsers=ChromeHeadless \
+    --include='src/app/pnip-ci/**/*.spec.ts'
+  ```
+- Resultado del módulo: **52 de 52 correctas**.
+- `ng test` completo: **52 correctas y 3 fallidas.** Las 3 son del spec
+  **preexistente** `src/app/app.component.spec.ts`: `No provider for
+  HttpClient`, y además esperaba el `<h1>Hello, …</h1>` de la plantilla
+  inicial de Angular. Ese spec y `AuthService` no han cambiado desde `main`,
+  y fallan igual sin los cambios de PNIP-CI. No se tocó, porque está fuera
+  del módulo. **Pendiente:** decidir si se arregla o se elimina.
+
+### Verificación
+
+- `ng build` en development y en production: compilan sin errores.
+  - Avisos de producción, todos preexistentes: dependencias CommonJS de
+    `jspdf`/`canvg`, y el presupuesto de estilos de
+    `conflict-form.component.scss`, que ocupa 25,24 kB con un límite de
+    20 kB.
+- `ng serve` + Edge headless:
+  - Con rol `E` y sin simulación: `/pnip/responsable/**` carga; `/pnip/rrhh/**`
+    y `/pnip` redirigen a `/pnip/responsable/dashboard`.
+  - Con `R` y con `A`: entran a RRHH y a responsable; `/pnip` va a RRHH.
+  - Sin sesión: `/login`.
+  - `/`, `/admin` y `/mis-formularios` se comportan igual que antes.

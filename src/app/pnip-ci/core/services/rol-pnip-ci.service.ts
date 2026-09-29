@@ -2,39 +2,46 @@ import { Injectable, inject } from '@angular/core';
 import { environment } from '../../../../environments/environment';
 import { AuthService } from '../../../services/auth.service';
 import { RolPnipCi } from '../models';
+import { EMPLEADO_SIMULADO_POR_DEFECTO } from './mock-data/personas.data';
 
 /** Abreviaturas de rol del backend que dan acceso a la parte de RRHH. */
 const ROLES_BACKEND_RRHH: readonly string[] = ['R', 'A'];
 
 /**
- * Rol que se simula en desarrollo mientras el backend no exponga el rol
- * `responsable`. Poner `null` para usar solo los roles reales.
+ * Rol que se simula en desarrollo. Poner `null` para usar solo los roles
+ * reales del backend.
  */
 const ROL_SIMULADO_POR_DEFECTO: RolPnipCi | null = 'rrhh';
 
 /**
  * Clave de `localStorage` para cambiar el rol simulado sin recompilar.
- * Valores: `rrhh`, `responsable` o `ninguno` (desactiva la simulacion).
+ * Valores: `rrhh` o `ninguno` (desactiva la simulacion).
  */
 const CLAVE_ROL_SIMULADO = 'PNIP-CI-ROL-SIMULADO';
 
-/** Pantalla de inicio de cada rol del modulo. */
-const RUTA_INICIO: Readonly<Record<RolPnipCi, string>> = {
-    rrhh: '/pnip/rrhh/dashboard',
-    responsable: '/pnip/responsable/dashboard'
-};
+/**
+ * Clave de `localStorage` para elegir que empleado de los datos de ejemplo
+ * esta usando la app (p. ej. `EMP-004`).
+ */
+const CLAVE_EMPLEADO_SIMULADO = 'PNIP-CI-EMPLEADO-SIMULADO';
+
+/** Pantalla de inicio de RRHH. */
+const RUTA_INICIO_RRHH = '/pnip/rrhh/dashboard';
+
+/** Pantalla de inicio de cualquier empleado (vista de responsable). */
+const RUTA_INICIO_RESPONSABLE = '/pnip/responsable/dashboard';
 
 /**
- * Traduce la sesion del usuario a los roles del modulo PNIP-CI.
+ * Traduce la sesion del usuario al modulo PNIP-CI: su rol (solo `rrhh`) y
+ * su identificador de empleado.
  *
- * Fuente real: `AuthService.hasRole()`. Los roles `R` (Jefe de RRHH) y `A`
- * (Administrador) se tratan como `rrhh`, igual que en el resto de la app.
+ * - Rol: `R` (Jefe de RRHH) y `A` (Administrador) se tratan como `rrhh`,
+ *   igual que en el resto de la app.
+ * - Empleado: se usa para saber de que actividades es responsable.
  *
- * TEMPORAL: el backend aun no tiene un rol de Responsable. Mientras tanto,
- * **solo fuera de produccion**, se simula un rol configurable
- * (`ROL_SIMULADO_POR_DEFECTO`, o el valor de `localStorage` en
- * `PNIP-CI-ROL-SIMULADO`). En produccion la simulacion no se aplica y nadie
- * obtiene el rol `responsable` hasta conectar el backend real.
+ * Fuera de produccion se pueden simular ambos valores desde
+ * `localStorage` (`PNIP-CI-ROL-SIMULADO`, `PNIP-CI-EMPLEADO-SIMULADO`). En
+ * produccion la simulacion no se aplica nunca.
  *
  * @author EEASA
  */
@@ -47,7 +54,7 @@ export class RolPnipCiService {
     /**
      * Devuelve los roles PNIP-CI del usuario actual.
      *
-     * @returns Lista de roles; vacia si el usuario no tiene acceso al modulo.
+     * @returns Lista de roles; vacia si el usuario no es de RRHH.
      */
     obtenerRoles(): RolPnipCi[] {
         const rolSimulado = this.obtenerRolSimulado();
@@ -75,15 +82,42 @@ export class RolPnipCiService {
     }
 
     /**
-     * Pantalla a la que debe ir el usuario al entrar al modulo.
+     * Pantalla a la que debe ir el usuario al entrar al modulo: el dashboard
+     * de RRHH si tiene ese rol y, si no, el de responsable, al que puede
+     * entrar cualquier empleado autenticado.
      *
-     * @returns Ruta absoluta del inicio de su primer rol, o `null` si no
-     * tiene ningun rol PNIP-CI.
+     * @returns Ruta absoluta de la pantalla de inicio.
      */
-    obtenerRutaInicio(): string | null {
-        const roles = this.obtenerRoles();
+    obtenerRutaInicio(): string {
+        return this.tieneRol('rrhh')
+            ? RUTA_INICIO_RRHH
+            : RUTA_INICIO_RESPONSABLE;
+    }
 
-        return roles.length > 0 ? RUTA_INICIO[roles[0]] : null;
+    /**
+     * Identificador del empleado que esta usando la app; es el valor que se
+     * compara con `Actividad.responsableId`.
+     *
+     * - Fuera de produccion: el de `PNIP-CI-EMPLEADO-SIMULADO` o, si no hay,
+     *   `EMPLEADO_SIMULADO_POR_DEFECTO`.
+     * - En produccion: `DMPER_CODIGO` (o `CODIGO`) del usuario de
+     *   `AuthService`, igual que hace `BackendService` al guardar el
+     *   formulario. PENDIENTE confirmar con backend que `responsableId` usa
+     *   ese mismo codigo.
+     *
+     * @returns Id del empleado, o `null` si la sesion no trae uno (p. ej.
+     * usuarios externos, que solo tienen cedula).
+     */
+    obtenerEmpleadoActualId(): string | null {
+        let valorGuardado: string | null = null;
+        const usuario = this.authService.getCurrentUser();
+
+        if (!environment.production) {
+            valorGuardado = this.leerLocalStorage(CLAVE_EMPLEADO_SIMULADO);
+            return valorGuardado || EMPLEADO_SIMULADO_POR_DEFECTO;
+        }
+
+        return usuario?.DMPER_CODIGO || usuario?.CODIGO || null;
     }
 
     /**
@@ -98,17 +132,9 @@ export class RolPnipCiService {
             return null;
         }
 
-        try {
-            valorGuardado = localStorage.getItem(CLAVE_ROL_SIMULADO);
-        } catch (err) {
-            console.error(
-                '[RolPnipCiService.obtenerRolSimulado] '
-                + 'No se pudo leer localStorage:',
-                err
-            );
-        }
+        valorGuardado = this.leerLocalStorage(CLAVE_ROL_SIMULADO);
 
-        if (valorGuardado === 'rrhh' || valorGuardado === 'responsable') {
+        if (valorGuardado === 'rrhh') {
             return valorGuardado;
         }
         if (valorGuardado === 'ninguno') {
@@ -116,5 +142,25 @@ export class RolPnipCiService {
         }
 
         return ROL_SIMULADO_POR_DEFECTO;
+    }
+
+    /**
+     * Lee una clave de `localStorage` sin propagar errores (modo privado,
+     * almacenamiento bloqueado...).
+     *
+     * @param clave Clave a leer.
+     * @returns El valor guardado, o `null` si no existe o no se pudo leer.
+     */
+    private leerLocalStorage(clave: string): string | null {
+        try {
+            return localStorage.getItem(clave);
+        } catch (err) {
+            console.error(
+                '[RolPnipCiService.leerLocalStorage] No se pudo leer '
+                + clave + ':',
+                err
+            );
+            return null;
+        }
     }
 }
