@@ -108,3 +108,21 @@ pnip-ci/
   del módulo, nunca en `:root` ni en `src/styles.scss`: así no afectan al
   formulario de conflicto de interés existente.
 - Los componentes usan `var(--token)` y no colores literales.
+- Para colores con significado de negocio se usa el tipo `Tono`
+  (`core/utils/tono.util.ts`) y sus variables `--{tono}`, `--{tono}-fill`
+  y `--{tono}-text` (p. ej. `--rojo-fill`). Nunca se decide un color de
+  estado a mano en una pantalla: se pasa por `mapear...ATono()`.
+- El significado nunca se transmite solo con color: toda insignia lleva
+  texto.
+
+## Componentes compartidos
+
+| Selector | Para qué |
+|---|---|
+| `app-pnip-badge` | Insignia de estado/riesgo (`tono` + `texto`). |
+| `app-pnip-kpi-card` | Indicador; clicable como filtro. |
+| `app-pnip-modal` | Ventana modal (X, fondo, Esc; foco atrapado). |
+| `app-pnip-pills` | Filtros de un solo valor. **No** para pestañas. |
+| `app-pnip-layout` | Sidebar + topbar + contenido; menú por `data.menu`. |
+
+Cada pantalla nueva declara en su ruta `data: { breadcrumb: [...] }`.

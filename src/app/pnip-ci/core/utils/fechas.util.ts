@@ -125,6 +125,30 @@ export function calcularFechaLimite(
 }
 
 /**
+ * Indica si una fecha y hora cae dentro de los ultimos `dias` dias (se
+ * cuentan periodos de 24 h hacia atras desde `ahora`).
+ *
+ * @param fechaIso Fecha ISO 8601, con hora.
+ * @param dias Tamano de la ventana en dias.
+ * @param ahora Momento de referencia; por defecto, el actual.
+ * @returns `true` si esta dentro de la ventana; `false` si es anterior o
+ * si la fecha no es valida.
+ */
+export function esDeUltimosDias(
+    fechaIso: string,
+    dias: number,
+    ahora: Date = new Date()
+): boolean {
+    const momento = new Date(fechaIso).getTime();
+
+    if (Number.isNaN(momento)) {
+        return false;
+    }
+
+    return momento >= ahora.getTime() - dias * MS_POR_DIA;
+}
+
+/**
  * Calcula cuanto falta para una fecha limite, o cuanto hace que vencio.
  *
  * La fecha limite es el ultimo dia valido: si es hoy, la actividad aun no

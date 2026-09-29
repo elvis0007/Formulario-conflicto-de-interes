@@ -1,15 +1,20 @@
 import { Component } from '@angular/core';
+import {
+    VitrinaPnipComponent
+} from '../../shared/components/vitrina-pnip/vitrina-pnip.component';
 
 /**
  * Resumen general del modulo para RRHH.
  *
- * PLACEHOLDER del Dia 1: solo muestra el nombre de la pantalla.
+ * PLACEHOLDER: solo muestra el nombre de la pantalla y, temporalmente, la
+ * vitrina de componentes compartidos del Dia 3.
  *
  * @author EEASA
  */
 @Component({
     selector: 'app-pnip-rrhh-dashboard',
-    template: '<h2>Dashboard RRHH</h2>'
+    imports: [VitrinaPnipComponent],
+    template: '<h2>Dashboard RRHH</h2><app-pnip-vitrina />'
 })
 export class RrhhDashboardComponent {
 }

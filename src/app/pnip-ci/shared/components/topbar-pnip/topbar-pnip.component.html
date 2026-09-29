@@ -1,0 +1,16 @@
+<header class="topbar">
+    <nav aria-label="Ruta de navegación">
+        <ol class="migas">
+            @for (miga of migas; track $index; let ultima = $last) {
+                <li class="miga" [class.miga--actual]="ultima"
+                    [attr.aria-current]="ultima ? 'page' : null">
+                    {{ miga }}
+                </li>
+            }
+        </ol>
+    </nav>
+
+    <div class="acciones">
+        <app-pnip-notification-bell />
+    </div>
+</header>

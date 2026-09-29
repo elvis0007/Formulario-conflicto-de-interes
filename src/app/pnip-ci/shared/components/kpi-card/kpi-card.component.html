@@ -1,0 +1,19 @@
+<ng-template #contenido>
+    <span class="titulo">{{ titulo }}</span>
+    <span class="valor" [style.color]="colorValor">{{ valor }}</span>
+</ng-template>
+
+@if (clicable) {
+    <button
+        type="button"
+        class="tarjeta clicable"
+        [class.activo]="activo"
+        [attr.aria-pressed]="activo"
+        (click)="alSeleccionar()">
+        <ng-container [ngTemplateOutlet]="contenido" />
+    </button>
+} @else {
+    <div class="tarjeta" [class.activo]="activo">
+        <ng-container [ngTemplateOutlet]="contenido" />
+    </div>
+}

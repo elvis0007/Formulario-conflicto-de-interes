@@ -1,0 +1,34 @@
+@if (abierto) {
+    <div
+        class="fondo"
+        (mousedown)="alPresionarFondo($event)"
+        (click)="alClicFondo($event)">
+        <div
+            #dialogo
+            class="dialogo"
+            [class.dialogo--ancho]="ancho === 'ancho'"
+            role="dialog"
+            aria-modal="true"
+            [attr.aria-labelledby]="idTitulo"
+            tabindex="-1"
+            (keydown)="alPresionarTecla($event)">
+            <header class="cabecera">
+                <h2 class="titulo" [id]="idTitulo">{{ titulo }}</h2>
+                <button
+                    type="button"
+                    class="boton-cerrar"
+                    aria-label="Cerrar"
+                    (click)="cerrar.emit()">
+                    <svg viewBox="0 0 24 24" width="20" height="20"
+                        aria-hidden="true">
+                        <path d="M6 6l12 12M18 6L6 18" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" />
+                    </svg>
+                </button>
+            </header>
+            <div class="cuerpo">
+                <ng-content />
+            </div>
+        </div>
+    </div>
+}

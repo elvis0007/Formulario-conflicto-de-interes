@@ -67,18 +67,23 @@ describe('rolGuard', () => {
         localStorage.removeItem(CLAVE_ROL_SIMULADO);
     });
 
-    describe('/pnip/responsable/** (sin rol requerido)', () => {
+    describe('/pnip/responsable/** (cualquier empleado)', () => {
         const DATA_RESPONSABLE = { [DATO_ROL_REQUERIDO]: null };
 
-        for (const rol of ['E', 'R', 'A', 'I']) {
-            it('deja pasar a un autenticado con rol ' + rol, () => {
+        for (const rol of ['R', 'A', 'I']) {
+            it('deja pasar a un empleado con rol ' + rol, () => {
                 roles = [rol];
                 expect(ejecutar(DATA_RESPONSABLE)).toBeTrue();
             });
         }
 
-        it('deja pasar a un autenticado sin ningún rol', () => {
+        it('deja pasar a un empleado sin ningún rol', () => {
             expect(ejecutar(DATA_RESPONSABLE)).toBeTrue();
+        });
+
+        it('no deja pasar a un externo (E) y lo saca del módulo', () => {
+            roles = ['E'];
+            expect(urlDe(ejecutar(DATA_RESPONSABLE))).toBe('/');
         });
 
         it('sin sesión redirige a /login', () => {
@@ -100,12 +105,16 @@ describe('rolGuard', () => {
             expect(ejecutar(DATA_RRHH)).toBeTrue();
         });
 
-        it('no deja pasar a E y lo envía al dashboard de responsable',
-            () => {
-                roles = ['E'];
-                expect(urlDe(ejecutar(DATA_RRHH)))
-                    .toBe('/pnip/responsable/dashboard');
-            });
+        it('no deja pasar a un empleado sin R/A: va a su dashboard', () => {
+            roles = ['I'];
+            expect(urlDe(ejecutar(DATA_RRHH)))
+                .toBe('/pnip/responsable/dashboard');
+        });
+
+        it('no deja pasar a un externo (E) y lo saca del módulo', () => {
+            roles = ['E'];
+            expect(urlDe(ejecutar(DATA_RRHH))).toBe('/');
+        });
 
         it('sin sesión redirige a /login', () => {
             sesionActiva = false;

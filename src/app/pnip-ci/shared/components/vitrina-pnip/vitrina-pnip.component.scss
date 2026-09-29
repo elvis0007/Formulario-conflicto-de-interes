@@ -1,0 +1,71 @@
+.vitrina {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 24px;
+    padding: 20px;
+    border: 1px dashed var(--border);
+    border-radius: 12px;
+    background-color: var(--paper);
+
+    h3 {
+        margin: 8px 0 0;
+        font-family: var(--font-condensed);
+        font-size: 18px;
+    }
+}
+
+.aviso,
+.nota {
+    margin: 0;
+    color: var(--text2);
+    font-size: 13px;
+}
+
+.fila {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.kpis {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.boton {
+    padding: 8px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background-color: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.boton--primario {
+    border-color: var(--accent);
+    background-color: var(--accent);
+    color: var(--paper);
+}
+
+.campo {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin: 12px 0;
+    font-size: 13px;
+    font-weight: 600;
+
+    input {
+        padding: 8px 10px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        font: inherit;
+        font-weight: 400;
+    }
+}

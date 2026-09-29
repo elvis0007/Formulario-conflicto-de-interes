@@ -1,0 +1,12 @@
+<app-pnip-sidebar
+    [menu]="menu"
+    [nombreUsuario]="nombreUsuario"
+    [rolUsuario]="rolUsuario"
+    [inicialesUsuario]="inicialesUsuario" />
+
+<div class="principal">
+    <app-pnip-topbar />
+    <main class="contenido">
+        <router-outlet />
+    </main>
+</div>

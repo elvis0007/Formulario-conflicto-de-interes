@@ -8,8 +8,8 @@ import { RolPnipCiService } from '../services/rol-pnip-ci.service';
  * Clave de `Route.data` donde cada ruta indica el rol que exige.
  *
  * - Un `RolPnipCi` (`'rrhh'`): exige sesion y ese rol.
- * - `null`: exige solo sesion (pantallas de responsable: cualquier
- *   empleado puede ser responsable de una actividad).
+ * - `null`: exige sesion y ser EMPLEADO (pantallas de responsable: cualquier
+ *   empleado puede ser responsable de una actividad; un usuario externo no).
  *
  * Es obligatorio declararla: si falta, el guard niega el paso, para que
  * olvidarla nunca abra una pantalla de RRHH.
@@ -21,9 +21,11 @@ export const DATO_ROL_REQUERIDO = 'rolRequerido';
  *
  * - Sin sesion (`AuthService.isAuthenticated()`, lo mismo que usa
  *   `authGuard`): envia a `/login`.
- * - `data.rolRequerido === null`: deja pasar a cualquier autenticado.
+ * - `data.rolRequerido === null`: deja pasar a cualquier empleado
+ *   autenticado; los externos (`E`) no pasan.
  * - Con el rol exigido: deja pasar.
- * - Sin el rol exigido: envia a su pantalla de inicio (la de responsable).
+ * - Si no cumple: envia a su pantalla de inicio
+ *   (`RolPnipCiService.obtenerRutaInicio`).
  *
  * @param route Ruta que se intenta activar.
  * @returns `true` o el `UrlTree` al que redirigir.
@@ -49,7 +51,10 @@ export const rolGuard: CanActivateFn = (route) => {
 
     rolRequerido = route.data[DATO_ROL_REQUERIDO] as RolPnipCi | null;
 
-    if (rolRequerido === null || rolService.tieneRol(rolRequerido)) {
+    if (rolRequerido === null && rolService.esEmpleado()) {
+        return true;
+    }
+    if (rolRequerido !== null && rolService.tieneRol(rolRequerido)) {
         return true;
     }
 

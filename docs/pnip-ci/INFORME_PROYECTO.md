@@ -379,8 +379,8 @@ mecanismo que usa `auth.guard.ts`.
 con cédula y clave temporal) también están autenticados, así que pueden abrir
 `/pnip/responsable/**`. No verán nada, porque no tienen código de empleado y
 nunca serán responsables de actividades. Si se quiere bloquearlos
-explícitamente, basta con una condición más en el guard. **Pendiente de
-decidir.**
+explícitamente, basta con una condición más en el guard. ~~**Pendiente de
+decidir.**~~ **Resuelto el Día 3:** los externos quedan bloqueados.
 
 ### Empleado actual (`obtenerEmpleadoActualId()`)
 
@@ -487,3 +487,177 @@ Decisiones:
   - Con `R` y con `A`: entran a RRHH y a responsable; `/pnip` va a RRHH.
   - Sin sesión: `/login`.
   - `/`, `/admin` y `/mis-formularios` se comportan igual que antes.
+
+---
+
+## Decisiones del Día 3
+
+> **No hay un documento de especificación en el proyecto.** Lo que el
+> pedido llama «secciones 5 y 8» (menús y nombres de estado de cada vista)
+> se tomó del propio pedido. El mockup `Sistema Conflicto de Interés
+> (PNIP.CI).html` está empaquetado y comprimido y no se pudo consultar. Si
+> la especificación dice algo distinto, hay que revisarlo.
+
+### Paso 0 — Ajustes
+
+- **Externos (`E`) bloqueados en `/pnip/responsable/**`**: un externo no
+  es empleado. `rolGuard` usa `RolPnipCiService.esEmpleado()`, que mira
+  siempre el rol real, nunca el simulado.
+- Para no crear bucles de redirección, `obtenerRutaInicio()` devuelve `/`
+  (fuera del módulo) a los externos. Si los mandara al dashboard de
+  responsable, el guard los rechazaría y los volvería a mandar allí sin fin.
+- `/pnip/rrhh/**` sigue exigiendo `R` o `A`.
+- **`PlazoTextoPipe`** ahora recibe `true`/`false` como segundo parámetro;
+  se quitaron los formatos del Día 2:
+  - `{{ a | plazoTexto }}` → `2 meses 15 días`
+  - `{{ a | plazoTexto:true }}` → `Plazo: 2 meses 15 días`
+
+### Paso 1 — Tonos (`core/utils/tono.util.ts`)
+
+- `Tono = 'rojo' | 'ambar' | 'verde' | 'azul' | 'naranja' | 'gris'`, con
+  `mapearRiesgoATono`, `mapearEstadoPlanATono`,
+  `mapearEstadoActividadATono` y, añadida para la campana,
+  `mapearTipoNotificacionATono` (`ok` → verde, `rechazo` → naranja,
+  `vencido`/`alerta` → rojo, `info` → azul).
+- En `_tokens.scss` se añadieron **alias por tono** (`--rojo`,
+  `--rojo-fill`, `--rojo-text`…) que apuntan a los colores existentes, para
+  poder armar `var(--{tono}-fill)` como pedía el Badge. Los tokens no tenían
+  un azul propio: `azul` usa la escala de acento (`--accent`,
+  `--accent-100`, `--accent-700`).
+- **Decisión: una actividad `vencida` usa tono ámbar en la vista del
+  Responsable.** Esa vista no tiene el estado «Vencida» y se la muestra como
+  «Pendiente», así que la insignia toma el tono de pendiente. El
+  vencimiento se comunica con el texto de plazo en rojo. En la vista de RRHH
+  sigue en rojo; los demás estados tienen el mismo tono en ambas vistas.
+  **Pendiente de confirmar** con la especificación.
+
+### Paso 2 — Componentes compartidos
+
+| Componente | Notas |
+|---|---|
+| `BadgePnipComponent` | `tono` y `texto` obligatorios; colores de `var(--{tono}-fill)` y `var(--{tono}-text)`. |
+| `KpiCardComponent` | Si es `clicable` se pinta como `<button>` con `aria-pressed`; si no, `<div>`. Número en Barlow Condensed con color `var(--{tono})`. `activo` añade un anillo en `--accent`. |
+| `ModalPnipComponent` | Emite `cerrar` con la X, con Esc (`@HostListener`, que se limpia solo) y con clic en el fondo. El clic solo cuenta si el `mousedown` también empezó en el fondo, para que seleccionar texto y soltar fuera no lo cierre. El foco entra al abrir, Tab/Shift+Tab quedan atrapados y al cerrar vuelve a quien lo abrió. Animación de 160 ms (se desactiva con `prefers-reduced-motion`). `ancho: 'ancho'` = 1080 px. `role="dialog"`, `aria-modal`, `aria-labelledby`. Limitación: con dos modales abiertos a la vez, Esc cerraría los dos. |
+| `PillsPnipComponent` | Botones con `aria-pressed` en un `role="group"`. La seleccionada lleva el fondo sólido de su tono (azul por defecto). |
+
+**Pills y Tabs serán dos componentes separados.** `PillsPnipComponent`
+es solo para filtros de un único valor (Análisis, días 5-6). Las pestañas de
+«Planes de este conflicto» (días 7-8) serán un `TabsPnipComponent` aparte,
+porque se comportan distinto:
+- controlan un panel de contenido (`role="tablist"`/`tab`/`tabpanel`,
+  `aria-controls`, flechas del teclado);
+- cada pestaña muestra el estado de su plan con su insignia;
+- la de un plan cerrado se ve atenuada.
+
+Meter todo eso en Pills lo complicaría para su uso principal. Tabs no se
+crea hoy porque todavía no hay pantalla que lo use.
+
+### Paso 3 — Shell
+
+- **Un solo layout parametrizado (`LayoutPnipComponent`)** en vez de dos
+  shells. Lo único que cambia entre RRHH y Responsable es el menú, que llega
+  por `data.menu` de la ruta (`MENU_RRHH` / `MENU_RESPONSABLE`, en
+  `pnip-ci.menus.ts`). Dos componentes serían dos copias de la misma
+  estructura.
+- Rutas: `rrhh` y `responsable` son ahora rutas con componente
+  (`LayoutPnipComponent`), guard, menú e hijas. **Las URLs no cambiaron.**
+  Cada ruta hoja declara `data.breadcrumb`.
+- **«Análisis de Conflictos» resaltado en Plan de Acción.** Lo resuelve
+  `buscarItemActivo(menu, url)` (`sidebar-pnip/item-menu.ts`), que compara
+  por prefijo de URL:
+  1. Gana la hoja cuya `ruta` es prefijo de la URL por segmentos completos
+     (`/a/b` coincide con `/a/b/c`, no con `/a/bc`); entre varias, la más
+     larga.
+  2. Si ninguna coincide, gana la hoja con el `prefijosAdicionales` más
+     largo que coincida. «Análisis de Conflictos» declara
+     `['/pnip/rrhh/conflictos/']`.
+
+  Resultado:
+  - `/pnip/rrhh/conflictos/C-001/planes/PL-002` → Análisis de Conflictos.
+  - `/pnip/rrhh/conflictos/consulta-previa` → Consulta Previa (por su
+    propia ruta).
+  - `/pnip/responsable/planes/PL-003` → Bandeja de Tareas.
+
+  No se usa `routerLinkActive` porque no sabe resaltar pantallas que no
+  están en el menú.
+- El grupo que contiene el ítem activo se expande al cargar y al navegar;
+  los demás solo se abren y cierran a mano.
+- **Pie del sidebar.** `AuthService` sí expone `NOMBRES` y `APELLIDOS`, así
+  que no queda pendiente.
+  - Nombre: mismo criterio que la cabecera existente.
+  - Iniciales: primer nombre + primer apellido (`LF`).
+  - Rol: `Administrador`, `Jefe de RRHH`, `RRHH (simulado)`, `Empleado` o
+    `Usuario externo`.
+- **Breadcrumb:** `obtenerBreadcrumb()` usa el `data.breadcrumb` de la ruta
+  activa más profunda que lo declare.
+- **Campana:**
+  - El mock guarda estado en memoria: «marcar todas como leídas» dura toda
+    la sesión.
+  - **El filtro de 7 días ya está implementado** (`esDeUltimosDias` en
+    `fechas.util.ts`). Para que funcione cualquier día que se pruebe, las
+    fechas de ejemplo son relativas al momento de carga, y dos
+    notificaciones tienen más de 7 días para ver que el filtro actúa.
+  - El contador cuenta solo las no leídas visibles (últimos 7 días).
+  - No había un pipe de tiempo relativo en el proyecto; se creó
+    `TiempoRelativoPipe` (`hace 25 min`, `hace 3 h`, `ayer`, `hace 4 días`,
+    y `dd/mm/aaaa` a partir de 7 días).
+  - **Pendiente con backend:** las notificaciones no se filtran por
+    usuario, así que el Responsable ve las mismas que RRHH.
+- **El módulo ocupa toda la ventana** (`position: fixed`, `z-index: 1000`),
+  por encima de la cabecera y el pie que `AppComponent` pinta en **todas**
+  las rutas. Ocultarlos exigiría tocar `AppComponent`, y eso queda fuera de
+  lo acordado.
+  - Consecuencia: dentro de `/pnip` no se ven cerrar sesión, modo oscuro ni
+    «Mis formularios».
+  - **Pendiente de decidir:** aceptarlo así o autorizar ese cambio mínimo
+    en `AppComponent`.
+- **Vitrina temporal:** `VitrinaPnipComponent`, dentro del placeholder del
+  dashboard de RRHH, sirve para revisar insignias, KPIs, píldoras y el
+  modal. Se elimina al construir el dashboard.
+- El menú no tiene iconos por ahora; solo el chevron de los grupos.
+
+### Pruebas
+
+- **Módulo: 101 de 101 correctas** en tres ejecuciones seguidas (Jasmine
+  ordena al azar).
+  - Nuevos specs: tonos, Badge, KpiCard, Modal (X, fondo, Esc, foco, Tab),
+    Pills, `buscarItemActivo` y sidebar (Plan de Acción → Análisis),
+    breadcrumb, campana y `TiempoRelativoPipe`.
+  - Actualizados: guard (externos) y `PlazoTextoPipe`.
+  - Un spec de la campana fallaba de forma intermitente según el orden
+    aleatorio. Era un error del propio test (`afterEach` sin fixture) y ya
+    está corregido.
+- `ng test` completo: solo los 3 fallos preexistentes de
+  `app.component.spec.ts` (ver Día 2).
+- `ng build` development y production: sin errores; los avisos son los
+  preexistentes.
+
+### Verificación visual (Edge headless, clics y teclas reales)
+
+- **Usuario `R`:**
+  - `/pnip` → dashboard de RRHH.
+  - En Plan de Acción: breadcrumb «Conflicto › Análisis de Conflictos ›
+    Plan de Acción», grupo «Conflicto» expandido y «Análisis de
+    Conflictos» resaltado.
+  - Los grupos se abren y cierran; «Excusas» navega y queda resaltado.
+  - Pie: «LF · Lucía Alejandra Freire Ortiz · Jefe de RRHH».
+- **Modal:**
+  - El foco entra al abrir; 6×Tab y 6×Shift+Tab no salen del diálogo.
+  - Se cierra con la X (el foco vuelve a «Abrir modal»), con clic en el
+    fondo y con Esc.
+  - Un clic en el contenido no lo cierra.
+  - El modal ancho mide 1080 px.
+- **Campana:**
+  - Contador 5; panel de 410 px con 8 de las 10 notificaciones (las 2
+    antiguas quedan fuera).
+  - «Marcar todas» quita el contador y el tintado.
+  - Se cierra con clic fuera y con Esc.
+- **Empleado sin rol especial (`I`):**
+  - `/pnip` → dashboard del responsable, con menú de 2 ítems.
+  - El detalle de un plan resalta «Bandeja de Tareas».
+  - `/pnip/rrhh/**` lo devuelve a su dashboard.
+- **Externo (`E`):** `/pnip/responsable/dashboard` → `/`.
+- **Fuera del módulo:** `/admin` sigue con la cabecera de siempre, sin el
+  shell de PNIP-CI.
+- En frío, la primera entrada a `/pnip` tarda ~1 s en el servidor de
+  desarrollo, porque carga el chunk diferido.

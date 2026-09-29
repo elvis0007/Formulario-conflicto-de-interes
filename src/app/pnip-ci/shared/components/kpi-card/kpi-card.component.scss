@@ -1,0 +1,49 @@
+:host {
+    display: block;
+}
+
+.tarjeta {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
+    padding: 16px 18px;
+    border: 1px solid var(--hairline);
+    border-radius: 12px;
+    background-color: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    text-align: left;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.clicable {
+    cursor: pointer;
+
+    &:hover {
+        border-color: var(--border);
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+    }
+}
+
+.activo {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent);
+}
+
+.titulo {
+    color: var(--text2);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.valor {
+    font-family: var(--font-condensed);
+    font-size: 36px;
+    font-weight: 700;
+    line-height: 1;
+}

@@ -29,25 +29,29 @@ describe('FechaLargaPipe', () => {
 describe('PlazoTextoPipe', () => {
     const pipe = new PlazoTextoPipe();
 
-    it('omite la unidad en cero por defecto', () => {
+    it('sin prefijo omite la unidad en cero', () => {
         expect(pipe.transform({ plazoMeses: 0, plazoDias: 15 }))
             .toBe('15 días');
-        expect(pipe.transform({ plazoMeses: 1, plazoDias: 0 }))
-            .toBe('1 mes');
-        expect(pipe.transform({ plazoMeses: 2, plazoDias: 1 }))
-            .toBe('2 meses 1 día');
+        expect(pipe.transform({ plazoMeses: 2, plazoDias: 0 }))
+            .toBe('2 meses');
+        expect(pipe.transform({ plazoMeses: 2, plazoDias: 15 }))
+            .toBe('2 meses 15 días');
+        expect(pipe.transform({ plazoMeses: 1, plazoDias: 1 }))
+            .toBe('1 mes 1 día');
         expect(pipe.transform({ plazoMeses: 0, plazoDias: 0 }))
             .toBe('0 días');
     });
 
-    it('formato etiqueta', () => {
-        expect(pipe.transform({ plazoMeses: 0, plazoDias: 15 }, 'etiqueta'))
-            .toBe('Plazo: 15 días');
+    it('con false es igual que sin parámetro', () => {
+        expect(pipe.transform({ plazoMeses: 0, plazoDias: 15 }, false))
+            .toBe('15 días');
     });
 
-    it('formato completo muestra ambas unidades', () => {
-        expect(pipe.transform({ plazoMeses: 0, plazoDias: 15 }, 'completo'))
-            .toBe('0 meses 15 días');
+    it('con true antepone «Plazo: »', () => {
+        expect(pipe.transform({ plazoMeses: 0, plazoDias: 15 }, true))
+            .toBe('Plazo: 15 días');
+        expect(pipe.transform({ plazoMeses: 2, plazoDias: 15 }, true))
+            .toBe('Plazo: 2 meses 15 días');
     });
 
     it('devuelve vacío sin plazo', () => {

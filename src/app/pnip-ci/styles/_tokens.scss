@@ -54,6 +54,28 @@
     // Formularios
     --navy-form: #1F3A5F;
 
+    // Tonos semanticos (tipo `Tono` de core/utils/tono.util.ts). Son alias
+    // de los colores de estado para poder armar la variable con el nombre
+    // del tono: `var(--#{tono}-fill)`. `azul` usa la escala de acento.
+    --rojo: var(--red);
+    --rojo-fill: var(--red-fill);
+    --rojo-text: var(--red-text);
+    --ambar: var(--amber);
+    --ambar-fill: var(--amber-fill);
+    --ambar-text: var(--amber-text);
+    --verde: var(--green);
+    --verde-fill: var(--green-fill);
+    --verde-text: var(--green-text);
+    --azul: var(--accent);
+    --azul-fill: var(--accent-100);
+    --azul-text: var(--accent-700);
+    --naranja: var(--orange);
+    --naranja-fill: var(--orange-fill);
+    --naranja-text: var(--orange-text);
+    --gris: var(--gray);
+    --gris-fill: var(--gray-fill);
+    --gris-text: var(--gray-text);
+
     // Tipografia
     --font-sans: 'Barlow', 'Segoe UI', Roboto, Arial, sans-serif;
     --font-condensed: 'Barlow Condensed', 'Barlow', 'Arial Narrow',
