@@ -1,0 +1,193 @@
+.login-page {
+  position: relative;
+  height: 100vh;
+  width: 100%;
+  background-image: url('/sisci/assets/bgeeasa.jpg');
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: center;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding-right: 7vw;
+  box-sizing: border-box;
+  color: #fff;
+  overflow: hidden;
+}
+
+
+
+.login-panel {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.login-card {
+  width: 430px;
+  text-align: center;
+}
+
+.logo-wrapper {
+  margin: 0 0 12px;
+  text-align: center;
+}
+
+
+.login-wrap {
+  padding-top: 80px;
+  padding-bottom: 40px;
+}
+
+.login-title {
+  font-family: 'Roboto', Arial, sans-serif;
+  margin-bottom: 24px;
+  line-height: 1.3;
+}
+
+.login-title-main {
+  display: block;
+  font-size: 22px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.login-title-sub {
+  display: block;
+  margin-top: 4px;
+  font-size: 16px;
+  letter-spacing: 0.05em;
+}
+
+
+.signin-form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.login-eeasa-link {
+  margin-top: 16px;
+  font-size: 13px;
+
+  a {
+    color: #ffffff;
+    text-decoration: none;
+    font-weight: 500;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
+.form-btn {
+  border: 1px solid transparent;
+  height: 50px;
+  width: 85% !important;
+  color: #ffffff !important;
+  border-radius: 40px;
+  padding-left: 20px;
+  padding-right: 20px;
+  -webkit-transition: 0.3s;
+  -o-transition: 0.3s;
+  transition: 0.3s;
+  background: #1d74ff;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.form-btn:hover:enabled {
+  background: #185fcc;
+}
+
+.form-control {
+  background: transparent;
+  height: 50px;
+  width: 85%;
+  box-sizing: border-box;
+  color: white !important;
+  border: 1px solid transparent;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 40px;
+  padding-left: 20px;
+  padding-right: 20px;
+  -webkit-transition: 0.3s;
+  -o-transition: 0.3s;
+  transition: 0.3s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .form-control {
+    -webkit-transition: none;
+    -o-transition: none;
+    transition: none;
+  }
+}
+
+.form-control::placeholder {
+  color: rgba(255, 255, 255, 0.8) !important;
+}
+
+.form-control:hover,
+.form-control:focus {
+  background: transparent;
+  outline: none;
+  -webkit-box-shadow: none;
+  box-shadow: none;
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.form-control:focus {
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.form-group {
+  margin-bottom: 1rem;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.olvidoClave {
+  margin-bottom: 1rem;
+  cursor: pointer;
+  width: 100%;
+  text-align: center;
+}
+
+.olvidoClave:hover {
+  transform: scale(1.02);
+  color: #209dd9 !important;
+}
+
+.redes-title {
+  margin-top: 10px;
+  text-align: center;
+}
+
+.redes-container {
+  padding-top: 10px;
+  display: flex;
+  justify-content: center;
+  gap: 32px;
+}
+
+.redesFooter img {
+  transition: transform 0.2s ease;
+}
+
+.redesFooter:hover img {
+  transform: scale(1.05);
+}
+.error-box {
+  margin-top: 10px;
+  padding: 10px 14px;
+  border-radius: 25px;
+  background-color: rgba(248, 113, 113, 0.12);
+  border: 1px solid rgba(248, 113, 113, 0.8);
+  font-size: 12px;
+}
+

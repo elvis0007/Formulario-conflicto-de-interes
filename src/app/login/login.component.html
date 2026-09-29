@@ -1,0 +1,79 @@
+<div class="login-page">
+  <div class="login-overlay"></div>
+
+  <div class="login-panel">
+    <div class="login-card">
+      <h3 class="logo-wrapper">
+        <img
+          src="/sisci/assets/LogoBlancoEEASA.png"
+          width="162"
+          height="141"
+          alt="EEASA"
+        />
+      </h3>
+
+      <h3 class="login-title">
+        <span class="login-title-main">SISGERH - SISCI</span>
+        <span class="login-title-sub">SISTEMA DE CONFLICTO DE INTERESES</span>
+      </h3>
+
+      <form
+        class="signin-form"
+        (ngSubmit)="onSubmitCodigo()"
+        #codeForm="ngForm"
+      >
+        <div class="form-group">
+          <input
+            id="user-field"
+            name="cedula"
+            type="text"
+            class="form-control"
+            placeholder="Cédula"
+            required
+            minlength="10"
+            maxlength="10"
+            [(ngModel)]="cedula"
+            (input)="onCiInput($event)"
+          />
+        </div>
+        <div class="form-group">
+          <input
+            id="password-field"
+            name="codigo"
+            type="text"
+            class="form-control"
+            placeholder="Código temporal"
+            required
+            [(ngModel)]="codigo"
+          />
+        </div>
+        <div class="form-group">
+          <button
+            type="submit"
+            class="form-btn"
+            [disabled]="loadingCodigo || !codeForm.valid"
+          >
+            {{ loadingCodigo ? 'Verificando...' : 'INGRESAR' }}
+          </button>
+        </div>
+
+        <div *ngIf="errorCodigo" class="error-box">
+          {{ errorCodigo }}
+        </div>
+      </form>
+
+      <p class="login-eeasa-link">
+        <a
+          href="https://app.eeasa.com.ec/intranet#/"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Soy personal EEASA
+        </a>
+      </p>
+    </div>
+  </div>
+</div>
+
+
+

@@ -1,0 +1,122 @@
+/*
+ * El `position: sticky` va aquí, en el host, y no en `.app-header`: el host mide
+ * exactamente lo mismo que la cabecera, así que dentro de él no hay recorrido y
+ * la cabecera nunca llegaba a fijarse (se iba con el scroll).
+ */
+:host {
+  display: block;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.app-header {
+  background-color: #163b5f;
+  color: white;
+  padding: 12px 24px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+
+  h1 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: bold;
+    flex: 1;
+    text-align: center;
+  }
+}
+
+.header-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.header-logo-img {
+  height: 40px;
+  width: auto;
+}
+
+.header-logo-text {
+  font-size: 18px;
+  font-weight: bold;
+  color: white;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.header-menu {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: 2;
+  justify-content: center;
+}
+
+.header-menu-link {
+  font-size: 13px;
+  color: #e5e7eb;
+  text-decoration: none;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 20px;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  white-space: nowrap;
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+  }
+}
+
+.header-icon-btn {
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background-color 0.3s;
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+
+  svg {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+.header-logout-btn {
+  border-radius: 999px;
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.18);
+  }
+}
+
+.header-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.3);
+  border: 2px solid rgba(255, 255, 255, 0.5);
+}
+
+body.dark-mode .app-header {
+  background-color: #6b6b6b;
+}
+

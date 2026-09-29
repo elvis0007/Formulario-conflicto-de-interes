@@ -1,0 +1,163 @@
+/* Tokens de diseño: los mismos del formulario y del panel */
+:host {
+  --ci-ink: #163b5f;
+  --ci-accent: #1a5490;
+  --ci-muted: #5c6b84;
+  --ci-text: #22314f;
+  --ci-line: #d3dae4;
+  --ci-paper: #ffffff;
+  --ci-hover: #eaf2fa;
+}
+
+.sidebar-container {
+  width: 80px;
+  flex-shrink: 0;
+  padding: 20px 10px;
+  position: relative;
+}
+
+.menu-card {
+  position: absolute;
+  left: 10px;
+  top: 20px;
+  z-index: 10;
+  width: 64px;
+  background-color: var(--ci-paper);
+  color: var(--ci-text);
+  border: 1px solid var(--ci-line);
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(27, 43, 94, 0.08);
+  overflow: hidden;
+  transition: width 0.25s ease, box-shadow 0.25s ease;
+}
+
+.menu-card:not(.collapsed) {
+  width: 210px;
+  box-shadow: 0 10px 24px rgba(22, 59, 95, 0.18);
+}
+
+.menu-header {
+  padding: 11px 8px;
+  background-color: #f7f9fc;
+  border-bottom: 1px solid var(--ci-line);
+  text-align: center;
+  transition: padding 0.25s ease;
+}
+
+.menu-card:not(.collapsed) .menu-header {
+  padding: 12px 14px;
+  text-align: left;
+}
+
+.menu-title {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ci-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  display: block;
+}
+
+.admin-nav {
+  display: flex;
+  flex-direction: column;
+  padding: 8px;
+  gap: 4px;
+}
+
+.nav-btn {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 10px;
+  background: none;
+  border: none;
+  border-radius: 8px;
+  color: var(--ci-text);
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.35;
+  font-weight: 400;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.nav-btn:hover {
+  background-color: var(--ci-hover);
+}
+
+.nav-btn.active {
+  background-color: var(--ci-hover);
+  color: var(--ci-accent);
+  font-weight: 600;
+}
+
+/* Icono en caja contorneada, como en el mockup: toma el color del propio botón */
+.nav-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 1.5px solid currentColor;
+  border-radius: 6px;
+  color: var(--ci-muted);
+  opacity: 0.75;
+  flex-shrink: 0;
+  transition: color 0.15s ease, opacity 0.15s ease;
+
+  svg {
+    width: 15px;
+    height: 15px;
+    stroke: currentColor;
+  }
+}
+
+.nav-btn:hover .nav-icon {
+  opacity: 1;
+}
+
+.nav-btn.active .nav-icon {
+  color: var(--ci-accent);
+  opacity: 1;
+}
+
+.nav-text {
+  font-size: 13px;
+}
+
+/* Colapsado: solo los iconos, centrados */
+.menu-card.collapsed .nav-text {
+  display: none;
+}
+
+.menu-card.collapsed .nav-btn {
+  grid-template-columns: 26px;
+  justify-content: center;
+  padding: 9px;
+}
+
+/* Móvil: se abre con "Mostrar menú" y va en el flujo, a lo ancho, sin tapar nada */
+@media (max-width: 768px) {
+  .sidebar-container {
+    width: auto;
+    padding: 0 10px;
+  }
+
+  .menu-card,
+  .menu-card:not(.collapsed) {
+    position: static;
+    width: auto;
+  }
+}
+
+:host-context(body.dark-mode) {
+  --ci-paper: #f4f6f9;
+  --ci-line: #c2cad6;
+}

@@ -1,0 +1,890 @@
+<ng-template #formContent>
+<div class="form-container">
+  <!-- Banda fija: mantiene el avance visible durante todo el recorrido del formulario -->
+  <div class="header-band">
+    <div class="header-band-text">
+   
+      <h2 class="form-title">FORMULARIO DE DECLARACIÓN DE CONFLICTOS DE INTERÉS</h2>
+    </div>
+    <div class="header-progress">
+      <span class="header-progress-label">Avance</span>
+      <span class="header-progress-value">{{ progreso }}%</span>
+      <div class="header-progress-track"
+           role="progressbar"
+           [attr.aria-valuenow]="progreso"
+           aria-valuemin="0"
+           aria-valuemax="100"
+           aria-label="Avance del formulario">
+        <div class="header-progress-fill" [style.width.%]="progreso"></div>
+      </div>
+    </div>
+  </div>
+
+
+  <div class="form-shell">
+
+    <nav class="section-index" aria-label="Secciones del formulario">
+      <span class="section-index-label">Secciones del formulario</span>
+      <button
+        type="button"
+        class="section-index-link"
+        *ngFor="let seccion of secciones"
+        [class.active]="seccionActiva === seccion.id"
+        (click)="irASeccion(seccion.id)"
+      >
+        <span class="section-index-num">{{ seccion.num }}</span>
+        <span class="section-index-text">{{ seccion.label }}</span>
+      </button>
+      <div class="section-index-note">
+        <span class="section-index-note-title">Confidencialidad</span>
+        <span>Los datos se procesan únicamente para la gestión de integridad institucional.</span>
+      </div>
+    </nav>
+
+  <form
+    [formGroup]="form"
+    (ngSubmit)="onSubmit()"
+    class="conflict-form"
+  >
+    <section id="s1" class="form-section section-card">
+      <div class="section-header">
+        <h3 class="section-title"><span class="section-num">01</span>Información Personal</h3>
+        <!-- Selector de tipo de declaración oculto a petición. El control `status`
+             sigue existiendo y el sistema lo resuelve solo (Inicial / Actualización
+             según exista una declaración previa), así que el envío no cambia; lo
+             único que se pierde es poder marcar "Final" a mano.
+
+             Inicial vs Actualización lo determina el sistema según exista o no
+             una declaración previa enviada; sólo "Final" se marca a mano.
+             Se usan dos radios con value estático y *ngIf en vez de un [value]
+             dinámico: RadioControlValueAccessor lee "value" una sola vez al
+             registrarse, así que cambiarlo en caliente dejaría el radio sin
+             marcar aunque el control tuviera el valor correcto.
+
+        <div class="status-group">
+          <span class="status-label">Declaración:</span>
+          Los usuarios externos no eligen: su declaración es Inicial o
+               Actualización según exista o no una previa, y "Final" no aplica
+               porque corresponde a la salida de la empresa. Se les muestra el
+               valor como texto y no como radio deshabilitado: un control que no
+               se puede usar invita a intentarlo, y además deshabilitar un
+               control reactivo lo saca de form.value, con lo que el estado no
+               se guardaría.
+          <span class="status-fijo" *ngIf="!esUsuarioInterno">
+            {{ tipoDeclaracionAutomatico }}
+          </span>
+
+          <ng-container *ngIf="esUsuarioInterno">
+            <label class="status-option" *ngIf="!hasExistingForm">
+              <input type="radio" formControlName="status" value="Inicial">
+              Inicial
+            </label>
+            <label class="status-option" *ngIf="hasExistingForm">
+              <input type="radio" formControlName="status" value="Actualización">
+              Actualización
+            </label>
+            <label class="status-option">
+              <input type="radio" formControlName="status" value="Final">
+              Final
+            </label>
+          </ng-container>
+        </div>
+        -->
+      </div>
+      <div formGroupName="personalInfo" class="form-grid form-grid-personal">
+        <!-- Al personal interno el nombre le llega completo desde nómina.
+             Si vino precargado se muestra como texto y no como campo: un input
+             relleno invita a corregirlo, y este dato no se corrige aquí sino en
+             nómina. -->
+        <div class="form-group form-group-large" *ngIf="esUsuarioInterno">
+          <label>Nombre completo:</label>
+          <p class="dato-fijo" *ngIf="camposBloqueados['fullName']">{{ valorPersonal('fullName') || '—' }}</p>
+          <input *ngIf="!camposBloqueados['fullName']"
+                 type="text" formControlName="fullName" class="form-control"
+                 placeholder="Apellidos y Nombres"
+                 (input)="onTextInput($event, form.get('personalInfo.fullName')!)">
+        </div>
+
+        <!-- A los externos se les pide separado, que es como lo guarda la base.
+             Así se registra exacto en vez de deducirlo del nombre completo, que
+             falla con apellidos compuestos. -->
+        <ng-container *ngIf="!esUsuarioInterno">
+          <!-- El registro civil entrega el nombre en un solo texto, asi que el
+               reparto en cuatro campos puede fallar con apellidos compuestos.
+               Se avisa para que la persona lo revise antes de enviar. -->
+          <!-- El aviso solo sale cuando el reparto en cuatro campos se dedujo, sea
+               del registro civil o del nombre completo de una declaración
+               anterior. En ese caso los campos siguen editables, abajo, porque la
+               deducción falla con apellidos y nombres compuestos. -->
+          <div class="aviso-precarga" *ngIf="nombrePrecargado">
+            Su nombre se separó automáticamente en cuatro campos.
+            Revíselo y corríjalo si algún apellido o nombre quedó mal separado.
+          </div>
+          <div class="form-group form-group-name">
+            <label>Primer apellido:</label>
+            <p class="dato-fijo" *ngIf="camposBloqueados['apellidoPaterno']">{{ valorPersonal('apellidoPaterno') || '—' }}</p>
+            <ng-container *ngIf="!camposBloqueados['apellidoPaterno']">
+              <input type="text" formControlName="apellidoPaterno" class="form-control"
+                     (input)="onTextInput($event, form.get('personalInfo.apellidoPaterno')!)">
+              <div class="error-message"
+                   *ngIf="form.get('personalInfo.apellidoPaterno')?.invalid && form.get('personalInfo.apellidoPaterno')?.touched">
+                Ingrese el primer apellido.
+              </div>
+            </ng-container>
+          </div>
+          <div class="form-group form-group-name">
+            <label>Segundo apellido:</label>
+            <p class="dato-fijo" *ngIf="camposBloqueados['apellidoMaterno']">{{ valorPersonal('apellidoMaterno') || '—' }}</p>
+            <input *ngIf="!camposBloqueados['apellidoMaterno']"
+                   type="text" formControlName="apellidoMaterno" class="form-control"
+                   (input)="onTextInput($event, form.get('personalInfo.apellidoMaterno')!)">
+          </div>
+          <div class="form-group form-group-name">
+            <label>Primer nombre:</label>
+            <p class="dato-fijo" *ngIf="camposBloqueados['nombrePrimero']">{{ valorPersonal('nombrePrimero') || '—' }}</p>
+            <ng-container *ngIf="!camposBloqueados['nombrePrimero']">
+              <input type="text" formControlName="nombrePrimero" class="form-control"
+                     (input)="onTextInput($event, form.get('personalInfo.nombrePrimero')!)">
+              <div class="error-message"
+                   *ngIf="form.get('personalInfo.nombrePrimero')?.invalid && form.get('personalInfo.nombrePrimero')?.touched">
+                Ingrese el primer nombre.
+              </div>
+            </ng-container>
+          </div>
+          <div class="form-group form-group-name">
+            <label>Segundo nombre:</label>
+            <p class="dato-fijo" *ngIf="camposBloqueados['nombreSegundo']">{{ valorPersonal('nombreSegundo') || '—' }}</p>
+            <input *ngIf="!camposBloqueados['nombreSegundo']"
+                   type="text" formControlName="nombreSegundo" class="form-control"
+                   (input)="onTextInput($event, form.get('personalInfo.nombreSegundo')!)">
+          </div>
+        </ng-container>
+        <div class="form-group form-group-small">
+          <label>C.I.:</label>
+          <p class="dato-fijo dato-fijo-cedula" *ngIf="camposBloqueados['ci']">{{ valorPersonal('ci') || '—' }}</p>
+          <!-- El mensaje de error acompaña al campo editable: si la cédula viene
+               de la cuenta, no hay nada que el usuario pueda corregir aquí. -->
+          <ng-container *ngIf="!camposBloqueados['ci']">
+            <input type="text" formControlName="ci" class="form-control"
+                   (input)="onCiInput($event, form.get('personalInfo.ci')!)"
+                   maxlength="10"
+                   pattern="[0-9]*">
+            <div class="error-message" *ngIf="form.get('personalInfo.ci')?.hasError('ciInvalid') && form.get('personalInfo.ci')?.touched">
+              {{ form.get('personalInfo.ci')?.getError('ciInvalid')?.message }}
+            </div>
+          </ng-container>
+        </div>
+        <div class="form-group form-group-large">
+          <label>Unidad/Área a la que se incorpora:</label>
+          <p class="dato-fijo" *ngIf="camposBloqueados['unit']">{{ valorPersonal('unit') || '—' }}</p>
+          <input *ngIf="!camposBloqueados['unit']"
+                 type="text" formControlName="unit" class="form-control"
+                 (input)="onTextInput($event, form.get('personalInfo.unit')!)">
+        </div>
+        <div class="form-group form-group-large">
+          <label>Cargo:</label>
+          <p class="dato-fijo" *ngIf="camposBloqueados['position']">{{ valorPersonal('position') || '—' }}</p>
+          <input *ngIf="!camposBloqueados['position']"
+                 type="text" formControlName="position" class="form-control"
+                 (input)="onTextInput($event, form.get('personalInfo.position')!)">
+        </div>
+        <!-- "En calidad de".
+
+             Al personal interno se le hereda de nómina, igual que el cargo, y
+             se muestra en solo lectura: verlo antes de enviar importa, porque
+             es lo que sale en el PDF.
+
+             Se pregunta cuando nómina no lo sabe: siempre al externo, y al
+             interno cuyo registro no tiene grupo de escala. Primero el régimen
+             y con eso se filtran las modalidades, porque las de un régimen no
+             valen para el otro. -->
+        <!-- Heredada de nómina: se muestra como texto, igual que el cargo y la
+             unidad, y con su régimen al lado, que antes no aparecía. -->
+        <div class="form-group form-group-contract" *ngIf="!mostrarSelectorModalidad">
+          <label>En calidad de:</label>
+          <p class="dato-fijo">{{ valorPersonal('employmentType') || '—' }}</p>
+          <small class="field-hint" *ngIf="regimenSegunNomina">
+            Régimen laboral: {{ regimenSegunNomina }}
+          </small>
+          <small class="field-hint" *ngIf="encargadoSegunNomina">
+            Consta además subrogando o encargado de otro puesto.
+          </small>
+        </div>
+
+        <div class="form-group form-group-contract" *ngIf="mostrarSelectorModalidad">
+          <label>Régimen laboral:</label>
+          <!-- Sin estos dos avisos, un catálogo que no llega se veía como una
+               etiqueta sin opciones, y el formulario no se podía enviar sin que
+               nada dijera por qué. -->
+          <p class="field-hint" *ngIf="estadoCatalogo === 'cargando'">
+            Cargando las opciones de nómina…
+          </p>
+          <div class="error-message" *ngIf="estadoCatalogo === 'error'">
+            No se pudieron cargar los regímenes laborales.
+            <button type="button" class="enlace-reintentar" (click)="reintentarCatalogo()">
+              Reintentar
+            </button>
+          </div>
+          <div class="regimen-opciones" *ngIf="estadoCatalogo === 'listo'">
+            <label class="regimen-option" *ngFor="let r of regimenes" [title]="r.descripcion">
+              <input type="radio" formControlName="laborRegime" [value]="r.codigo"
+                     (change)="onRegimenChange()">
+              {{ r.etiqueta }}
+            </label>
+          </div>
+        </div>
+
+        <div class="form-group form-group-contract" *ngIf="mostrarSelectorModalidad">
+          <label>En calidad de:</label>
+          <!-- La opción elegida se marca con [selected] en cada <option> y no con
+               [value] en el <select>: al reabrir una declaración el valor llega
+               antes que el catálogo, y un [value] sin opciones todavía se pierde.
+               El navegador marcaba entonces la primera opción habilitada, y se
+               veía NOMBRAMIENTOS PROVISIONALES LOEP mientras lo guardado era
+               SERVICIOS OCASIONALES LOEP. -->
+          <select class="form-control"
+                  [disabled]="modalidadesDelRegimen.length === 0"
+                  (change)="onModalidadChange($any($event.target).value)">
+            <option value="" disabled [selected]="!form.get('personalInfo.employmentTypeCode')?.value">
+              {{ estadoCatalogo !== 'listo'
+                  ? 'No disponible'
+                  : modalidadesDelRegimen.length === 0
+                    ? 'Elija primero el régimen'
+                    : 'Seleccione tipo de contrato' }}
+            </option>
+            <option *ngFor="let m of modalidadesDelRegimen" [value]="m.CODIGO"
+                    [selected]="m.CODIGO === form.get('personalInfo.employmentTypeCode')?.value">
+              {{ m.DESCRIPCION }}
+            </option>
+          </select>
+        </div>
+        <!-- Para un interno con fecha de ingreso en nómina, es el dato real y
+             se muestra fija. Si nómina no la tiene, o para un externo, sigue
+             editable: hay además declaraciones guardadas con la fecha del día
+             en que se llenó el formulario en vez de la del ingreso real, y
+             esas hay que poder corregirlas. -->
+        <div class="form-group form-group-date">
+          <label>Fecha de ingreso:</label>
+          <p class="dato-fijo" *ngIf="camposBloqueados['startDate']">{{ fechaIngresoTexto() || '—' }}</p>
+          <ng-container *ngIf="!camposBloqueados['startDate']">
+            <input type="date" formControlName="startDate" class="form-control"
+                   [max]="fechaMaxima">
+            <!-- Sin condición de `touched`: una fecha futura puede llegar ya
+                 guardada, y entonces nadie tocó el campo. Si el aviso esperara
+                 al foco, el formulario quedaría inválido sin explicar por qué. -->
+            <div class="error-message" *ngIf="form.get('personalInfo.startDate')?.hasError('fechaFutura')">
+              {{ form.get('personalInfo.startDate')?.getError('fechaFutura')?.message }}
+            </div>
+          </ng-container>
+        </div>
+      </div>
+    </section>
+
+    <section id="s2" class="form-section section-card">
+      <div class="section-header">
+        <h3 class="section-title"><span class="section-num">02</span>Declaración de Intereses Personales</h3>
+      </div>
+      
+      <div formGroupName="personalInterests">
+        <div class="form-group">
+          <label>¿Tiene usted algún interés financiero o personal que pueda influir en sus decisiones o en su trabajo dentro de la institución?</label>
+          <div class="radio-group">
+            <label class="radio-label">
+              <input type="radio" formControlName="hasFinancialInterest" [value]="true">
+              Sí
+            </label>
+            <label class="radio-label">
+              <input type="radio" formControlName="hasFinancialInterest" [value]="false">
+              No
+            </label>
+          </div>
+        </div>
+
+        <div class="form-group" *ngIf="form.get('personalInterests.hasFinancialInterest')?.value">
+          <label>Si la respuesta es sí, detalle los intereses involucrados:</label>
+          <textarea formControlName="financialInterestDetail" class="form-control" rows="4" 
+                    (input)="onTextInput($event, form.get('personalInterests.financialInterestDetail')!)"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>
+            ¿Tiene usted cónyuge, familiares hasta el 4to grado de consanguinidad y 2do de afinidad que trabajen en la institución o en entidades relacionadas?
+            <span class="info-icon-wrapper">
+              <button type="button" class="info-icon" aria-label="Ver grados de consanguinidad y afinidad">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 1.5-1 2-1.8 2.4-.7.4-1.2.7-1.2 1.6V14" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                  <circle cx="12" cy="17" r="0.9" />
+                </svg>
+              </button>
+              <div class="kinship-tooltip">
+                <img src="/sisci/assets/gradosparentezco.png" alt="Grados de consanguinidad y afinidad" />
+              </div>
+            </span>
+          </label>
+          <div class="radio-group">
+            <label class="radio-label">
+              <input type="radio" formControlName="hasFamilyInstitution" [value]="true" (change)="onHasFamilyInstitutionChange()">
+              Sí
+            </label>
+            <label class="radio-label">
+              <input type="radio" formControlName="hasFamilyInstitution" [value]="false" (change)="onHasFamilyInstitutionChange()">
+              No
+            </label>
+          </div>
+        </div>
+
+        <div *ngIf="form.get('personalInterests.hasFamilyInstitution')?.value">
+          <div formArrayName="familyMembers" class="dynamic-list">
+            <div class="dynamic-list-header">
+              <span class="dynamic-list-title">Familiares declarados</span>
+              <span class="dynamic-list-count">{{ conteoFamiliares }}</span>
+            </div>
+
+            <div *ngFor="let member of familyMembers.controls; let i = index" [formGroupName]="i" class="dynamic-item">
+              <div class="item-header">
+                <span class="item-avatar">{{ inicialesFamiliar(i) }}</span>
+                <span class="item-identity">
+                  <span class="item-name">{{ familyMembers.at(i).get('name')?.value || 'Familiar sin nombre' }}</span>
+                  <span class="item-meta">
+                    Familiar {{ i + 1 }} · C.I. {{ familyMembers.at(i).get('ci')?.value || '—' }}
+                    <span class="etiqueta-origen" *ngIf="familiarEsExterno(i)">Otra entidad</span>
+                  </span>
+                </span>
+                <button type="button" class="btn-remove" (click)="removeFamilyMember(i)">Quitar</button>
+              </div>
+              <div class="form-grid form-grid-3">
+                <!-- Nombre y C.I. solo se repiten aqui abajo cuando hay algo
+                     que escribir: si el directorio ya los trajo, ya se ven en
+                     el encabezado azul de la tarjeta, y repetirlos como texto
+                     fijo era pura duplicacion. El aviso de duplicado queda
+                     fuera de los dos, porque aplica igual sea cual sea el
+                     origen del nombre. -->
+                <div class="form-group form-group-span-2" *ngIf="!familiarEsFijo(i, 'name')">
+                  <label>Nombre:</label>
+                  <input type="text" formControlName="name" class="form-control"
+                         (input)="onTextInput($event, familyMembers.at(i).get('name')!)">
+                </div>
+                <div class="form-group" *ngIf="!familiarEsFijo(i, 'ci')">
+                  <label>C.I.:</label>
+                  <!-- Para el personal externo el backend manda la cédula en null;
+                       solo entonces hay algo que escribir. -->
+                  <input type="text" formControlName="ci" class="form-control"
+                         (input)="onCiInput($event, familyMembers.at(i).get('ci')!)"
+                         maxlength="10"
+                         pattern="[0-9]*">
+                  <div class="error-message" *ngIf="familyMembers.at(i).get('ci')?.hasError('ciInvalid') && familyMembers.at(i).get('ci')?.touched">
+                    {{ familyMembers.at(i).get('ci')?.getError('ciInvalid')?.message }}
+                  </div>
+                  <div class="field-hint" *ngIf="!familyMembers.at(i).get('ci')?.value">
+                    No consta en nómina. Ingrésela manualmente.
+                  </div>
+                </div>
+                <div class="error-message" *ngIf="esFamiliarDuplicado(i)">
+                  Este familiar ya fue declarado más arriba.
+                </div>
+                <!-- Siempre editable: el parentesco no lo sabe el sistema. -->
+                <div class="form-group">
+                  <label>Parentesco:</label>
+                  <select formControlName="relationship" class="form-control">
+                    <option value="">Seleccione</option>
+                    <option *ngFor="let parentesco of parentescos" [value]="parentesco">
+                      {{ parentesco }}
+                    </option>
+                  </select>
+                  <div class="error-message"
+                       *ngIf="familyMembers.at(i).get('relationship')?.invalid && familyMembers.at(i).get('relationship')?.touched">
+                    Seleccione el parentesco.
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label>{{ familiarEsExterno(i) ? 'Entidad donde trabaja:' : 'Institución:' }}</label>
+                  <p class="dato-fijo" *ngIf="familiarEsFijo(i, 'position')">{{ valorFamiliar(i, 'position') }}</p>
+                  <input *ngIf="!familiarEsFijo(i, 'position')"
+                         type="text" formControlName="position" class="form-control"
+                         [placeholder]="familiarEsExterno(i) ? 'Nombre de la entidad' : ''"
+                         (input)="onTextInput($event, familyMembers.at(i).get('position')!)">
+                  <div class="error-message"
+                       *ngIf="familyMembers.at(i).get('position')?.invalid && familyMembers.at(i).get('position')?.touched">
+                    Indique la entidad donde trabaja.
+                  </div>
+                </div>
+                <div class="form-group form-group-span-2">
+                  <label>Departamento:</label>
+                  <p class="dato-fijo" *ngIf="familiarEsFijo(i, 'department')">{{ valorFamiliar(i, 'department') }}</p>
+                  <input *ngIf="!familiarEsFijo(i, 'department')"
+                         type="text" formControlName="department" class="form-control"
+                         (input)="onTextInput($event, familyMembers.at(i).get('department')!)">
+                </div>
+                <!-- Sección y área son nodos de la estructura de EEASA; para
+                     quien trabaja en otra entidad no significan nada. -->
+                <div class="form-group" *ngIf="!familiarEsExterno(i)">
+                  <label>Sección:</label>
+                  <p class="dato-fijo" *ngIf="familiarEsFijo(i, 'section')">{{ valorFamiliar(i, 'section') }}</p>
+                  <input *ngIf="!familiarEsFijo(i, 'section')"
+                         type="text" formControlName="section" class="form-control"
+                         (input)="onTextInput($event, familyMembers.at(i).get('section')!)">
+                </div>
+                <div class="form-group" *ngIf="!familiarEsExterno(i)">
+                  <label>Área:</label>
+                  <p class="dato-fijo" *ngIf="familiarEsFijo(i, 'area')">{{ valorFamiliar(i, 'area') }}</p>
+                  <input *ngIf="!familiarEsFijo(i, 'area')"
+                         type="text" formControlName="area" class="form-control"
+                         (input)="onTextInput($event, familyMembers.at(i).get('area')!)">
+                </div>
+              </div>
+            </div>
+            <div class="dynamic-empty" *ngIf="familyMembers.length === 0">
+              <span class="dynamic-empty-title">Aún no ha registrado familiares</span>
+              <span class="dynamic-empty-hint">
+                Búsquelo por nombre si trabaja en EEASA, o por cédula si trabaja en otra entidad.
+              </span>
+            </div>
+
+            <button type="button" class="btn-add" (click)="abrirBuscadorFamiliar()">
+              <span class="btn-add-icon">+</span>
+              Agregar un familiar
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="s3" class="form-section section-card">
+      <div class="section-header">
+        <h3 class="section-title"><span class="section-num">03</span>Relación con Proveedores o Contratistas</h3>
+      </div>
+      
+      <div formGroupName="suppliers">
+        <div class="form-group">
+          <label>
+            ¿Tiene usted cónyuge, familiares hasta el 4to grado de consanguinidad y 2do de afinidad o personas cercanas que oferten servicios y/o productos o mantengan contratos con la institución?
+            <span class="info-icon-wrapper">
+              <button type="button" class="info-icon" aria-label="Ver grados de consanguinidad y afinidad">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 1.5-1 2-1.8 2.4-.7.4-1.2.7-1.2 1.6V14" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                  <circle cx="12" cy="17" r="0.9" />
+                </svg>
+              </button>
+              <div class="kinship-tooltip">
+                <img src="/sisci/assets/gradosparentezco.png" alt="Grados de consanguinidad y afinidad" />
+              </div>
+            </span>
+          </label>
+          <div class="radio-group">
+            <label class="radio-label">
+              <input type="radio" formControlName="hasSupplierRelations" [value]="true" (change)="onHasSupplierRelationsChange()">
+              Sí
+            </label>
+            <label class="radio-label">
+              <input type="radio" formControlName="hasSupplierRelations" [value]="false" (change)="onHasSupplierRelationsChange()">
+              No
+            </label>
+          </div>
+        </div>
+
+        <div *ngIf="form.get('suppliers.hasSupplierRelations')?.value">
+          <div formArrayName="suppliersList" class="dynamic-list">
+            <div *ngFor="let supplier of suppliersList.controls; let i = index" [formGroupName]="i" class="dynamic-item">
+              <div class="item-header">
+                <h4>Proveedor/Contratista {{ i + 1 }}</h4>
+                <!-- Siempre visible, también con un único proveedor: antes
+                     desaparecía, y la única forma de deshacerse de él era
+                     responder "No". Lo que impide dejar la lista vacía con un
+                     "Sí" es la validación de al menos un registro. -->
+                <button type="button" class="btn-remove" (click)="removeSupplier(i)">Quitar</button>
+              </div>
+              <div class="form-grid">
+                <!-- El proveedor casi nunca es personal de EEASA, asi que el
+                     buscador institucional de la seccion 2 no serviria: no lo
+                     encontraria. En vez de eso, al completar la cedula se
+                     consulta DINARDAP y, si existe, se completa el nombre
+                     solo; DINARDAP solo resuelve por cedula exacta, nunca por
+                     nombre, asi que no hay una lista de resultados que elegir
+                     como alli. -->
+                <!-- Confirmado por el registro civil: cédula y nombre fijos. Van
+                     juntos, porque el nombre es el de esa cédula; para buscar
+                     otra se usa "Cambiar cédula", que limpia los dos. -->
+                <div class="form-group" *ngIf="proveedorVerificado(i)">
+                  <label>C.I.:</label>
+                  <p class="dato-fijo">{{ suppliersList.at(i).get('ci')?.value }}</p>
+                </div>
+                <div class="form-group" *ngIf="proveedorVerificado(i)">
+                  <label>Nombre:</label>
+                  <p class="dato-fijo">{{ suppliersList.at(i).get('name')?.value }}</p>
+                  <div class="field-hint">
+                    Datos del registro civil.
+                    <button type="button" class="enlace-accion" (click)="cambiarCedulaProveedor(i)">
+                      Cambiar cédula
+                    </button>
+                  </div>
+                </div>
+
+                <div class="form-group" *ngIf="!proveedorVerificado(i)">
+                  <label>C.I.:</label>
+                  <input type="text" formControlName="ci" class="form-control"
+                         (input)="onSupplierCiInput($event, i)"
+                         maxlength="10"
+                         pattern="[0-9]*">
+                  <div class="error-message" *ngIf="suppliersList.at(i).get('ci')?.hasError('ciInvalid') && suppliersList.at(i).get('ci')?.touched">
+                    {{ suppliersList.at(i).get('ci')?.getError('ciInvalid')?.message }}
+                  </div>
+                  <div class="field-hint consulta-en-curso" *ngIf="estadoProveedor(i) === 'buscando'">
+                    Buscando en el registro civil…
+                  </div>
+                  <div class="field-hint" *ngIf="estadoProveedor(i) === 'no-encontrado'">
+                    No se encontraron datos para esta cédula. Escriba el nombre a mano.
+                  </div>
+                </div>
+                <div class="form-group" *ngIf="!proveedorVerificado(i)">
+                  <label>Nombre:</label>
+                  <!-- El nombre sale de la cédula. Mientras no se haya buscado
+                       no se ofrece el campo: invitaría a escribirlo primero y
+                       verlo reemplazado después. -->
+                  <input *ngIf="proveedorNombreManual(i)"
+                         type="text" formControlName="name" class="form-control"
+                         placeholder="Apellidos y Nombres"
+                         (input)="onTextInput($event, suppliersList.at(i).get('name')!)">
+                  <p class="field-hint" *ngIf="!proveedorNombreManual(i)">
+                    Se completará al escribir la cédula, desde el registro civil.
+                  </p>
+                </div>
+                <!-- Igual que en la sección 2: el parentesco no lo sabe ningún
+                     servicio, siempre lo elige la persona. -->
+                <div class="form-group">
+                  <label>Parentesco:</label>
+                  <select formControlName="relationship" class="form-control">
+                    <option value="">Seleccione</option>
+                    <option *ngFor="let parentesco of parentescos" [value]="parentesco">
+                      {{ parentesco }}
+                    </option>
+                  </select>
+                  <div class="error-message"
+                       *ngIf="suppliersList.at(i).get('relationship')?.invalid && suppliersList.at(i).get('relationship')?.touched">
+                    Seleccione el parentesco.
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label>Detalle la relación:</label>
+                  <textarea formControlName="detail" class="form-control" rows="3" 
+                            (input)="onTextInput($event, suppliersList.at(i).get('detail')!)"></textarea>
+                </div>
+                <div class="form-group">
+                  <label>Empresa:</label>
+                  <input type="text" formControlName="company" class="form-control" 
+                         (input)="onTextInput($event, suppliersList.at(i).get('company')!)">
+                </div>
+              </div>
+            </div>
+            <div class="dynamic-empty" *ngIf="suppliersList.length === 0">
+              <span class="dynamic-empty-title">Aún no ha registrado proveedores o contratistas</span>
+              <span class="dynamic-empty-hint">Agregue al menos uno, o responda "No" a la pregunta.</span>
+            </div>
+            <button type="button" class="btn-add" (click)="addSupplier()">
+              + {{ suppliersList.length === 0 ? 'Agregar' : 'Añadir otro' }} proveedor/contratista
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="s4" class="form-section section-card">
+      <div class="section-header">
+        <h3 class="section-title"><span class="section-num">04</span>Declaración de Incompatibilidad</h3>
+      </div>
+      
+      <div formGroupName="incompatibility">
+        <div class="form-group">
+          <label>¿Existen otras situaciones que, en su opinión, puedan representar un conflicto de interés al ingresar a la institución?</label>
+          <div class="radio-group">
+            <label class="radio-label">
+              <input type="radio" formControlName="hasOtherSituations" [value]="true">
+              Sí
+            </label>
+            <label class="radio-label">
+              <input type="radio" formControlName="hasOtherSituations" [value]="false">
+              No
+            </label>
+          </div>
+        </div>
+
+        <div class="form-group" *ngIf="form.get('incompatibility.hasOtherSituations')?.value">
+          <label>Si la respuesta es sí, detalle las situaciones que considera relevantes:</label>
+          <textarea formControlName="otherSituationsDetail" class="form-control" rows="4" 
+                    (input)="onTextInput($event, form.get('incompatibility.otherSituationsDetail')!)"></textarea>
+        </div>
+      </div>
+    </section>
+
+    <section id="s5" class="form-section section-card">
+      <div class="section-header">
+        <h3 class="section-title"><span class="section-num">05</span>Procedimientos de Gestión y Prevención</h3>
+      </div>
+      
+      <div formGroupName="procedures">
+        <div class="form-group">
+          <label>¿Está usted dispuesto a comprometerse a la revisión periódica de sus actividades y relaciones para asegurar que no surjan conflictos de interés?</label>
+          <div class="radio-group">
+            <label class="radio-label">
+              <input type="radio" formControlName="commitToReview" [value]="true">
+              Sí
+            </label>
+            <label class="radio-label">
+              <input type="radio" formControlName="commitToReview" [value]="false">
+              No
+            </label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>¿Está dispuesto a informar a su superior inmediato o a la unidad administrativa/área encargada sobre cualquier posible conflicto de interés durante su tiempo en la institución?</label>
+          <div class="radio-group">
+            <label class="radio-label">
+              <input type="radio" formControlName="commitToInform" [value]="true">
+              Sí
+            </label>
+            <label class="radio-label">
+              <input type="radio" formControlName="commitToInform" [value]="false">
+              No
+            </label>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="s6" class="form-section section-card">
+      <div class="section-header">
+        <h3 class="section-title"><span class="section-num">06</span>Declaración</h3>
+      </div>
+      <div class="form-group">
+        <label class="declaration-checkbox">
+          <input type="checkbox" formControlName="declarationAccepted">
+          <span>Declaro que la información proporcionada es verídica y me comprometo a notificar cualquier cambio que pueda surgir en relación con los conflictos de interés durante mi tiempo en la institución.</span>
+        </label>
+        <div class="error-message" *ngIf="form.get('declarationAccepted')?.hasError('required') && form.get('declarationAccepted')?.touched">
+          Debe aceptar la declaración para continuar
+        </div>
+      </div>
+    </section>
+
+    <section id="s7" class="form-section section-card">
+      <div class="section-header">
+        <h3 class="section-title"><span class="section-num">07</span>Cláusula de protección de datos personales</h3>
+      </div>
+      <div class="data-protection-clause">
+        <p>En cumplimiento con la Ley Orgánica de Protección de Datos Personales (LOPDP) y su normativa conexa, EMPRESA ELÉCTRICA AMBATO REGIONAL CENTRO NORTE S.A., en calidad de responsable del tratamiento, informa al titular de los datos personales que la información proporcionada será objeto de tratamiento con las siguientes finalidades: Detección de posibles Conflictos de Interés y prevención de actos de corrupción.</p>
+      </div>
+    </section>
+<button 
+    type="button" 
+    class="floating-download-btn" 
+    [class.disabled]="formHasChanges"
+    [attr.aria-disabled]="formHasChanges"
+    (click)="downloadPdfOnly()"
+    [title]="formHasChanges ? 'Los datos se han modificado, por favor envie nuevamente el formulario para descargar' : 'Descargar PDF sin enviar'">
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+      <polyline points="7 10 12 15 17 10"></polyline>
+      <line x1="12" y1="15" x2="12" y2="3"></line>
+    </svg>
+    <span class="btn-text">Descargar PDF</span>
+  </button>
+
+  <!-- Buscador de familiares. La pregunta abarca a quien trabaja en la
+       institución "o en entidades relacionadas", y son dos búsquedas distintas:
+       en nómina por nombre, o en el registro civil por cédula. Por eso dos
+       pestañas, en el mismo orden en que las nombra la pregunta. La persona se
+       elige aquí y recién entonces se crea su tarjeta, ya con los datos. -->
+  <div class="buscador-backdrop" *ngIf="buscadorAbierto" (click)="cerrarBuscadorFamiliar()">
+    <div class="buscador-modal" (click)="$event.stopPropagation()">
+      <div class="buscador-header">
+        <span class="section-num">02</span>
+        <h3 class="buscador-title">Agregar familiar</h3>
+        <button type="button" class="buscador-close" (click)="cerrarBuscadorFamiliar()" aria-label="Cerrar buscador">✕</button>
+      </div>
+
+      <div class="buscador-tabs" role="tablist" aria-label="Dónde trabaja el familiar">
+        <button type="button" role="tab" class="buscador-tab"
+                [class.activa]="modoBuscador === 'eeasa'"
+                [attr.aria-selected]="modoBuscador === 'eeasa'"
+                (click)="cambiarModoBuscador('eeasa')">
+          Trabaja en EEASA
+        </button>
+        <button type="button" role="tab" class="buscador-tab"
+                [class.activa]="modoBuscador === 'externa'"
+                [attr.aria-selected]="modoBuscador === 'externa'"
+                (click)="cambiarModoBuscador('externa')">
+          Trabaja en otra entidad
+        </button>
+      </div>
+
+      <ng-container *ngIf="modoBuscador === 'eeasa'">
+      <div class="buscador-search">
+        <label class="buscador-label" for="buscadorPersona">Nombre o cédula</label>
+        <input id="buscadorPersona"
+               type="text"
+               class="buscador-input"
+               autocomplete="off"
+               placeholder="Escriba apellidos, nombres o número de cédula"
+               [value]="busquedaPersonal"
+               (input)="onBuscarPersona($event)">
+        <span class="buscador-hint">{{ textoResultados }}</span>
+      </div>
+
+      <div class="buscador-results">
+        <button type="button"
+                class="buscador-result"
+                *ngFor="let persona of resultadosBusqueda"
+                [disabled]="yaAgregado(persona)"
+                (click)="seleccionarPersona(persona)">
+          <span class="buscador-result-avatar">{{ inicialesDe(persona.NOMBRE_COMPLETO) }}</span>
+          <span class="buscador-result-text">
+            <span class="buscador-result-name">{{ persona.NOMBRE_COMPLETO }}</span>
+            <span class="buscador-result-detail" *ngIf="yaAgregado(persona)">Ya declarado</span>
+            <span class="buscador-result-detail" *ngIf="!yaAgregado(persona) && !persona.CEDULA">Sin cédula registrada</span>
+          </span>
+          <span class="buscador-result-ci">{{ persona.CEDULA || '—' }}</span>
+        </button>
+
+        <div class="buscador-empty" *ngIf="sinResultados">
+          <span class="buscador-empty-icon">∅</span>
+          <span class="buscador-empty-title">Sin coincidencias en la nómina de EEASA</span>
+          <span class="buscador-empty-hint">Verifique el nombre o la cédula ingresada.</span>
+          <!-- Quien trabaja en otra entidad no está en nómina: si llegó aquí
+               buscándolo, se le ofrece la otra pestaña en lugar de dejarlo
+               en un callejón sin salida. -->
+          <button type="button" class="enlace-accion" (click)="cambiarModoBuscador('externa')">
+            ¿Trabaja en otra entidad? Buscar por cédula
+          </button>
+        </div>
+      </div>
+      </ng-container>
+
+      <ng-container *ngIf="modoBuscador === 'externa'">
+        <div class="buscador-search">
+          <p class="buscador-explicacion">
+            Para familiares que trabajan en una entidad relacionada con la institución.
+            Como no constan en la nómina de EEASA, se buscan por cédula en el registro civil.
+          </p>
+          <label class="buscador-label" for="cedulaExterna">Cédula del familiar</label>
+          <input id="cedulaExterna"
+                 type="text"
+                 inputmode="numeric"
+                 maxlength="10"
+                 class="buscador-input"
+                 autocomplete="off"
+                 placeholder="Número de cédula"
+                 [value]="cedulaExterna"
+                 (input)="onCedulaExternaInput($event)">
+          <span class="buscador-hint" *ngIf="estadoExterna === 'inicial'">Escriba los 10 dígitos de la cédula</span>
+          <span class="buscador-hint error-message" *ngIf="estadoExterna === 'invalida'">Cédula inválida, verifique el número</span>
+          <span class="buscador-hint consulta-en-curso" *ngIf="estadoExterna === 'buscando'">Buscando en el registro civil…</span>
+          <span class="buscador-hint" *ngIf="estadoExterna === 'encontrado'">Encontrado en el registro civil</span>
+        </div>
+
+        <div class="buscador-results">
+          <button type="button"
+                  class="buscador-result"
+                  *ngIf="estadoExterna === 'encontrado'"
+                  [disabled]="externaYaDeclarada"
+                  (click)="agregarFamiliarExterno()">
+            <span class="buscador-result-avatar">{{ inicialesDe(nombreExterna) }}</span>
+            <span class="buscador-result-text">
+              <span class="buscador-result-name">{{ nombreExterna }}</span>
+              <span class="buscador-result-detail" *ngIf="externaYaDeclarada">Ya declarado</span>
+              <span class="buscador-result-detail" *ngIf="!externaYaDeclarada">Registro civil</span>
+            </span>
+            <span class="buscador-result-ci">{{ cedulaExterna }}</span>
+          </button>
+
+          <div class="buscador-empty" *ngIf="estadoExterna === 'no-encontrado'">
+            <span class="buscador-empty-icon">∅</span>
+            <span class="buscador-empty-title">Sin datos en el registro civil</span>
+            <span class="buscador-empty-hint" *ngIf="!externaYaDeclarada">
+              Puede agregarlo igual y escribir el nombre a mano.
+            </span>
+            <span class="buscador-empty-hint" *ngIf="externaYaDeclarada">Esta cédula ya está declarada.</span>
+            <button type="button" class="enlace-accion" *ngIf="!externaYaDeclarada"
+                    (click)="agregarFamiliarExterno()">
+              Agregar y escribir el nombre
+            </button>
+          </div>
+        </div>
+      </ng-container>
+
+      <div class="buscador-footer">
+        <span class="buscador-footer-hint">
+          {{ modoBuscador === 'eeasa'
+              ? 'Seleccione una persona para completar el parentesco.'
+              : 'Luego indique el parentesco y la entidad donde trabaja.' }}
+        </span>
+        <button type="button" class="buscador-cancel" (click)="cerrarBuscadorFamiliar()">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirmación previa al envío: se abre desde onSubmit() ya con el
+       formulario validado, así que aquí solo se revisa y se confirma o se
+       cancela. El envío real ocurre recién al pulsar "Sí, enviar". -->
+  <div class="confirm-modal-backdrop" *ngIf="confirmacionEnvioAbierta">
+    <div class="confirm-modal">
+      <h3 class="confirm-modal-title">¿Enviar la declaración de conflicto de intereses?</h3>
+      <p class="confirm-modal-subtitle">
+        Revise el resumen antes de confirmar. Una vez enviado, quedará registrado como su declaración vigente.
+      </p>
+      <div class="confirm-modal-body">
+        <ng-container *ngFor="let seccion of resumenEnvio()">
+          <div class="confirm-modal-seccion" *ngIf="seccion.lineas.length > 0">
+            <span class="confirm-modal-seccion-titulo">{{ seccion.titulo }}</span>
+            <ul class="confirm-modal-lista">
+              <li *ngFor="let linea of seccion.lineas">{{ linea }}</li>
+            </ul>
+          </div>
+        </ng-container>
+      </div>
+      <div class="confirm-modal-actions">
+        <button type="button" class="confirm-modal-btn confirm-modal-btn-no" (click)="cancelarEnvio()">
+          No, revisar
+        </button>
+        <button type="button" class="confirm-modal-btn confirm-modal-btn-si" (click)="confirmarEnvio()">
+          Sí, enviar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="status-modal-backdrop" *ngIf="statusModalOpen">
+    <div class="status-modal" [ngClass]="{
+      'status-modal-success': statusType === 'success',
+      'status-modal-error': statusType === 'error',
+      'status-modal-info': statusType === 'info' || !statusType
+    }">
+      <h3 class="status-modal-title">
+        {{ statusType === 'success' ? 'Formulario enviado exitosamente'
+           : statusType === 'error' ? 'Ocurrió un problema'
+           : 'Información' }}
+      </h3>
+      <p class="status-modal-message">
+        {{ statusMessage }}
+      </p>
+      <div class="status-modal-actions">
+        <button type="button" class="status-modal-btn" (click)="closeStatusModal()">
+          Aceptar
+        </button>
+      </div>
+    </div>
+  </div>
+    <div class="form-footer">
+      <div class="form-footer-actions">
+        <button type="button" class="btn-submit" (click)="onSubmit()">
+          Enviar formulario y guardar PDF
+        </button>
+      </div>
+    </div>
+  </form>
+  </div>
+</div>
+</ng-template>
+
+<ng-container *ngTemplateOutlet="formContent"></ng-container>

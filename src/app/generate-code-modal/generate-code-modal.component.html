@@ -1,0 +1,45 @@
+<div class="code-modal-backdrop">
+  <div class="code-modal-card">
+    <h3 class="status-modal-title">Generar código de acceso</h3>
+    <p class="status-modal-message">
+      Ingrese la cédula del funcionario para generar un código temporal de acceso.
+    </p>
+
+     <div class="form-group">
+       <label for="codeCedula">Cédula</label>
+       <input
+         id="codeCedula"
+         type="text"
+         class="search-input"
+         [(ngModel)]="codeCedula"
+         maxlength="10"
+         placeholder="Ingrese la cédula (10 dígitos)"
+         (input)="onCedulaInput($event)"
+       />
+     </div>
+
+    <div *ngIf="generatedCode" class="code-display">
+      <label class="code-label">Código generado:</label>
+      <div class="code-value">{{ generatedCode }}</div>
+    </div>
+
+    <div *ngIf="codeError" class="error-message">
+      {{ codeError }}
+    </div>
+
+    <div class="code-modal-actions">
+      <button class="code-modal-btn secondary" type="button" (click)="onClose()">
+        Cerrar
+      </button>
+       <button
+         class="code-modal-btn"
+         type="button"
+         (click)="generarCodigoDesdeBackend()"
+         [disabled]="codeLoading || codeCedula.length !== 10"
+       >
+         {{ codeLoading ? 'Generando...' : 'Generar código' }}
+       </button>
+    </div>
+  </div>
+</div>
+

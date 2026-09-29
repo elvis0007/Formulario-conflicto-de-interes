@@ -1,0 +1,1815 @@
+/* Tokens de diseño (basados en el mockup, mapeados a la paleta EEASA) */
+:host {
+  --ci-ink: #163b5f;
+  --ci-accent: #1a5490;
+  --ci-accent-bright: #6fc0ec;
+  --ci-muted: #5c6b84;
+  --ci-text: #22314f;
+  --ci-line: #d3dae4;
+  --ci-line-soft: #eef1f6;
+  --ci-paper: #ffffff;
+  --ci-canvas: #f1f4f8;
+  --ci-field: #fbfcfe;
+  --ci-danger: #a4342c;
+  --ci-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  /*
+   * Alto de la cabecera fija de la app (12 + 40 del logo + 12), que hay que dejar
+   * libre al fijar cualquier cosa por debajo de ella.
+   */
+  --ci-cabecera: 64px;
+  /*
+   * Punto de anclaje de lo que se fija por debajo de la banda.
+   *
+   * = alto de la banda (26 de padding + 59 de la columna del avance + 12 del borde
+   * que la separa de la cabecera ≈ 97) + sus 22 de margen inferior. Con este valor
+   * el índice queda justo debajo de la banda y nace ya en su punto de anclaje; si se
+   * pone menos, se mete debajo de la banda y sigue subiendo cuando ella ya se fijó.
+   */
+  --ci-banda: 119px;
+  --ci-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+.form-container {
+  max-width: 1180px;
+  margin: 0 auto;
+  /*
+   * Sin padding superior a propósito: así la banda nace exactamente en su punto de
+   * anclaje (justo bajo la cabecera) y el índice en el suyo, de modo que ninguno de
+   * los dos recorre nada antes de fijarse. Cualquier espacio aquí se traduce en un
+   * salto inicial de esa misma altura.
+   */
+  padding: 0 20px 40px;
+  font-family: var(--ci-sans);
+  color: var(--ci-text);
+  background-color: var(--ci-canvas);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Accesos rápidos (usuario interno básico) ─────────────────────────── */
+
+.internal-actions {
+  margin-top: 24px;
+  margin-bottom: 30px;
+
+  .internal-actions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 20px;
+  }
+}
+
+.internal-card {
+  border: 1px solid var(--ci-ink);
+  border-radius: 10px;
+  padding: 20px 24px;
+  background-color: var(--ci-ink);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(22, 59, 95, 0.18);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+  text-align: left;
+
+  &:hover {
+    background-color: #0f2d4a;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(22, 59, 95, 0.28);
+  }
+}
+
+.internal-card-secondary {
+  background-color: var(--ci-paper);
+  color: var(--ci-ink);
+  border-color: var(--ci-line);
+  box-shadow: 0 2px 8px rgba(27, 43, 94, 0.08);
+
+  &:hover {
+    background-color: #eaf2fa;
+    border-color: var(--ci-accent);
+  }
+}
+
+.internal-card-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 999px;
+  background-color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  svg {
+    width: 30px;
+    height: 30px;
+  }
+}
+
+.internal-card-secondary .internal-card-icon {
+  background-color: var(--ci-ink);
+
+  svg path {
+    stroke: #ffffff;
+  }
+}
+
+.internal-card-text {
+  h3 {
+    margin: 0 0 6px 0;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+  }
+
+  p {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.5;
+    opacity: 0.88;
+  }
+}
+
+.internal-back-wrapper {
+  margin-bottom: 16px;
+}
+
+.internal-back-btn {
+  border: 1px solid var(--ci-line);
+  background-color: var(--ci-paper);
+  color: var(--ci-ink);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 7px 14px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 1px 3px rgba(27, 43, 94, 0.1);
+  transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.05s ease;
+
+  &:hover {
+    background-color: #eaf2fa;
+    border-color: var(--ci-accent);
+    transform: translateY(-1px);
+  }
+
+  svg {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+/* ── Ayuda contextual (grados de parentesco) ──────────────────────────── */
+
+.info-icon-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  vertical-align: -5px;
+  margin-left: 5px;
+}
+
+.info-icon {
+  border: none;
+  background-color: var(--ci-accent);
+  color: #ffffff;
+  border-radius: 999px;
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(27, 43, 94, 0.25);
+  transition: background-color 0.15s ease;
+
+  &:hover {
+    background-color: var(--ci-ink);
+  }
+
+  svg {
+    width: 15px;
+    height: 15px;
+    stroke: #ffffff;
+    fill: none;
+  }
+}
+
+/*
+ * La tabla de parentescos se muestra ampliada y centrada, con el resto de la
+ * página difuminada detrás.
+ *
+ * `pointer-events: none` es imprescindible: la capa cubre toda la pantalla y, si
+ * recibiera el puntero, el :hover no se soltaría nunca y quedaría abierta para
+ * siempre. Al ser transparente al ratón, quien manda sigue siendo el icono.
+ */
+.kinship-tooltip {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  background-color: rgba(20, 32, 64, 0.45);
+  backdrop-filter: blur(4px);
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease, visibility 0.15s ease;
+
+  img {
+    display: block;
+    width: auto;
+    height: auto;
+    max-width: min(1000px, 94vw);
+    max-height: 88vh;
+    padding: 10px;
+    border: 1px solid var(--ci-line);
+    border-radius: 12px;
+    background-color: var(--ci-paper);
+    box-shadow: 0 24px 60px rgba(15, 28, 60, 0.4);
+  }
+}
+
+/* `focus-within` para que también se abra con el teclado, ya que el icono es un botón */
+.info-icon-wrapper:hover .kinship-tooltip,
+.info-icon-wrapper:focus-within .kinship-tooltip {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* ── Encabezado institucional ─────────────────────────────────────────── */
+
+/* Banda fija con el avance, justo debajo de la cabecera de la app. */
+.header-band {
+  position: sticky;
+  top: var(--ci-cabecera);
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+  flex-wrap: wrap;
+  margin-bottom: 22px;
+  padding: 12px 26px 14px;
+  border-radius: 0 0 10px 10px;
+  /*
+   * La separación con la cabecera se hace con un borde del color del lienzo, no con
+   * espacio real por encima: al formar parte de la banda es opaco y se fija junto a
+   * ella, así que no deja pasar el contenido por debajo ni añade recorrido antes de
+   * anclarse.
+   */
+  border-top: 12px solid var(--ci-canvas);
+  background-color: var(--ci-ink);
+  box-shadow: 0 2px 12px rgba(22, 59, 95, 0.18);
+  text-align: left;
+}
+
+/*
+ * Prolongación opaca por encima de la banda.
+ *
+ * La banda se ancla en --ci-cabecera, un alto de cabecera calculado a mano. Si el
+ * alto real es algo menor (en /admin la cabecera lleva botones extra), entre ambas
+ * queda una rendija por la que se ve pasar el contenido. Este tramo se pinta del
+ * color del lienzo, viaja con la banda y se esconde detrás de la cabecera (que tiene
+ * mayor z-index), así que tapa la rendija sin depender de acertar el número.
+ */
+.header-band::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  height: 24px;
+  background-color: var(--ci-canvas);
+}
+
+.header-band-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.form-title {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.3;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: #ffffff;
+  text-transform: uppercase;
+}
+
+.header-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 150px;
+  flex-shrink: 0;
+}
+
+.header-progress-label {
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ci-accent-bright);
+}
+
+.header-progress-value {
+  font-size: 25px;
+  line-height: 1;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.header-progress-track {
+  height: 5px;
+  margin-top: 4px;
+  border-radius: 999px;
+  overflow: hidden;
+  background-color: rgba(255, 255, 255, 0.18);
+}
+
+.header-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background-color: var(--ci-accent-bright);
+  transition: width 0.3s ease;
+}
+
+/* ── Estructura: índice lateral + formulario ──────────────────────────── */
+
+.form-shell {
+  display: grid;
+  grid-template-columns: 232px minmax(0, 1fr);
+  gap: 32px;
+  align-items: start;
+}
+
+.section-index {
+  position: sticky;
+  top: calc(var(--ci-cabecera) + var(--ci-banda));
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  /* En ventanas bajas el índice mide más que la pantalla: que se desplace por
+     dentro en vez de dejar los últimos ítems fuera de alcance. */
+  max-height: calc(100vh - var(--ci-cabecera) - var(--ci-banda) - 24px);
+  overflow-y: auto;
+}
+
+.section-index-label {
+  padding: 0 2px 6px;
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ci-muted);
+}
+
+.section-index-link {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr);
+  gap: 10px;
+  align-items: baseline;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--ci-line);
+  border-radius: 8px;
+  background-color: var(--ci-paper);
+  color: var(--ci-ink);
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.35;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+
+  &:hover {
+    border-color: var(--ci-accent);
+    background-color: #eaf2fa;
+  }
+
+  &.active {
+    border-color: var(--ci-accent);
+    background-color: #eaf2fa;
+    font-weight: 600;
+  }
+}
+
+.section-index-num {
+  font-family: var(--ci-mono);
+  font-size: 11px;
+  color: var(--ci-accent);
+}
+
+.section-index-note {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 18px;
+  padding: 16px;
+  border: 1px solid #cfe2f1;
+  border-radius: 10px;
+  background-color: #e8f1f9;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--ci-muted);
+}
+
+.section-index-note-title {
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.conflict-form {
+  background-color: transparent;
+  padding: 0;
+}
+
+/* ── Modal de estado ──────────────────────────────────────────────────── */
+
+.status-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(22, 59, 95, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.status-modal {
+  width: 100%;
+  max-width: 420px;
+  background-color: var(--ci-paper);
+  border-radius: 10px;
+  padding: 22px 24px;
+  box-shadow: 0 18px 40px rgba(22, 59, 95, 0.28);
+  border-left: 5px solid transparent;
+}
+
+.status-modal-title {
+  margin: 0 0 10px 0;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--ci-ink);
+}
+
+.status-modal-message {
+  margin: 0 0 18px 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--ci-muted);
+  /* El aviso de campos faltantes arma una lista con saltos de linea; sin
+     esto el navegador los colapsa y todo sale en una sola linea corrida. */
+  white-space: pre-line;
+}
+
+.status-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.status-modal-btn {
+  min-width: 96px;
+  padding: 9px 18px;
+  border-radius: 8px;
+  border: 1px solid var(--ci-accent);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  background-color: var(--ci-accent);
+  color: #ffffff;
+  transition: background-color 0.2s, border-color 0.2s, transform 0.05s;
+
+  &:hover {
+    background-color: var(--ci-ink);
+    border-color: var(--ci-ink);
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+.status-modal-success {
+  border-left-color: #1f7a4d;
+}
+
+.status-modal-error {
+  border-left-color: var(--ci-danger);
+}
+
+.status-modal-info {
+  border-left-color: var(--ci-accent);
+}
+
+/* ── Confirmación previa al envío ────────────────────────────────────────
+   Modal aparte del status-modal de arriba: este necesita espacio para un
+   resumen con varias secciones y dos botones (Sí / No), no un solo mensaje
+   con un "Aceptar". */
+
+.confirm-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(22, 59, 95, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.confirm-modal {
+  width: 100%;
+  max-width: 560px;
+  max-height: min(640px, 88vh);
+  display: flex;
+  flex-direction: column;
+  background-color: var(--ci-paper);
+  border-radius: 10px;
+  padding: 22px 24px;
+  box-shadow: 0 18px 40px rgba(22, 59, 95, 0.28);
+  border-left: 5px solid var(--ci-accent);
+}
+
+.confirm-modal-title {
+  margin: 0 0 6px 0;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--ci-ink);
+}
+
+.confirm-modal-subtitle {
+  margin: 0 0 16px 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ci-muted);
+}
+
+.confirm-modal-body {
+  overflow-y: auto;
+  margin-bottom: 18px;
+  padding-right: 4px;
+  border-top: 1px solid var(--ci-line-soft);
+}
+
+.confirm-modal-seccion {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--ci-line-soft);
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.confirm-modal-seccion-titulo {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ci-accent);
+}
+
+.confirm-modal-lista {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  li {
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--ci-text);
+  }
+}
+
+.confirm-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.confirm-modal-btn {
+  min-width: 110px;
+  padding: 9px 18px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s, transform 0.05s;
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+.confirm-modal-btn-no {
+  background-color: transparent;
+  border: 1px solid var(--ci-line);
+  color: var(--ci-muted);
+
+  &:hover {
+    background-color: var(--ci-line-soft);
+  }
+}
+
+.confirm-modal-btn-si {
+  background-color: var(--ci-accent);
+  border: 1px solid var(--ci-accent);
+  color: #ffffff;
+
+  &:hover {
+    background-color: var(--ci-ink);
+    border-color: var(--ci-ink);
+  }
+}
+
+/* ── Secciones ────────────────────────────────────────────────────────── */
+
+.form-section {
+  margin-bottom: 22px;
+  /* Compensa la cabecera y la banda fijas al saltar desde el índice lateral */
+  scroll-margin-top: calc(var(--ci-cabecera) + var(--ci-banda));
+
+  &.section-card {
+    background-color: var(--ci-paper);
+    padding: 26px;
+    border-radius: 10px;
+    box-shadow: 0 1px 3px rgba(27, 43, 94, 0.06);
+    border: 1px solid var(--ci-line);
+  }
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin: -26px -26px 24px;
+  padding: 14px 26px;
+  background-color: var(--ci-ink);
+  border-radius: 10px 10px 0 0;
+}
+
+.section-title {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #ffffff;
+}
+
+.section-num {
+  font-family: var(--ci-mono);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--ci-accent-bright);
+  flex-shrink: 0;
+}
+
+/* Selector de tipo de declaración, sobre la banda oscura */
+.status-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.status-label {
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ci-accent-bright);
+  margin-right: 2px;
+}
+
+.status-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  padding: 5px 13px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 999px;
+  background-color: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+  font-size: 12.5px;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.18);
+    border-color: #ffffff;
+  }
+
+  &:has(input:checked) {
+    background-color: #ffffff;
+    border-color: #ffffff;
+    color: var(--ci-ink);
+    font-weight: 600;
+  }
+}
+
+.status-option input[type="radio"] {
+  width: 13px;
+  height: 13px;
+  cursor: pointer;
+  flex-shrink: 0;
+  accent-color: var(--ci-accent);
+}
+
+/* ── Rejillas de campos ───────────────────────────────────────────────── */
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+
+  &.form-grid-personal {
+    grid-template-columns: repeat(12, 1fr);
+    gap: 22px 20px;
+    align-items: start;
+  }
+
+  .form-group {
+    margin-bottom: 0;
+  }
+}
+
+.form-group-large {
+  grid-column: span 5;
+  min-width: 300px;
+}
+
+.form-group-small {
+  grid-column: span 2;
+}
+
+/* Los cuatro campos del nombre de un usuario externo. Sin esto caerían en una
+   sola columna de las doce y el texto quedaría recortado; con span 3 los cuatro
+   cierran exactamente una fila. */
+.form-group-name {
+  grid-column: span 3;
+}
+
+/* Grupo específico para "En calidad de" para darle más espacio */
+.form-group-contract {
+  grid-column: span 4;
+}
+
+/* Grupo específico para "Fecha de ingreso" para que cierre la fila a la derecha */
+.form-group-date {
+  grid-column: span 3;
+}
+
+@media (max-width: 1024px) {
+  .form-grid.form-grid-personal {
+    grid-template-columns: repeat(6, 1fr);
+  }
+
+  .form-group-large {
+    grid-column: span 4;
+  }
+
+  .form-group-small {
+    grid-column: span 2;
+  }
+
+  /* De seis columnas, dos campos de nombre por fila. */
+  .form-group-name {
+    grid-column: span 3;
+  }
+}
+
+.form-grid-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+
+  /* El aviso de familiar duplicado ya no vive dentro de un .form-group (ese
+     ahora es condicional y puede no renderizarse), asi que como hijo directo
+     de la rejilla necesita su propio ancho. El selector directo `>` evita
+     afectar los .error-message que siguen anidados dentro de un .form-group. */
+  > .error-message {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Campos anchos dentro de las tarjetas de familiar (nombre y departamento) */
+.form-group-span-2 {
+  grid-column: span 2;
+}
+
+.btn-add-icon {
+  font-size: 15px;
+  line-height: 1;
+}
+
+/* ── Lista de familiares vacía ────────────────────────────────────────── */
+
+.dynamic-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 26px;
+  border: 1px dashed var(--ci-line);
+  border-radius: 10px;
+  background-color: var(--ci-field);
+  text-align: center;
+}
+
+.dynamic-empty-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ci-ink);
+}
+
+.dynamic-empty-hint {
+  font-size: 12.5px;
+  color: var(--ci-muted);
+}
+
+/* ── Buscador institucional de personal ───────────────────────────────── */
+
+.buscador-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 80px 24px 40px;
+  background-color: rgba(20, 32, 64, 0.5);
+  backdrop-filter: blur(3px);
+}
+
+.buscador-modal {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 660px;
+  max-height: 100%;
+  border-radius: 12px;
+  overflow: hidden;
+  background-color: var(--ci-paper);
+  box-shadow: 0 24px 60px rgba(15, 28, 60, 0.35);
+}
+
+.buscador-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 22px;
+  background-color: var(--ci-ink);
+}
+
+.buscador-title {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #ffffff;
+}
+
+.buscador-close {
+  margin-left: auto;
+  width: 28px;
+  height: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 8px;
+  background-color: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+  font-size: 13px;
+  cursor: pointer;
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+  }
+}
+
+.buscador-search {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 20px 22px 16px;
+  border-bottom: 1px solid var(--ci-line);
+  background-color: #f7f9fc;
+}
+
+.buscador-label {
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ci-muted);
+}
+
+.buscador-input {
+  width: 100%;
+  padding: 11px 13px;
+  border: 1px solid var(--ci-line);
+  border-radius: 8px;
+  background-color: var(--ci-paper);
+  color: var(--ci-text);
+  font-family: inherit;
+  font-size: 14px;
+
+  &::placeholder {
+    color: #93a0b5;
+  }
+
+  &:focus {
+    outline: none;
+    border-color: var(--ci-accent);
+    box-shadow: 0 0 0 3px rgba(26, 84, 144, 0.14);
+  }
+}
+
+.buscador-hint {
+  font-size: 12px;
+  color: var(--ci-muted);
+}
+
+.buscador-results {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  overflow-y: auto;
+}
+
+.buscador-result {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--ci-line);
+  border-radius: 10px;
+  background-color: var(--ci-paper);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+
+  &:hover:enabled {
+    border-color: var(--ci-accent);
+    background-color: #eaf2fa;
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: default;
+  }
+}
+
+.buscador-result-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background-color: #e8f1f9;
+  color: var(--ci-ink);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.buscador-result-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.buscador-result-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ci-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.buscador-result-detail {
+  font-size: 12px;
+  color: var(--ci-muted);
+}
+
+.buscador-result-ci {
+  font-family: var(--ci-mono);
+  font-size: 12px;
+  color: var(--ci-muted);
+}
+
+.buscador-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 44px 20px;
+  text-align: center;
+}
+
+.buscador-empty-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border: 1.5px dashed var(--ci-line);
+  border-radius: 50%;
+  color: var(--ci-muted);
+}
+
+.buscador-empty-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ci-ink);
+}
+
+.buscador-empty-hint {
+  font-size: 12.5px;
+  color: var(--ci-muted);
+}
+
+.buscador-footer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 22px;
+  border-top: 1px solid var(--ci-line);
+  background-color: #f7f9fc;
+}
+
+.buscador-footer-hint {
+  font-size: 12px;
+  color: var(--ci-muted);
+}
+
+.buscador-cancel {
+  margin-left: auto;
+  padding: 9px 18px;
+  border: 1px solid var(--ci-line);
+  border-radius: 8px;
+  background-color: var(--ci-paper);
+  color: var(--ci-text);
+  font-family: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+
+  &:hover {
+    border-color: var(--ci-ink);
+  }
+}
+
+/* ── Campos ───────────────────────────────────────────────────────────── */
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 18px;
+  min-width: 0;
+
+  /*
+   * `block` y no `flex`: el ícono de ayuda va como elemento en línea dentro del
+   * texto de la pregunta; en un contenedor flex el enunciado ocupa toda la fila y
+   * lo empuja solo a la línea siguiente.
+   */
+  > label {
+    display: block;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.6;
+    color: var(--ci-text);
+    margin-bottom: 8px;
+  }
+
+  .form-control {
+    padding: 11px 12px;
+    border: 1px solid var(--ci-line);
+    border-radius: 8px;
+    background-color: var(--ci-field);
+    color: var(--ci-text);
+    font-family: inherit;
+    font-size: 14px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    width: 100%;
+    box-sizing: border-box;
+    min-width: 0;
+
+    &::placeholder {
+      color: #93a0b5;
+    }
+
+    &:focus {
+      outline: none;
+      border-color: var(--ci-accent);
+      box-shadow: 0 0 0 3px rgba(26, 84, 144, 0.14);
+    }
+
+    &.ng-invalid.ng-touched {
+      border-color: var(--ci-danger);
+    }
+  }
+
+  .error-message {
+    color: var(--ci-danger);
+    font-size: 12px;
+    margin-top: 6px;
+  }
+
+  /* Aclara un campo vacío que el sistema no pudo completar, para que no se lea
+     como un fallo sino como algo que toca escribir. */
+  .field-hint {
+    color: var(--ci-muted);
+    font-size: 11.5px;
+    line-height: 1.4;
+    margin-top: 6px;
+  }
+
+  /* Consulta en curso: el mismo tono que un aviso, con un pulso suave para que
+     se note que algo está pasando sin distraer. */
+  .consulta-en-curso {
+    animation: pulso-consulta 1.2s ease-in-out infinite;
+  }
+
+  /* Botón con aspecto de enlace, dentro del aviso de error del catálogo. */
+  .enlace-reintentar {
+    background: none;
+    border: none;
+    padding: 0;
+    margin-left: 6px;
+    color: inherit;
+    font: inherit;
+    text-decoration: underline;
+    cursor: pointer;
+  }
+
+  textarea.form-control {
+    resize: vertical;
+    min-height: 84px;
+    line-height: 1.55;
+  }
+}
+
+/* Dato que llega precargado y no se edita aquí: se muestra como texto, no como
+   campo. Un input relleno y bloqueado invita a intentar corregirlo y luego no
+   deja, que es justo la confusión que se quiere evitar. Se le deja la misma
+   altura que a un `.form-control` para que las filas de la rejilla no bailen. */
+.dato-fijo {
+  margin: 0;
+  padding: 11px 0;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--ci-text);
+  border-bottom: 1px solid var(--ci-line-soft);
+  word-break: break-word;
+}
+
+.dato-fijo-cedula {
+  font-family: var(--ci-mono);
+  letter-spacing: 0.04em;
+}
+
+/* Campos precargados desde la cuenta: se muestran en solo lectura */
+.form-control[readonly] {
+  background-color: #eef1f6;
+  color: var(--ci-muted);
+  cursor: default;
+
+  &:focus {
+    border-color: var(--ci-line);
+    box-shadow: none;
+  }
+}
+
+/* Etiquetas de campo dentro de rejillas: versalitas discretas */
+.form-grid .form-group > label {
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ci-muted);
+  line-height: 1.4;
+}
+
+.form-group input[type="text"].form-control[maxlength="10"] {
+  font-family: var(--ci-mono);
+  letter-spacing: 0.04em;
+}
+
+/* ── Preguntas Sí / No ────────────────────────────────────────────────── */
+
+.form-group:has(> .radio-group) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 210px;
+  gap: 12px 28px;
+  align-items: center;
+
+  > label {
+    margin-bottom: 0;
+  }
+}
+
+.radio-group {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.form-group:has(> .radio-group) > .radio-group {
+  margin-top: 0;
+  justify-content: flex-end;
+}
+
+.radio-label {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 13.5px;
+  color: var(--ci-text);
+  padding: 9px 16px;
+  border: 1px solid var(--ci-line);
+  border-radius: 8px;
+  background-color: var(--ci-field);
+  transition: border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+
+  &:hover {
+    border-color: var(--ci-accent);
+  }
+
+  &:has(input:checked) {
+    border-color: var(--ci-accent);
+    background-color: #eaf2fa;
+    color: var(--ci-accent);
+    font-weight: 600;
+    box-shadow: inset 0 -3px 0 var(--ci-accent);
+  }
+
+  input[type="radio"] {
+    cursor: pointer;
+    width: 16px;
+    height: 16px;
+    accent-color: var(--ci-accent);
+    flex-shrink: 0;
+  }
+}
+
+/* ── Listas dinámicas (familiares / proveedores) ──────────────────────── */
+
+.dynamic-list {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.dynamic-item {
+  background-color: #fafbfd;
+  border-radius: 10px;
+  border: 1px solid var(--ci-line);
+  padding: 0;
+  margin-bottom: 0;
+  overflow: hidden;
+
+  > .form-grid {
+    padding: 20px 18px;
+  }
+}
+
+/* Rótulo y contador que encabezan la lista de familiares declarados */
+.dynamic-list-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-top: 20px;
+  border-top: 1px solid var(--ci-line-soft);
+}
+
+.dynamic-list-title {
+  font-size: 11.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ci-muted);
+}
+
+.dynamic-list-count {
+  padding: 3px 9px;
+  border-radius: 999px;
+  background-color: #eaf2fa;
+  color: #14618f;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.item-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 0;
+  padding: 12px 18px;
+  background-color: #eef2f7;
+  border-bottom: 1px solid var(--ci-line);
+
+  h4 {
+    margin: 0;
+    color: var(--ci-ink);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+}
+
+/* Identidad de la persona declarada, en la cabecera de su tarjeta */
+.item-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex: none;
+  border-radius: 50%;
+  background-color: var(--ci-ink);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.item-identity {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.item-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ci-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.item-meta {
+  font-size: 11.5px;
+  color: var(--ci-muted);
+}
+
+.btn-remove {
+  margin-left: auto;
+  border: none;
+  background: none;
+  padding: 0;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--ci-muted);
+  cursor: pointer;
+  transition: color 0.15s ease;
+
+  &:hover {
+    color: var(--ci-danger);
+    text-decoration: underline;
+  }
+}
+
+.btn-add {
+  align-self: flex-start;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 18px;
+  border: 1px solid var(--ci-accent);
+  border-radius: 999px;
+  background-color: var(--ci-paper);
+  color: var(--ci-accent);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  transition: background-color 0.2s ease, color 0.2s ease;
+
+  &:hover {
+    background-color: var(--ci-accent);
+    color: #ffffff;
+  }
+}
+
+/* ── Declaración y cláusula legal ─────────────────────────────────────── */
+
+/*
+ * Selector completo `.form-group > label.declaration-checkbox` a propósito.
+ * Angular añade su atributo de encapsulación a cada compuesto del selector, así que
+ * `.form-group > label` acaba en (0,3,1) y un `label.declaration-checkbox` suelto se
+ * queda en (0,2,1) y pierde: se anulaban `display`, `font-weight` y el interlineado,
+ * y el bloque se renderizaba como texto en línea sin separación ni sangría.
+ */
+.form-group > label.declaration-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  cursor: pointer;
+  padding: 16px 18px;
+  border: 1px solid var(--ci-line);
+  border-radius: 10px;
+  background-color: var(--ci-field);
+  font-weight: normal;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--ci-text);
+  text-transform: none;
+  letter-spacing: normal;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+
+  &:has(input:checked) {
+    border-color: var(--ci-accent);
+    background-color: #eef5fc;
+  }
+
+  input[type="checkbox"] {
+    /* Los controles de formulario no heredan la tipografía: se la damos para que
+       `1lh` resuelva contra la línea real del texto y no contra la del navegador. */
+    font: inherit;
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: var(--ci-accent);
+    flex-shrink: 0;
+    /* Centra el casillero sobre la PRIMERA línea del párrafo: la mitad de lo que
+       sobra entre la caja de línea y los 18px del casillero. Se reajusta solo si
+       cambia el tamaño de letra o el interlineado. */
+    margin-top: 2px;
+    margin-top: calc((1lh - 18px) / 2);
+  }
+
+  span {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+.data-protection-clause {
+  background-color: #f4f7fb;
+  padding: 18px 20px;
+  border-radius: 8px;
+  border: 1px solid var(--ci-line);
+  border-left: 4px solid var(--ci-ink);
+
+  p {
+    margin: 0;
+    line-height: 1.75;
+    color: #33425c;
+    font-size: 13.5px;
+  }
+}
+
+/* ── Pie del formulario y acciones ────────────────────────────────────── */
+
+.form-footer {
+  margin-top: 30px;
+}
+
+.form-footer-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.btn-submit {
+  width: 100%;
+  padding: 15px;
+  background-color: var(--ci-accent);
+  color: #ffffff;
+  border: 1px solid var(--ci-accent);
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(26, 84, 144, 0.22);
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.05s ease;
+
+  &:hover {
+    background-color: var(--ci-ink);
+    border-color: var(--ci-ink);
+  }
+
+  &:active {
+    transform: scale(0.995);
+  }
+}
+
+.floating-download-btn {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  background-color: var(--ci-ink);
+  color: #ffffff;
+  border: none;
+  border-radius: 999px;
+  padding: 12px 20px;
+  box-shadow: 0 8px 22px rgba(22, 59, 95, 0.3);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 500;
+  z-index: 999;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+
+  &:hover {
+    background-color: var(--ci-accent);
+    box-shadow: 0 10px 26px rgba(22, 59, 95, 0.36);
+    transform: translateY(-2px);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+
+  &.disabled,
+  &:disabled {
+    background-color: #9ca3af;
+    cursor: not-allowed;
+    opacity: 0.6;
+
+    &:hover {
+      background-color: #9ca3af;
+      box-shadow: 0 8px 22px rgba(22, 59, 95, 0.2);
+      transform: none;
+    }
+  }
+
+  svg {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+  }
+
+  .btn-text {
+    white-space: nowrap;
+  }
+}
+
+/* ── Adaptación a pantallas pequeñas ──────────────────────────────────── */
+
+/* Sin espacio para el índice lateral: el formulario ocupa todo el ancho */
+@media (max-width: 1280px) {
+  .form-container {
+    max-width: 900px;
+  }
+
+  .form-shell {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+
+  .section-index {
+    display: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .form-group:has(> .radio-group) {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+
+    > .radio-group {
+      justify-content: flex-start;
+    }
+  }
+
+  .radio-label {
+    flex: 0 1 140px;
+  }
+}
+
+@media (max-width: 768px) {
+  .internal-card {
+    padding: 16px 18px;
+  }
+
+  .floating-download-btn {
+    bottom: 20px;
+    right: 20px;
+    padding: 12px;
+
+    .btn-text {
+      display: none;
+    }
+
+    svg {
+      width: 22px;
+      height: 22px;
+    }
+  }
+
+  .form-container {
+    padding: 0 12px 32px;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .form-grid.form-grid-personal {
+    grid-template-columns: 1fr;
+  }
+
+  .form-group-large,
+  .form-group-small,
+  .form-group-name,
+  .form-group-contract,
+  .form-group-date,
+  .form-group-span-2 {
+    grid-column: span 1;
+  }
+
+  .form-section.section-card {
+    padding: 20px 16px;
+  }
+
+  .section-header {
+    margin: -20px -16px 20px;
+    padding: 14px 16px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  /* Sin banda fija no hay rendija que tapar, y el tramo estorbaría al botón de menú */
+  .header-band::before {
+    display: none;
+  }
+
+  /* En móvil la banda pasa a dos filas: fijarla se comería la pantalla */
+  .header-band {
+    position: static;
+    padding: 16px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .form-title {
+    font-size: 16px;
+  }
+
+  .status-group {
+    width: 100%;
+    gap: 6px;
+  }
+}
+
+@media (max-width: 480px) {
+  .status-group {
+    align-items: flex-start;
+  }
+
+  .status-option {
+    font-size: 12px;
+  }
+}
+
+/* ── Modo oscuro ──────────────────────────────────────────────────────── */
+
+:host-context(body.dark-mode) {
+  --ci-canvas: #dfe4ea;
+  --ci-paper: #f4f6f9;
+  --ci-field: #ffffff;
+  --ci-line: #c2cad6;
+}
+
+/* Tipo de declaración mostrado como dato, no como control: los usuarios
+   externos no lo eligen. */
+.status-fijo {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background-color: #e6f0fb;
+  color: #103a60;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* Aviso de que el nombre se precargó desde el registro civil y el reparto en
+   cuatro campos puede necesitar corrección. */
+.aviso-precarga {
+  grid-column: 1 / -1;
+  padding: 8px 12px;
+  border-left: 3px solid #103a60;
+  background-color: #e6f0fb;
+  border-radius: 0 4px 4px 0;
+  font-size: 13px;
+  color: #103a60;
+}
+
+@keyframes pulso-consulta {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+
+/* Pestañas del buscador de familiares: dónde trabaja la persona. */
+.buscador-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 12px 22px 0;
+  border-bottom: 1px solid var(--ci-line);
+  background-color: var(--ci-paper);
+}
+
+.buscador-tab {
+  padding: 9px 14px 10px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--ci-muted);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+
+  &:hover {
+    color: var(--ci-ink);
+  }
+
+  &.activa {
+    color: var(--ci-accent);
+    border-bottom-color: var(--ci-accent);
+  }
+}
+
+.buscador-explicacion {
+  margin: 0 0 4px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ci-text);
+}
+
+/* Acción secundaria con aspecto de enlace: cambiar la cédula de un proveedor
+   confirmado, o saltar a la búsqueda por cédula desde "sin coincidencias". */
+.enlace-accion {
+  background: none;
+  border: none;
+  padding: 0;
+  margin-left: 6px;
+  color: var(--ci-accent);
+  font: inherit;
+  font-weight: 500;
+  text-decoration: underline;
+  cursor: pointer;
+
+  .buscador-empty & {
+    margin: 10px 0 0;
+  }
+}
+
+/* Distintivo del familiar que trabaja en otra entidad. */
+.etiqueta-origen {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background-color: #eaf2fa;
+  color: var(--ci-accent);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}

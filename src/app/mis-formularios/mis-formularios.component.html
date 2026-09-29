@@ -1,0 +1,55 @@
+<main class="historial">
+  <div class="historial-encabezado">
+    <div>
+      <h2 class="historial-titulo">Mis declaraciones</h2>
+      <p class="historial-subtitulo">
+        Aquí puede consultar y descargar las declaraciones de conflicto de
+        intereses que ha enviado.
+      </p>
+    </div>
+    <button type="button" class="btn-volver" (click)="volverAlFormulario()">
+      Volver al formulario
+    </button>
+  </div>
+
+  <p *ngIf="cargando" class="historial-mensaje">Cargando historial...</p>
+
+  <p *ngIf="error" class="historial-mensaje historial-error">{{ error }}</p>
+
+  <p *ngIf="!cargando && !error && formularios.length === 0" class="historial-mensaje">
+    Todavía no ha enviado ninguna declaración.
+  </p>
+
+  <div *ngIf="!cargando && formularios.length > 0" class="tabla-scroll">
+    <table class="tabla-historial">
+      <thead>
+        <tr>
+          <th>Fecha de envío</th>
+          <th>Tipo de declaración</th>
+          <th>Estado</th>
+          <th class="col-acciones">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let formulario of formularios">
+          <td>{{ formatearFecha(formulario.FECHA_GENERACION) }}</td>
+          <td>{{ getTipoDeclaracion(formulario.ESTADO_PLANTILLA) }}</td>
+          <td>
+            <span class="estado-badge" [class.estado-historico]="!esVigente(formulario)">
+              {{ esVigente(formulario) ? 'Vigente' : 'Histórico' }}
+            </span>
+          </td>
+          <td class="col-acciones">
+            <button type="button" class="btn-accion" (click)="verPdf(formulario)">
+              Ver PDF
+            </button>
+            <button type="button" class="btn-accion btn-accion-secundario"
+                    (click)="descargarPdf(formulario)">
+              Descargar
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</main>

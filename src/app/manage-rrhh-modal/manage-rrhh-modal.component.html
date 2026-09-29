@@ -1,0 +1,156 @@
+<div class="roles-modal-backdrop">
+  <div class="roles-modal-card">
+    <h3 class="roles-modal-title">Gestión de Roles</h3>
+    <div class="roles-status" *ngIf="personalLoading || rolesLoading">
+      {{ personalLoading ? 'Cargando lista de personal...' : 'Cargando información de roles y usuarios...' }}
+    </div>
+    <div class="roles-status roles-status-error" *ngIf="rolesError">
+      {{ rolesError }}
+    </div>
+
+    <div class="roles-actions" *ngIf="authService.isAdminRole()">
+      <div class="role-accordion-wrapper">
+        <div class="role-action-item" [class.expanded]="expandedAdmin" *ngIf="!expandedRRHH">
+          <span class="role-action-label" (click)="toggleAdminSection()">Administrador</span>
+          <button
+            class="roles-btn roles-btn-icon"
+            type="button"
+            (click)="toggleAdminSection()"
+            [disabled]="rolesLoading || !adminRolId"
+            title="Ver administradores"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline [attr.points]="expandedAdmin ? '18 15 12 9 6 15' : '6 9 12 15 18 9'"></polyline>
+            </svg>
+          </button>
+        </div>
+
+        <div class="role-accordion-content" *ngIf="expandedAdmin">
+        <div class="roles-list-content" *ngIf="!personalLoading">
+          <div class="roles-table-wrapper">
+            <table *ngIf="admins.length > 0">
+              <thead>
+                <tr>
+                  <th>Nombre</th>
+                  <th>Rol</th>
+                  <th class="th-actions">
+                    <span>Acciones</span>
+                    <button
+                      class="roles-btn roles-btn-primary roles-btn-add"
+                      type="button"
+                      (click)="abrirModalAsignarUsuarios('A')"
+                      [disabled]="rolesLoading || !adminRolId"
+                      title="Añadir administrador"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                      </svg>
+                    </button>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let admin of admins">
+                  <td>{{ getNombrePersonal(admin.PERSONAL_CODIGO) }}</td>
+                  <td>Admin</td>
+                  <td>
+                    <button
+                      class="roles-btn roles-btn-danger"
+                      type="button"
+                      (click)="eliminarJefeRRHH(admin)"
+                      [disabled]="rolesLoading"
+                    >
+                      Quitar rol
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p *ngIf="admins.length === 0" class="empty-message">No hay administradores asignados.</p>
+        </div>
+      </div>
+      </div>
+
+      <div class="role-accordion-wrapper">
+        <div class="role-action-item" [class.expanded]="expandedRRHH" *ngIf="!expandedAdmin">
+          <span class="role-action-label" (click)="toggleRRHHSection()">Jefe de recursos humanos</span>
+          <button
+            class="roles-btn roles-btn-icon"
+            type="button"
+            (click)="toggleRRHHSection()"
+            [disabled]="rolesLoading || !jefeRRHHRolId"
+            title="Ver jefes de RRHH"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline [attr.points]="expandedRRHH ? '18 15 12 9 6 15' : '6 9 12 15 18 9'"></polyline>
+            </svg>
+          </button>
+        </div>
+
+        <div class="role-accordion-content" *ngIf="expandedRRHH">
+        <div class="roles-list-content" *ngIf="!personalLoading">
+          <div class="roles-table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Nombre</th>
+                  <th>Rol</th>
+                  <th class="th-actions">
+                    <span>Acciones</span>
+                    <button
+                      class="roles-btn roles-btn-primary roles-btn-add"
+                      type="button"
+                      (click)="abrirModalAsignarUsuarios('R')"
+                      [disabled]="rolesLoading || !jefeRRHHRolId"
+                      title="Añadir jefe de recursos humanos"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                      </svg>
+                    </button>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let jefe of jefesRRHH">
+                  <td>{{ getNombrePersonal(jefe.PERSONAL_CODIGO) }}</td>
+                  <td>Jefe de RRHH</td>
+                  <td>
+                    <button
+                      class="roles-btn roles-btn-danger"
+                      type="button"
+                      (click)="eliminarJefeRRHH(jefe)"
+                      [disabled]="rolesLoading"
+                    >
+                      Quitar rol
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p *ngIf="jefesRRHH.length === 0" class="empty-message">No hay jefes de RRHH asignados.</p>
+        </div>
+      </div>
+      </div>
+    </div>
+
+    <div class="roles-modal-actions">
+      <button class="roles-btn roles-btn-secondary" type="button" (click)="onClose()">
+        Cerrar
+      </button>
+    </div>
+  </div>
+
+  <app-assign-users-modal
+    *ngIf="showAssignUsersModal"
+    [rolType]="selectedRolType!"
+    [rolId]="selectedRolType === 'A' ? adminRolId : jefeRRHHRolId"
+    (closed)="cerrarModalAsignarUsuarios()"
+    (usuariosAsignados)="onUsuariosAsignados()"
+  ></app-assign-users-modal>
+</div>
+

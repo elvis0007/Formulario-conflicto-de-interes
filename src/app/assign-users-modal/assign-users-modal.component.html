@@ -1,0 +1,140 @@
+<div class="assign-modal-backdrop">
+  <div class="assign-modal-card">
+    <div class="assign-modal-header">
+      <h3 class="assign-modal-title">{{ modalTitle }}</h3>
+      <button class="assign-modal-close" (click)="onClose()" type="button">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+
+    <div class="assign-modal-filters" *ngIf="!loading">
+      <div class="filter-group">
+        <label for="departamentoSelect">Seleccioné departamento:</label>
+        <select
+          id="departamentoSelect"
+          [(ngModel)]="selectedDepartamento"
+          (change)="onDepartamentoChange()"
+          class="filter-select"
+        >
+          <option value="">Todos los departamentos</option>
+          <option *ngFor="let dept of departamentos" [value]="dept.NOMBRE">
+            {{ dept.NOMBRE }}
+          </option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <div class="search-input-wrapper">
+          <input
+            type="text"
+            [(ngModel)]="searchTerm"
+            (input)="onSearchChange()"
+            placeholder="Buscar cargo o nombre.."
+            class="filter-search"
+          />
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="search-icon">
+            <circle cx="11" cy="11" r="8"></circle>
+            <path d="m21 21-4.35-4.35"></path>
+          </svg>
+        </div>
+      </div>
+
+      <button
+        class="assign-btn-primary"
+        type="button"
+        (click)="asignarUsuarios()"
+        [disabled]="loading || selectedUsers.size === 0"
+      >
+        ASIGNAR
+      </button>
+    </div>
+
+    <div class="assign-modal-error" *ngIf="error">
+      {{ error }}
+    </div>
+
+    <div class="assign-modal-loading" *ngIf="loading && personal.length === 0">
+      Cargando usuarios...
+    </div>
+
+    <div class="assign-modal-table" *ngIf="!loading || personal.length > 0">
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 50px;">
+              <input
+                type="checkbox"
+                [checked]="selectedUsers.size === personalFiltrado.length && personalFiltrado.length > 0"
+                [indeterminate]="selectedUsers.size > 0 && selectedUsers.size < personalFiltrado.length"
+                (change)="toggleSelectAll()"
+              />
+            </th>
+            <th>Usuario</th>
+            <th>Cargo</th>
+            <th>Departamento</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let usuario of personalFiltrado">
+            <td>
+              <input
+                type="checkbox"
+                [checked]="isUserSelected(usuario.CODIGO)"
+                (change)="toggleUserSelection(usuario.CODIGO)"
+              />
+            </td>
+            <td>{{ usuario.NOMBRE_COMPLETO }}</td>
+            <td>{{ usuario.CARGO }}</td>
+            <td>{{ usuario.DEPARTAMENTO }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="assign-modal-pagination" *ngIf="!loading && totalItems > 0">
+      <div class="pagination-left">
+        <label>Mostrar:</label>
+        <select [(ngModel)]="itemsPerPage" (change)="changeItemsPerPage()" class="pagination-select">
+          <option [value]="5">5</option>
+          <option [value]="10">10</option>
+          <option [value]="15">15</option>
+          <option [value]="20">20</option>
+        </select>
+      </div>
+
+      <div class="pagination-center">
+        <button
+          class="pagination-btn"
+          (click)="goToPage(currentPage - 1)"
+          [disabled]="isFirstPage"
+        >
+          ‹
+        </button>
+        <button
+          *ngFor="let page of getPageNumbers()"
+          class="pagination-btn"
+          [class.active]="page === currentPage"
+          [class.ellipsis]="page === -1"
+          (click)="page !== -1 && goToPage(page)"
+          [disabled]="page === -1"
+        >
+          {{ page === -1 ? '...' : page + 1 }}
+        </button>
+        <button
+          class="pagination-btn"
+          (click)="goToPage(currentPage + 1)"
+          [disabled]="isLastPage"
+        >
+          ›
+        </button>
+      </div>
+
+      <div class="pagination-right">
+        {{ personalFiltrado.length }} de {{ totalItems }} registros
+      </div>
+    </div>
+  </div>
+</div>

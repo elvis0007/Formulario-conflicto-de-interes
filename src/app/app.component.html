@@ -1,0 +1,7 @@
+<div class="app-container">
+  <app-header *ngIf="!esLoginRoute"></app-header>
+  <main class="app-main">
+    <router-outlet />
+  </main>
+  <app-footer *ngIf="!esLoginRoute"></app-footer>
+</div>

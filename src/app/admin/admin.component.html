@@ -1,0 +1,347 @@
+<div class="admin-container">
+  <div class="admin-layout">
+    <!-- Antes del menú: si quedara debajo, el menú abierto lo taparía y no habría cómo cerrarlo -->
+    <button
+      *ngIf="isMobile"
+      type="button"
+      class="mobile-menu-toggle"
+      [attr.aria-expanded]="showMobileMenu"
+      (click)="toggleMobileMenu()"
+    >
+      <span class="mobile-menu-icon">
+        <span></span>
+        <span></span>
+        <span></span>
+      </span>
+      <span class="mobile-menu-label">
+        {{ showMobileMenu ? 'Ocultar menú' : 'Mostrar menú' }}
+      </span>
+    </button>
+
+    <app-sidebar-menu
+      *ngIf="!isMobile || showMobileMenu"
+      [activeSection]="showForm ? 'form' : 'list'"
+      [canViewList]="isAdminOrRrhh"
+      (formClicked)="toggleView('form')"
+      (excuseClicked)="downloadExcusePdf()"
+      (listClicked)="toggleView('list')"
+    ></app-sidebar-menu>
+
+    <div class="admin-content" [class.sidebar-expanded]="!sidebarCollapsed" [class.sidebar-collapsed]="sidebarCollapsed">
+    <div *ngIf="showForm" class="form-view">
+      <app-conflict-form></app-conflict-form>
+    </div>
+
+    <div *ngIf="showList" class="list-view">
+      <div *ngIf="isAdminOrRrhh" class="list-section-switch">
+        <button type="button" class="switch-btn" [class.active]="listSection === 'forms'" (click)="toggleListSection('forms')">
+          Formularios recibidos
+        </button>
+        <button type="button" class="switch-btn" [class.active]="listSection === 'missing'" (click)="toggleListSection('missing')">
+          No han llenado formulario
+        </button>
+      </div>
+
+      <div *ngIf="isAdminOrRrhh && listSection === 'missing'" class="sin-archivo-panel">
+        <div class="sin-archivo-header">
+          <h3>Personal sin archivo de conflicto ({{ sinArchivoList.length }})</h3>
+          <div class="sin-archivo-actions">
+            <button type="button" class="btn-refresh" (click)="loadSinArchivoConflicto()" [disabled]="loadingSinArchivo">
+              {{ loadingSinArchivo ? 'CARGANDO...' : 'ACTUALIZAR' }}
+            </button>
+            <button
+              type="button"
+              class="btn-send-all"
+              (click)="sendCorreoSinArchivoTodos()"
+              [disabled]="loadingSinArchivo || sendingAllSinArchivo || sinArchivoList.length === 0"
+            >
+              {{ sendingAllSinArchivo ? 'ENVIANDO...' : 'ENVIAR A TODOS' }}
+            </button>
+          </div>
+        </div>
+
+        <div *ngIf="sinArchivoMessage" class="sin-archivo-message">{{ sinArchivoMessage }}</div>
+        <div *ngIf="sinArchivoError" class="sin-archivo-error">{{ sinArchivoError }}</div>
+        <div *ngIf="loadingSinArchivo" class="sin-archivo-loading">Cargando lista...</div>
+        <div *ngIf="!loadingSinArchivo && sinArchivoList.length === 0" class="sin-archivo-empty">
+          No hay registros pendientes.
+        </div>
+
+        <table *ngIf="!loadingSinArchivo && sinArchivoList.length > 0" class="sin-archivo-table">
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Correo</th>
+              <th style="width: 170px;">Acción</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of sinArchivoList">
+              <td>{{ getSinArchivoNombre(item) }}</td>
+              <td>{{ getSinArchivoCorreo(item) }}</td>
+              <td>
+                <button
+                  type="button"
+                  class="btn-send-one"
+                  (click)="sendCorreoSinArchivoIndividual(item)"
+                  [disabled]="sendingSinArchivoByKey[getSinArchivoDmper(item) || getSinArchivoCorreo(item)]"
+                >
+                  {{ sendingSinArchivoByKey[getSinArchivoDmper(item) || getSinArchivoCorreo(item)] ? 'ENVIANDO...' : 'ENVIAR CORREO' }}
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div *ngIf="listSection === 'forms'" class="list-header">
+        <h2>Formularios Recibidos ({{ filteredForms.length }})</h2>
+        <div class="list-header-actions">
+          <div class="filters-container">
+            <select
+              class="filter-select"
+              [(ngModel)]="filterType"
+              (change)="onFiltersChange()"
+            >
+              <option value="ALL">Todos</option>
+              <option value="I">Inicial</option>
+              <option value="A">Actualización</option>
+              <option value="F">Final</option>
+            </select>
+
+            <select
+              class="filter-select"
+              [(ngModel)]="filterEmploymentType"
+              (change)="onFiltersChange()"
+            >
+              <!-- Las opciones salen del catálogo de nómina, agrupadas por
+                   régimen. El grupo "Declaraciones anteriores" recoge los textos
+                   que guardaron las declaraciones previas al selector, que no
+                   tienen código; desaparece solo cuando ya no quede ninguna. -->
+              <option value="ALL">Todos los contratos</option>
+              <optgroup *ngFor="let g of modalidadesPorRegimen" [label]="g.regimen">
+                <option *ngFor="let m of g.modalidades" [value]="m.CODIGO">
+                  {{ m.DESCRIPCION }}
+                </option>
+              </optgroup>
+              <optgroup label="Declaraciones anteriores" *ngIf="contratosHeredados.length > 0">
+                <option *ngFor="let t of contratosHeredados" [value]="t">{{ t }}</option>
+              </optgroup>
+            </select>
+
+            <div class="date-filters">
+              <input
+                type="date"
+                class="date-input"
+                [(ngModel)]="filterStartDate"
+                (change)="onFiltersChange()"
+              />
+              <span class="date-separator">a</span>
+              <input
+                type="date"
+                class="date-input"
+                [(ngModel)]="filterEndDate"
+                (change)="onFiltersChange()"
+              />
+            </div>
+          </div>
+
+          <div class="header-actions-right">
+            <div class="search-container">
+              <input 
+                type="text" 
+                class="search-input" 
+                [(ngModel)]="searchTerm"
+                placeholder="Ingrese una palabra para iniciar la busqueda"
+                (input)="onSearchChange()">
+            </div>
+            <button
+              class="btn-export"
+              type="button"
+              (click)="generateExcelReport()"
+              [disabled]="generatingReport"
+              title="Generar reporte en Excel con relaciones personales y proveedores"
+            >
+              <span class="btn-export-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="1.5em" height="1.5em" viewBox="0 0 24 24">
+                  <path fill="currentColor"
+                    d="M2.859 2.877l12.57-1.795a.5.5 0 0 1 .571.494v20.848a.5.5 0 0 1-.57.494L2.858 21.123a1 1 0 0 1-.859-.99V3.867a1 1 0 0 1 .859-.99M17 3h4a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1h-4zm-6.8 9L13 8h-2.4L9 10.286L7.4 8H5l2.8 4L5 16h2.4L9 13.714L10.6 16H13z" />
+                </svg>
+              </span>
+              <span class="btn-export-text">
+                {{ generatingReport ? 'EXPORTANDO...' : 'EXPORTAR' }}
+              </span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="listSection === 'forms' && reportError" class="report-error">
+        {{ reportError }}
+      </div>
+
+      <div *ngIf="listSection === 'forms' && forms.length === 0" class="empty-state">
+        <p>No hay formularios enviados aún.</p>
+      </div>
+
+      <div *ngIf="listSection === 'forms' && forms.length > 0 && filteredForms.length === 0" class="empty-state">
+        <p>No se encontraron formularios que coincidan con la búsqueda.</p>
+      </div>
+      
+      <div *ngIf="listSection === 'forms' && filteredForms.length > 0" class="forms-list">
+        <div class="table-responsive">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>Cédula</th>
+                <th>Origen</th>
+                <th>Tipo</th>
+                <th>Tipo de contrato</th>
+                <th>Fecha</th>
+                <th style="width: 80px; text-align: center;">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <ng-container *ngFor="let form of pagedForms">
+                <tr>
+                  <td>{{ form.NOMBRE }}</td>
+                  <td>{{ form.CEDULA }}</td>
+                  <td>
+                    <span class="origen-badge"
+                          [class.origen-externo]="esRegistroExterno(form)">
+                      {{ getOrigenLabel(form) }}
+                    </span>
+                  </td>
+                  <td>{{ getStatusLabel(form.ESTADO_PLANTILLA || '') }}</td>
+                  <td>{{ form.employmentType || 'Sin registro' }}</td>
+                  <td>
+                    {{ form.FECHA_GENERACION ? formatDate(form.FECHA_GENERACION) : 'Sin fecha' }}
+                  </td>
+                  <td style="text-align: center;">
+                    <div class="actions-cell">
+                      <button class="btn-preview" (click)="previewPdf(form)" title="Ver PDF">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"></path>
+                          <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                      </button>
+
+                      <button
+                        class="btn-history"
+                        type="button"
+                        (click)="toggleHistory(form)"
+                        [title]="expandedHistory[form.CODIGO!] ? 'Ocultar historial' : 'Ver historial'"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+
+                <tr *ngIf="expandedHistory[form.CODIGO!]">
+                  <td colspan="7" class="history-cell">
+                    <div *ngIf="loadingHistory[form.CODIGO!]" class="history-loading">
+                      Cargando historial...
+                    </div>
+
+                    <div *ngIf="!loadingHistory[form.CODIGO!] && (historyByActiveId[form.CODIGO!]?.length || 0) === 0" class="history-empty">
+                      Sin historial.
+                    </div>
+
+                    <div *ngIf="!loadingHistory[form.CODIGO!] && (historyByActiveId[form.CODIGO!]?.length || 0) > 0" class="history-list">
+                      <div class="history-item" *ngFor="let h of historyByActiveId[form.CODIGO!]">
+                        <div class="history-meta">
+                          <div class="history-date">
+                            {{ h.FECHA_GENERACION ? formatDate(h.FECHA_GENERACION) : 'Sin fecha' }}
+                          </div>
+                          <div class="history-type">
+                            {{ getStatusLabel(h.ESTADO_PLANTILLA || '') }}
+                          </div>
+                          <span class="origen-badge"
+                                [class.origen-externo]="esRegistroExterno(h)">
+                            {{ getOrigenLabel(h) }}
+                          </span>
+                        </div>
+                        <div class="history-actions">
+                          <button class="btn-preview" type="button" (click)="previewPdf(h)" title="Ver PDF">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                              <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"></path>
+                              <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              </ng-container>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="table-pagination">
+          <div class="page-size">
+            <label for="pageSizeSelect">Mostrar</label>
+            <select
+              id="pageSizeSelect"
+              [(ngModel)]="pageSize"
+              (change)="onPageSizeChange()"
+            >
+              <option *ngFor="let size of pageSizeOptions" [value]="size">
+                {{ size }}
+              </option>
+            </select>
+            <span>registros</span>
+          </div>
+
+          <div class="page-info">
+            <span>
+              Página {{ currentPage }} de {{ totalPages }}
+            </span>
+          </div>
+
+          <div class="page-controls">
+            <button
+              type="button"
+              class="page-btn"
+              (click)="prevPage()"
+              [disabled]="currentPage === 1"
+            >
+              « Anterior
+            </button>
+            <button
+              type="button"
+              class="page-btn"
+              (click)="nextPage()"
+              [disabled]="currentPage === totalPages"
+            >
+              Siguiente »
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <app-generate-code-modal *ngIf="showCodeModal" (closed)="closeCodeModal()"></app-generate-code-modal>
+    <app-manage-rrhh-modal
+      *ngIf="showManageRRHHModal"
+      (closed)="closeManageRRHHModal()"
+    ></app-manage-rrhh-modal>
+
+    <div class="status-modal-backdrop" *ngIf="showPdfErrorModal">
+      <div class="status-modal status-modal-error">
+        <h3 class="status-modal-title">PDF INVALIDO</h3>
+        <p class="status-modal-message">No se puede ver el PDF, usuario no ha ingresado información.</p>
+        <div class="status-modal-actions">
+          <button class="status-modal-btn" (click)="showPdfErrorModal = false">
+            Aceptar
+          </button>
+        </div>
+      </div>
+    </div>
+    </div>
+  </div>
+</div>

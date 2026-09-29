@@ -1,0 +1,115 @@
+.historial {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+}
+
+.historial-encabezado {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.historial-titulo {
+  margin: 0 0 4px;
+  font-size: 20px;
+  color: #103a60;
+}
+
+.historial-subtitulo {
+  margin: 0;
+  font-size: 14px;
+  color: #5b6b7c;
+}
+
+.btn-volver {
+  padding: 8px 14px;
+  border: 1px solid #103a60;
+  border-radius: 6px;
+  background: transparent;
+  color: #103a60;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.btn-volver:hover {
+  background: #103a60;
+  color: #fff;
+}
+
+.historial-mensaje {
+  padding: 16px 0;
+  color: #5b6b7c;
+  font-size: 14px;
+}
+
+.historial-error {
+  color: #b00020;
+}
+
+/* La tabla desborda en pantallas angostas; se desplaza en su propio contenedor
+   para que la pagina nunca tenga scroll horizontal. */
+.tabla-scroll {
+  overflow-x: auto;
+}
+
+.tabla-historial {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.tabla-historial th,
+.tabla-historial td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid #e3e8ee;
+  white-space: nowrap;
+}
+
+.tabla-historial th {
+  background: #f4f7fa;
+  color: #103a60;
+  font-weight: 600;
+}
+
+.col-acciones {
+  text-align: right;
+}
+
+.estado-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background-color: #e8f5e9;
+  color: #1b5e20;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.estado-badge.estado-historico {
+  background-color: #eceff1;
+  color: #455a64;
+}
+
+.btn-accion {
+  padding: 6px 12px;
+  margin-left: 8px;
+  border: none;
+  border-radius: 6px;
+  background: #103a60;
+  color: #fff;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.btn-accion-secundario {
+  background: #5b6b7c;
+}
+
+.btn-accion:hover {
+  opacity: 0.9;
+}

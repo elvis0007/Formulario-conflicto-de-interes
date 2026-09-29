@@ -1,0 +1,360 @@
+.roles-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.roles-modal-card {
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 22px 45px rgba(15, 23, 42, 0.25);
+  max-width: 900px;
+  width: 95%;
+  padding: 24px 28px 20px;
+  color: #0f172a;
+}
+
+.roles-modal-title {
+  margin: 0 0 8px;
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.roles-modal-message {
+  margin: 0 0 16px;
+  font-size: 0.95rem;
+  color: #4b5563;
+}
+
+.roles-status {
+  margin-bottom: 12px;
+  font-size: 0.9rem;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.roles-status-error {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.roles-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  margin-bottom: 16px;
+
+  label {
+    flex: 1 1 100%;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #374151;
+  }
+
+  input {
+    flex: 1 1 260px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid #d1d5db;
+    font-size: 0.95rem;
+    outline: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  input:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.35);
+  }
+}
+
+.roles-list {
+  margin-bottom: 16px;
+
+  h4 {
+    margin: 0 0 8px;
+    font-size: 1rem;
+    font-weight: 600;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+  }
+
+  th,
+  td {
+    padding: 8px 10px;
+    border-bottom: 1px solid #e5e7eb;
+    text-align: left;
+  }
+
+  th {
+    font-weight: 600;
+    color: #374151;
+    background: #f9fafb;
+  }
+
+  tr:last-child td {
+    border-bottom: none;
+  }
+}
+
+.roles-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.roles-btn {
+  border-radius: 999px;
+  padding: 7px 16px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: background-color 0.15s ease, box-shadow 0.15s ease, transform 0.05s ease;
+}
+
+.roles-btn-primary {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.roles-btn-primary:hover:not(:disabled) {
+  background: #1d4ed8;
+  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.35);
+  transform: translateY(-1px);
+}
+
+.roles-btn-secondary {
+  background: #e5e7eb;
+  color: #111827;
+}
+
+.roles-btn-secondary:hover:not(:disabled) {
+  background: #d1d5db;
+}
+
+.roles-btn-danger {
+  background: #ef4444;
+  color: #ffffff;
+}
+
+.roles-btn-danger:hover:not(:disabled) {
+  background: #dc2626;
+  box-shadow: 0 8px 18px rgba(239, 68, 68, 0.3);
+}
+
+.roles-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+  box-shadow: none;
+  transform: none;
+}
+
+.roles-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.role-accordion-wrapper {
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+}
+
+.role-action-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: #ffffff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s, border-radius 0.2s;
+
+  &:hover {
+    background: #f9fafb;
+  }
+
+  &.expanded {
+    border-radius: 8px 8px 0 0;
+    border-bottom: 1px solid #e5e7eb;
+  }
+}
+
+.role-accordion-wrapper:has(.role-accordion-content) .role-action-item {
+  border-radius: 8px 8px 0 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.role-action-label {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+  user-select: none;
+}
+
+.roles-btn-icon {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 8px;
+  background: #2563eb;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.roles-btn-icon:hover:not(:disabled) {
+  background: #1d4ed8;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+  transform: translateY(-1px);
+}
+
+.role-accordion-content {
+  margin: 0;
+  padding: 16px;
+  background: #ffffff;
+  border: none;
+  border-top: 1px solid #e5e7eb;
+  overflow: hidden;
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    max-height: 0;
+    opacity: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+  to {
+    max-height: 1000px;
+    opacity: 1;
+    padding-top: 16px;
+    padding-bottom: 16px;
+  }
+}
+
+.role-accordion-header {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  margin-bottom: 16px;
+
+  button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+  }
+}
+
+.th-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+
+  span {
+    flex: 1;
+  }
+
+  button {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+}
+
+.roles-btn-add {
+  border-radius: 8px;
+}
+
+.roles-list-content {
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+    background: white;
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  th,
+  td {
+    padding: 10px 12px;
+    border-bottom: 1px solid #e5e7eb;
+    text-align: left;
+  }
+
+  th {
+    font-weight: 600;
+    color: #374151;
+    background: #f9fafb;
+  }
+
+  tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  tbody tr:hover {
+    background: #f9fafb;
+  }
+
+  .empty-message {
+    text-align: center;
+    padding: 24px;
+    color: #6b7280;
+    font-size: 0.9rem;
+    margin: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .roles-modal-card {
+    padding: 18px 16px 16px;
+  }
+
+  .roles-form {
+    flex-direction: column;
+
+    input {
+      width: 100%;
+    }
+  }
+
+  .roles-list table {
+    font-size: 0.8rem;
+  }
+}
+
