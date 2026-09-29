@@ -1,0 +1,61 @@
+// Variables de diseno del modulo PNIP-CI.
+//
+// Se exponen como mixin y NO como `:root { ... }` para no filtrarlas al resto
+// de la aplicacion: el shell del modulo las aplica en su `:host`, y como las
+// custom properties se heredan por el DOM, llegan a todas las pantallas que
+// se pintan dentro de su <router-outlet>.
+//
+// Uso:
+//     @use 'ruta/a/styles/tokens';
+//     :host { @include tokens.variables; }
+//
+// Las fuentes Barlow / Barlow Condensed las importa el shell del modulo
+// (shared/components/pnip-ci-shell), no este archivo: un `@import` de CSS no
+// puede ir dentro de un mixin.
+//
+// @author EEASA
+
+/// Declara todas las variables de diseno del modulo.
+@mixin variables {
+    // Neutros
+    --paper: #FFFFFF;
+    --bg: #F2F2F3;
+    --surface: #E9E9EA;
+    --hairline: #D4D4D7;
+    --border: #B7B7BA;
+    --text3: #7A7A7D;
+    --text2: #5D5D60;
+    --ink: #1D1F20;
+
+    // Acento
+    --accent-100: #EEF6FF;
+    --accent-300: #BDD8F2;
+    --accent: #5980A6;
+    --accent-700: #416180;
+    --accent-900: #1D2D3D;
+
+    // Estados
+    --green: #2F7D43;
+    --green-fill: #E6EFE6;
+    --green-text: #1F5730;
+    --amber: #B0740A;
+    --amber-fill: #F8EEDA;
+    --amber-text: #7A4F05;
+    --red: #B3352B;
+    --red-fill: #F9E6E3;
+    --red-text: #8A251D;
+    --orange: #C1610F;
+    --orange-fill: #FBEADB;
+    --orange-text: #8A4409;
+    --gray: #7A7A7D;
+    --gray-fill: #E7E7EA;
+    --gray-text: #424244;
+
+    // Formularios
+    --navy-form: #1F3A5F;
+
+    // Tipografia
+    --font-sans: 'Barlow', 'Segoe UI', Roboto, Arial, sans-serif;
+    --font-condensed: 'Barlow Condensed', 'Barlow', 'Arial Narrow',
+        sans-serif;
+}

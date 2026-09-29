@@ -1,0 +1,17 @@
+@use '../../../styles/tokens';
+
+// Barlow y Barlow Condensed (400/500/600/700). La regla @font-face es global
+// por naturaleza, pero solo se descarga al entrar al modulo (estos estilos
+// se inyectan cuando se crea el shell) y solo la usa quien declare
+// `font-family: var(--font-sans)` o `var(--font-condensed)`.
+@import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@400;500;600;700&display=swap');
+
+:host {
+    @include tokens.variables;
+
+    display: block;
+    min-height: 100%;
+    background-color: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-sans);
+}

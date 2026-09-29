@@ -7,6 +7,7 @@ import { FooterComponent } from './footer/footer.component';
 import { HeaderComponent } from './header/header.component';
 import { AuthService } from './services/auth.service';
 import { RUTAS_PERMITIDAS } from './app.routes';
+import { esRutaPnipCi } from './pnip-ci/pnip-ci.constants';
 
 @Component({
   selector: 'app-root',
@@ -54,6 +55,11 @@ export class AppComponent implements OnInit, OnDestroy {
             this.router.navigateByUrl('/login', { replaceUrl: true });
           }, 0);
         }
+        return;
+      }
+
+      // Las rutas de PNIP-CI tienen su propio guard de rol (rolGuard).
+      if (esRutaPnipCi(url)) {
         return;
       }
 
@@ -108,6 +114,11 @@ export class AppComponent implements OnInit, OnDestroy {
       if (urlSinQuery !== '/login') {
         this.router.navigate(['/login'], { replaceUrl: true });
       }
+      return;
+    }
+
+    // Las rutas de PNIP-CI tienen su propio guard de rol (rolGuard).
+    if (esRutaPnipCi(urlSinQuery)) {
       return;
     }
 
