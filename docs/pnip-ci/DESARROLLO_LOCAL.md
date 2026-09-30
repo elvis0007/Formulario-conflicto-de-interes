@@ -61,6 +61,32 @@ Paso a paso al cargar la app (`provideAppInitializer` en `app.config.ts`):
   2. Si lo encuentra, lo valida contra el backend.
   3. Si no hay ninguna sesión, manda a `/login`.
 
+### Cambios de URL sin recargar (corregido el 30/09/2026)
+
+El initializer solo corre al **cargar** la página. En la primera versión
+había dos casos en que la sesión simulada faltaba y `rolGuard` mandaba a
+`/login`:
+
+1. Se ponía la bandera con la app ya abierta y se escribía en la barra una
+   URL que solo cambia lo que va tras el `#`. El navegador **no recarga** en
+   ese caso.
+2. Se pasaba por `/login`. Su `authGuard` llama a `logout()`, que es la
+   lógica real e intencional: «ir al login cierra la sesión». Eso borraba
+   la sesión simulada, y al volver a `/pnip` sin recargar ya no había
+   sesión.
+
+Ningún guard del host revisa otra condición: todos usan
+`isAuthenticated()`. Lo que faltaba era volver a activar la simulación.
+Ahora el mismo bloque registra, **solo fuera de producción**, un listener de
+`popstate`/`hashchange`. Ese listener reactiva la sesión simulada en cada
+cambio de URL, **solo si** la bandera está en `'true'` **y** no hay ninguna
+sesión (una sesión real no se toca). Se registra antes que los listeners del
+Router y de `AppComponent`, así que actúa antes que los guards.
+
+Por eso, a partir de ahora, **no hace falta recargar para activar** la
+simulación. **Para desactivarla sí hay que recargar**: la sesión que ya está
+en memoria sigue viva hasta la recarga.
+
 ### Limitaciones mientras está activa
 
 - Las llamadas al backend real salen **sin token válido**: el interceptor
@@ -88,7 +114,7 @@ archivos:
 | # | Archivo | Dónde | Qué hay |
 |---|---|---|---|
 | 1 | `src/app/services/auth.service.ts` | Clase `AuthService`, al final, después de `logout()`, entre `INICIO — BLOQUE AGREGADO POR ELVIS` y `FIN — BLOQUE AGREGADO POR ELVIS` | Método `activarSesionSimuladaDev(rol)` |
-| 2 | `src/app/app.config.ts` | Dentro del callback de `provideAppInitializer`, justo después de `const router = inject(Router);`, entre `INICIO` y `FIN — BLOQUE AGREGADO POR ELVIS` | El `if` que activa la simulación y devuelve `true` |
+| 2 | `src/app/app.config.ts` | Dentro del callback de `provideAppInitializer`, justo después de `const router = inject(Router);`, entre `INICIO` y `FIN — BLOQUE AGREGADO POR ELVIS` | El listener `reactivarSesionSimuladaDev` (cambios de URL sin recarga) y el `if` que activa la simulación al cargar y devuelve `true` |
 | 2b | `src/app/app.config.ts` | Imports del principio, marcado con `// BLOQUE AGREGADO POR ELVIS: import…` | `import { environment } …`, que solo usa el bloque 2. Se borra junto con él |
 
 Para retirarlo, borra esos bloques completos, comentarios incluidos, y
@@ -109,3 +135,7 @@ quedó registrado el intento, pero no salieron a la red.
 | Desarrollo + bandera `true`, sin `ROL-DEV` | Usa `R`. |
 | Desarrollo sin bandera, o bandera `false`, sin token | `/login`, igual que antes del cambio. |
 | Desarrollo sin bandera, o bandera `false`, con `TOKEN-INTRANET` | Validación real contra `getUsuarioIntranet`, igual que antes del cambio. |
+| Desarrollo: app abierta en `/login`, se pone la bandera y se escribe `#/pnip/rrhh/dashboard` sin recargar | **Antes:** `/login`. **Ahora:** entra al dashboard. |
+| Desarrollo: sesión simulada activa, se pasa por `/login` y luego se escribe `#/pnip/...` sin recargar | **Antes:** `/login`. **Ahora:** entra al dashboard. |
+| Desarrollo sin bandera: en `/login` se escribe `#/pnip/...` sin recargar | `/login`, igual que antes (el listener no actúa sin bandera). |
+| **Producción**, los mismos casos anteriores | Siempre `/login`: la bandera y el listener se ignoran. |

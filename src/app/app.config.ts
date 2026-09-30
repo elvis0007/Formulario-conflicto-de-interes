@@ -25,6 +25,27 @@ export const appConfig: ApplicationConfig = {
       // activo, se salta toda la validación real de intranet de abajo.
       // ELIMINAR antes de producción, o dejar siempre apagado.
       // ==================================================================
+      // Este initializer solo corre al CARGAR la página. Hay dos casos en
+      // que la sesión simulada falta sin que la página se recargue:
+      //   1. Se puso la bandera con la app ya abierta y se escribió una URL
+      //      que solo cambia lo que va tras el '#' (el navegador no recarga).
+      //   2. Se pasó por /login: su authGuard llama a logout() (lógica real,
+      //      intencional) y eso borra los signals de la sesión simulada.
+      // En ambos casos rolGuard/AppComponent ven isAuthenticated() = false y
+      // mandan a /login. Este listener la reactiva en cada cambio de URL,
+      // SOLO si la bandera está en 'true' Y no hay ninguna sesión (si hay
+      // una sesión real, no la toca). Se registra antes que los listeners
+      // del Router y de AppComponent, así que corre antes que los guards.
+      if (!environment.production) {
+        const reactivarSesionSimuladaDev = (): void => {
+          if (localStorage.getItem('PNIP-CI-AUTH-SIMULADA') === 'true'
+            && !authSrv.isAuthenticated()) {
+            authSrv.activarSesionSimuladaDev(localStorage.getItem('PNIP-CI-ROL-DEV') ?? 'R');
+          }
+        };
+        window.addEventListener('popstate', reactivarSesionSimuladaDev);
+        window.addEventListener('hashchange', reactivarSesionSimuladaDev);
+      }
       if (!environment.production && localStorage.getItem('PNIP-CI-AUTH-SIMULADA') === 'true') {
         const rolDev = localStorage.getItem('PNIP-CI-ROL-DEV') ?? 'R';
         authSrv.activarSesionSimuladaDev(rolDev);
