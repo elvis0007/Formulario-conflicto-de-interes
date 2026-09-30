@@ -855,3 +855,151 @@ catálogos. Un spec lo comprueba.
 - **Servidor de desarrollo:** había un `node` escuchando en el puerto 4200
   que no se lanzó en esta sesión (posiblemente un `ng serve` de Elvis). No
   se tocó; la verificación usó el puerto 4300.
+
+---
+
+## Integración en el layout y menú reales (30/09/2026)
+
+**Cambio de arquitectura confirmado por Elvis.** Las pantallas de
+Formularios ya existen, están conectadas a datos reales y no se tocan. El
+módulo deja de tener shell propio: sus pantallas viven dentro del layout
+real de la app y se llega a ellas desde el menú lateral real, ampliado.
+
+La exploración previa está en `docs/pnip-ci/INFORME_MENU_REAL.md`.
+Hallazgos clave:
+- el menú de íconos solo lo pinta `AdminComponent`, en `/admin`;
+- sus 3 opciones no son rutas: dos son vistas internas de `/admin` y la
+  tercera, una descarga.
+
+Elvis eligió:
+- que `AppComponent` pinte el menú en `/pnip/**`;
+- que `AdminComponent` lea `?vista=formulario`.
+
+### Qué se retiró (borrado, recuperable desde git)
+
+| Retirado | Por qué |
+|---|---|
+| Shell propio (`PnipCiShellComponent`), `LayoutPnipComponent`, sidebar oscuro (`SidebarPnipComponent`), barra superior (`TopbarPnipComponent` y sus migas de pan) y `NotificationBellPnipComponent` (días 1, 3 y 4) | El módulo vive en el layout del host: su cabecera, su pie y su menú. |
+| Pantallas mock «Formularios › Conflicto de Interés» y «Formularios › Excusas» del Día 4, con sus subcomponentes, rutas y specs | Las pantallas reales ya existen fuera del módulo, en `AdminComponent`. |
+| Datos `breadcrumb` y `menu` en las rutas | Los usaban la barra superior y el layout retirados. |
+
+Se conservan:
+- los componentes compartidos genéricos: Badge, KpiCard, Modal, Pills,
+  DataTable, ExpandArrowButton, EmptyState, Tabs e Icono;
+- los pipes, los modelos y los servicios mock;
+- las utilidades y los datos de ejemplo del Día 4 (filtros de listados,
+  catálogos, `EmpleadoSinFormulario`);
+- `rolGuard` y `RolPnipCiService`;
+- la lógica de ítem activo del sidebar retirado, que se movió a
+  `core/utils/menu.util.ts` y ahora la usa el menú real.
+
+En `RolPnipCiService`, `obtenerEtiquetaRol()`, `obtenerNombreUsuario()` y
+`obtenerIniciales()` quedaron sin uso (eran para el pie del sidebar
+retirado). No se borraron.
+
+### Cómo quedó
+
+**Rutas (`pnip-ci.routes.ts`):**
+- Sin shell ni layout.
+- `rrhh` y `responsable` son grupos sin componente que solo aplican
+  `rolGuard`.
+- Cada pantalla se monta en el `<router-outlet>` de `AppComponent`.
+- Las URLs no cambiaron.
+
+**Estilos del módulo:**
+- Como ya no hay un contenedor común, cada pantalla aplica en su propio
+  `:host` la base de `styles/_pantalla.scss`: tokens, Barlow y márgenes.
+- Siguen sin afectar a la cabecera, el pie, el menú ni las pantallas del
+  host.
+
+**Layout (`AppComponent`):** en `/pnip/**` pinta el `<app-sidebar-menu>` del
+host junto al contenido, con el mismo acomodo que en `/admin`: sticky bajo
+la cabecera de 64 px y contenido flexible. En el resto de rutas el DOM no
+cambia. Son unas líneas en `app.component.{ts,html,scss}`, marcadas
+«PNIP-CI».
+
+**Menú real (`src/app/sidebar-menu`):** mismo estilo del host (tarjeta
+blanca, tokens `--ci-*`, íconos en caja), sin tokens ni fuente del módulo.
+
+- **RRHH (`R`/`A`):**
+  - Dashboard
+  - Formularios ▸, con los 3 botones de siempre
+  - Conflicto ▸ (Análisis de Conflictos, Consulta Previa)
+  - Informe General
+  - Revisión de Evidencias
+  - Historial
+- **Sin R/A:** Dashboard y Bandeja de Tareas.
+- **Rol:** sale de `AuthService.hasRole()`, como en `rolGuard`.
+- **Grupos:**
+  - Chevron que gira al desplegar.
+  - Se abren solos si contienen la opción activa (en `/admin`, siempre
+    «Formularios»).
+  - Con el menú colapsado se ven como íconos en columna.
+- **Ítem activo:** por prefijo de URL; Plan de Acción resalta «Conflicto ›
+  Análisis de Conflictos».
+- Los ítems del módulo se declaran en `pnip-ci.menus.ts`.
+
+**Los 3 botones de Formularios:**
+- **Dentro de `/admin`** emiten sus eventos como siempre y `AdminComponent`
+  hace exactamente lo mismo que antes.
+- **Fuera de `/admin`** nadie escucha esos eventos (el menú lo comprueba con
+  `EventEmitter.observed`), así que:
+  - «Formulario de conflicto de interés» → `/admin?vista=formulario`;
+  - «Formulario de excusa» → descarga el mismo PDF que `AdminComponent`;
+  - «Ver Formularios» → `/admin`.
+
+**`AdminComponent`:** único cambio, 5 líneas añadidas (un comentario y un
+`if`) en la suscripción a `queryParamMap`, con el mismo patrón que
+`?abrirCodigo`: `?vista=formulario` abre la vista del formulario. Su HTML y
+su SCSS no cambian.
+
+### Verificación
+
+- **Pantallas de Formularios, comparadas con `70fb6d0` (commit anterior a
+  hoy):** 0 líneas cambiadas en `conflict-form/`, `mis-formularios/`,
+  `admin.component.html`, `admin.component.scss`, `login/`, `header/`,
+  `footer/`, los modales, `backend.service.ts`, `conflicto-pdf.service.ts`,
+  `guards/` y `app.routes.ts`. En `admin.component.ts`, solo las 5 líneas
+  añadidas de `?vista=formulario`.
+- **Pruebas:**
+  - Módulo + menú: 134 de 134 correctas.
+  - `ng test` completo: solo los 3 fallos preexistentes de
+    `app.component.spec.ts`.
+  - Specs nuevos: `menu.util.spec.ts` (ítem activo) y
+    `sidebar-menu.component.spec.ts` (menú por rol, orden, los 3 botones
+    emitiendo dentro de `/admin` y sus equivalentes fuera).
+- **Build de producción:** sin errores.
+- **Edge headless con sesión simulada** (backend real y descargas
+  interceptados):
+  - **`R` en `/pnip/rrhh/dashboard`:** cabecera y pie del host, un solo
+    menú, con los ítems y grupos esperados.
+  - **Cada ítem nuevo** navega a su pantalla y queda resaltado.
+  - **Plan de Acción** resalta «Conflicto › Análisis de Conflictos».
+  - **Formularios desde `/pnip`:**
+    - Excusa → descarga `/sisci/assets/FORMULARIO_DE_EXCUSAS_EV_EEASA.pdf`.
+    - Conflicto → `/admin` con el formulario abierto.
+    - «Ver Formularios» → la lista.
+  - **Dentro de `/admin`, igual que antes:** abre la lista; los 3 botones
+    hacen lo de siempre. Desde ahí también se llega a las pantallas nuevas.
+  - **`I` (sin R/A):** menú con Dashboard y Bandeja de Tareas; el detalle
+    de un plan resalta Bandeja.
+  - **`E`:** va a `/` (formulario), sin menú, como siempre.
+  - **`/mis-formularios`:** sin menú, como siempre.
+
+### Pendiente / a tener en cuenta
+
+- **Un empleado sin R/A no tiene cómo llegar a `/pnip/responsable/**`
+  desde la app:** su pantalla de inicio es `/` (el formulario), que no tiene
+  menú. Hay que decidir el acceso, por ejemplo un ícono en la cabecera o que
+  su menú también se muestre en `/`.
+- **`?vista=formulario` desaparece de la URL enseguida.** No lo hace nuestro
+  código: al iniciarse, `ConflictFormComponent` hace
+  `router.navigate(['/admin'])` si el usuario es A/R. Es comportamiento
+  preexistente y pasa igual al abrirlo desde dentro de `/admin`. Como es la
+  misma ruta, `AdminComponent` no se recrea y el formulario sigue visible.
+  El resultado es idéntico a pulsar el botón dentro de `/admin`, y al
+  recargar se abre la lista, como siempre. Verificado con una traza de
+  `pushState`.
+- **Sin campana de notificaciones:** se retiró con la barra superior propia
+  y la cabecera del host no tiene una (ver `INFORME_MENU_REAL.md`, punto 5).
+  `NotificacionesMockService` y `TiempoRelativoPipe` se conservan.

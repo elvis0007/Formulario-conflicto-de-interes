@@ -73,7 +73,8 @@ Adaptación del *Manual de estándares de programación* de EEASA
 pnip-ci/
 ├── CONVENTIONS.md
 ├── pnip-ci.constants.ts   constantes que usa la app principal
-├── pnip-ci.routes.ts      rutas (carga diferida)
+├── pnip-ci.menus.ts       ítems del menú lateral REAL de la app (host)
+├── pnip-ci.routes.ts      rutas (carga diferida, sin shell propio)
 ├── core/
 │   ├── guards/            guards funcionales (CanActivateFn)
 │   ├── services/          servicios providedIn: 'root'
@@ -81,12 +82,23 @@ pnip-ci/
 │   ├── utils/             funciones puras (fechas, reglas de planes...)
 │   └── models/            interfaces y tipos de dominio
 ├── shared/
-│   ├── components/        componentes reutilizables (incluye el shell)
+│   ├── components/        componentes reutilizables (sin layout propio)
 │   └── pipes/             pipes standalone
 ├── rrhh/                  pantallas del rol RRHH
 ├── responsable/           pantallas del rol Responsable
-└── styles/_tokens.scss    variables de diseño (solo dentro del módulo)
+└── styles/
+    ├── _tokens.scss       variables de diseño (solo dentro del módulo)
+    ├── _pantalla.scss     base de cada pantalla (tokens + Barlow)
+    └── _listados.scss     estilos de pantallas de listado
 ```
+
+## Layout y menú
+
+- El módulo **no tiene layout propio**. Sus pantallas se pintan en el
+  `<router-outlet>` de `AppComponent`, entre la cabecera y el pie reales.
+- El menú lateral es el **real de la app** (`src/app/sidebar-menu`, fuera
+  del módulo). Sus ítems del módulo se declaran en `pnip-ci.menus.ts`. Una
+  pantalla nueva que deba aparecer en el menú se añade ahí, con su ícono.
 
 ## Servicios de datos
 
@@ -104,9 +116,11 @@ pnip-ci/
 
 ## Estilos
 
-- Los tokens de `styles/_tokens.scss` se aplican en el `:host` del shell
-  del módulo, nunca en `:root` ni en `src/styles.scss`: así no afectan al
-  formulario de conflicto de interés existente.
+- Cada pantalla (componente de ruta) aplica en su `:host` la base del
+  módulo: `@use '../../styles/pantalla';` y `:host { @include
+  pantalla.raiz; }`, que da tokens, Barlow y márgenes. Nunca en `:root` ni en
+  `src/styles.scss`: así no afectan a la cabecera, el pie, el menú ni las
+  pantallas del host.
 - Los componentes usan `var(--token)` y no colores literales.
 - Para colores con significado de negocio se usa el tipo `Tono`
   (`core/utils/tono.util.ts`) y sus variables `--{tono}`, `--{tono}-fill`
@@ -123,14 +137,11 @@ pnip-ci/
 | `app-pnip-kpi-card` | Indicador; clicable como filtro. |
 | `app-pnip-modal` | Ventana modal (X, fondo, Esc; foco atrapado). |
 | `app-pnip-pills` | Filtros de un solo valor. **No** para pestañas. |
-| `app-pnip-layout` | Sidebar + topbar + contenido; menú por `data.menu`. |
 | `app-pnip-tabs` | Pestañas que controlan paneles (`role="tablist"`). |
-| `app-pnip-data-table` | Tabla con paginación y filas desplegables; celdas en `<ng-template pnipFila>`, detalle en `<ng-template pnipDetalle>`, vacío en `[pnipVacio]`. `variante="navy"` en pantallas de Formularios. |
+| `app-pnip-data-table` | Tabla con paginación y filas desplegables; celdas en `<ng-template pnipFila>`, detalle en `<ng-template pnipDetalle>`, vacío en `[pnipVacio]`. `variante="navy"` para listados con el estilo de Formularios. |
 | `app-pnip-expand-arrow-button` | Flecha para desplegar filas o secciones. |
 | `app-pnip-empty-state` | Lista vacía: ícono, texto y acción opcional. |
 | `app-pnip-icono` | Íconos SVG en línea (sin librería externa). |
-
-Cada pantalla nueva declara en su ruta `data: { breadcrumb: [...] }`.
 
 Las pantallas de listado incluyen `@include listados.estilos;`
 (`styles/_listados.scss`): banda azul marino, panel de filtros y botones con

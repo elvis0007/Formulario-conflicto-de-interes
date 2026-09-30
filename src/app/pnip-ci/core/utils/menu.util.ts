@@ -1,14 +1,26 @@
 /**
- * Entrada del menu lateral. Es una hoja (con `ruta`) o un grupo
- * desplegable (con `hijos`).
+ * Entrada del menu lateral de la app (`SidebarMenuComponent` del host). Es
+ * una hoja (con `ruta`), un grupo desplegable (con `hijos`) o el grupo
+ * «Formularios» del host (`formulariosHost`).
  *
  * @author Elvis Flores
  */
 export interface ItemMenu {
     /** Texto visible. */
     etiqueta: string;
+    /**
+     * Trazo SVG del icono (viewBox 24x24, estilo Feather, como los iconos que
+     * ya dibuja el menu del host). Se ve tambien con el menu colapsado.
+     */
+    icono: string;
     /** Ruta absoluta de la pantalla (solo hojas). */
     ruta?: string;
+    /**
+     * Marca el lugar del grupo «Formularios»: sus opciones son los 3 botones
+     * que ya tenia el menu del host (no son rutas), y los pinta el propio
+     * menu tal cual.
+     */
+    formulariosHost?: boolean;
     /**
      * Prefijos de URL de pantallas que NO estan en el menu pero deben
      * resaltar este item (p. ej. Plan de Accion resalta «Análisis de

@@ -1,0 +1,33 @@
+// Base de cada pantalla del modulo PNIP-CI.
+//
+// Desde que el modulo vive dentro del layout real de la app (sin shell
+// propio), cada pantalla aplica en su propio :host los tokens de diseno y la
+// tipografia Barlow. Asi siguen afectando solo al contenido del modulo: ni
+// la cabecera, ni el pie, ni el menu del host los reciben. Los componentes
+// compartidos (Badge, Modal...) los heredan por estar dentro de la
+// pantalla.
+//
+// Uso en el .scss de una pantalla:
+//     @use '../../styles/pantalla';
+//     :host { @include pantalla.raiz; }
+//
+// @author Elvis Flores
+
+@use 'tokens';
+
+// Barlow y Barlow Condensed (400/500/600/700). Al ser un @import de CSS
+// fuera del mixin, se emite una vez en cada pantalla que use este archivo;
+// el navegador descarga la hoja de fuentes una sola vez.
+@import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@400;500;600;700&display=swap');
+
+/// Tokens, tipografia y margenes de una pantalla del modulo.
+@mixin raiz {
+    @include tokens.variables;
+
+    display: block;
+    // Mismo aire que deja el host alrededor de sus pantallas.
+    padding: 20px 20px 40px;
+    color: var(--ink);
+    font-family: var(--font-sans);
+    line-height: 1.5;
+}

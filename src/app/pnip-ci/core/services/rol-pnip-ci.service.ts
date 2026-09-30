@@ -107,7 +107,8 @@ export class RolPnipCiService {
     }
 
     /**
-     * Texto del rol para el pie del sidebar.
+     * Texto del rol del usuario (lo usaba el pie del sidebar propio del
+     * modulo, retirado; se conserva para las pantallas).
      *
      * @returns `Administrador`, `Jefe de RRHH`, `Usuario externo` o
      * `Empleado`.

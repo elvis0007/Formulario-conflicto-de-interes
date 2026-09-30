@@ -9,7 +9,8 @@ import { Component } from '@angular/core';
  */
 @Component({
     selector: 'app-pnip-historial',
-    template: '<h2>Historial</h2>'
+    template: '<h2>Historial</h2>',
+    styleUrl: './historial.component.scss'
 })
 export class HistorialComponent {
 }

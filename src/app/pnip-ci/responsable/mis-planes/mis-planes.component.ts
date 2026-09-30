@@ -9,7 +9,8 @@ import { Component } from '@angular/core';
  */
 @Component({
     selector: 'app-pnip-mis-planes',
-    template: '<h2>Mis planes de acción</h2>'
+    template: '<h2>Mis planes de acción</h2>',
+    styleUrl: './mis-planes.component.scss'
 })
 export class MisPlanesComponent {
 }

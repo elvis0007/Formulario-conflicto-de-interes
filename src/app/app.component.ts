@@ -8,10 +8,11 @@ import { HeaderComponent } from './header/header.component';
 import { AuthService } from './services/auth.service';
 import { RUTAS_PERMITIDAS } from './app.routes';
 import { esRutaPnipCi } from './pnip-ci/pnip-ci.constants';
+import { SidebarMenuComponent } from './sidebar-menu/sidebar-menu.component';
 
 @Component({
   selector: 'app-root',
-  imports: [CommonModule, RouterOutlet, HeaderComponent, FooterComponent],
+  imports: [CommonModule, RouterOutlet, HeaderComponent, FooterComponent, SidebarMenuComponent],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss'
 })
@@ -24,6 +25,10 @@ export class AppComponent implements OnInit, OnDestroy {
   private popStateHandler?: (event: PopStateEvent) => void;
   private currentUrl: string = '';
   esLoginRoute: boolean = false;
+  // PNIP-CI: en /pnip/** el layout pinta el menú lateral real junto al
+  // contenido (en /admin lo sigue pintando AdminComponent).
+  esRutaPnip: boolean = false;
+  puedeVerListaFormularios: boolean = false;
 
   ngOnInit(): void {
     // Intentar obtener token automáticamente al iniciar
@@ -31,6 +36,7 @@ export class AppComponent implements OnInit, OnDestroy {
     
     this.currentUrl = this.location.path();
     this.esLoginRoute = this.currentUrl.startsWith('/login');
+    this.actualizarMenuPnip(this.currentUrl);
 
     this.navigationSubscription = this.router.events
       .pipe(filter(event => event instanceof NavigationEnd))
@@ -38,6 +44,7 @@ export class AppComponent implements OnInit, OnDestroy {
         const url = (event.urlAfterRedirects || event.url).split('?')[0];
         this.currentUrl = url;
         this.esLoginRoute = url.startsWith('/login');
+        this.actualizarMenuPnip(url);
         this.validarYRederigirRuta(url);
       });
 
@@ -104,6 +111,13 @@ export class AppComponent implements OnInit, OnDestroy {
     };
 
     window.addEventListener('popstate', this.popStateHandler);
+  }
+
+  // PNIP-CI: decide si se pinta el menú lateral real en esta ruta y si
+  // muestra «Ver Formularios» (mismo criterio que AdminComponent: A o R).
+  private actualizarMenuPnip(url: string): void {
+    this.esRutaPnip = esRutaPnipCi(url.split('?')[0]);
+    this.puedeVerListaFormularios = this.authService.hasRole('A') || this.authService.hasRole('R');
   }
 
   private validarYRederigirRuta(url: string): void {

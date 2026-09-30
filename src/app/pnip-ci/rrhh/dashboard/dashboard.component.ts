@@ -9,7 +9,8 @@ import { Component } from '@angular/core';
  */
 @Component({
     selector: 'app-pnip-rrhh-dashboard',
-    template: '<h2>Dashboard RRHH</h2>'
+    template: '<h2>Dashboard RRHH</h2>',
+    styleUrl: './dashboard.component.scss'
 })
 export class RrhhDashboardComponent {
 }

@@ -9,7 +9,8 @@ import { Component } from '@angular/core';
  */
 @Component({
     selector: 'app-pnip-responsable-dashboard',
-    template: '<h2>Dashboard del responsable</h2>'
+    template: '<h2>Dashboard del responsable</h2>',
+    styleUrl: './dashboard.component.scss'
 })
 export class ResponsableDashboardComponent {
 }

@@ -9,7 +9,8 @@ import { Component } from '@angular/core';
  */
 @Component({
     selector: 'app-pnip-informe-general',
-    template: '<h2>Informe general</h2>'
+    template: '<h2>Informe general</h2>',
+    styleUrl: './informe-general.component.scss'
 })
 export class InformeGeneralComponent {
 }

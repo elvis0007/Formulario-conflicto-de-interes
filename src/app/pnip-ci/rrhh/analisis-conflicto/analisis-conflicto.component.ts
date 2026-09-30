@@ -9,7 +9,8 @@ import { Component } from '@angular/core';
  */
 @Component({
     selector: 'app-pnip-analisis-conflicto',
-    template: '<h2>Análisis de conflictos</h2>'
+    template: '<h2>Análisis de conflictos</h2>',
+    styleUrl: './analisis-conflicto.component.scss'
 })
 export class AnalisisConflictoComponent {
 }

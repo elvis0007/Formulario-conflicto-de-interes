@@ -10,7 +10,8 @@ import { Component } from '@angular/core';
  */
 @Component({
     selector: 'app-pnip-plan-accion-detalle',
-    template: '<h2>Plan de acción</h2>'
+    template: '<h2>Plan de acción</h2>',
+    styleUrl: './plan-accion-detalle.component.scss'
 })
 export class PlanAccionDetalleComponent {
 }

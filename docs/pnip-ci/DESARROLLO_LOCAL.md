@@ -29,12 +29,15 @@ el módulo PNIP-CI. `rolGuard` y el resto de PNIP-CI consultan siempre
 
 ### Qué ve cada rol en PNIP-CI
 
-| `PNIP-CI-ROL-DEV` | `/pnip` lleva a | `/pnip/rrhh/**` | `/pnip/responsable/**` | Pie del sidebar |
+Las pantallas del módulo se ven dentro del layout real de la app: cabecera,
+pie y el menú lateral «MENÚ» de siempre, ampliado.
+
+| `PNIP-CI-ROL-DEV` | `/pnip` lleva a | `/pnip/rrhh/**` | `/pnip/responsable/**` | Menú lateral |
 |---|---|---|---|---|
-| `R` (Jefe de RRHH) | `/pnip/rrhh/dashboard` | Entra | Entra | «Jefe de RRHH» |
-| `A` (Administrador) | `/pnip/rrhh/dashboard` | Entra | Entra | «Administrador» |
-| `E` (externo) | `/` (fuera del módulo) | Bloqueado → `/` | Bloqueado → `/` (un externo no es empleado, regla del Día 3) | — |
-| Otro, p. ej. `I` (empleado sin R/A) | `/pnip/responsable/dashboard` | Bloqueado → `/pnip/responsable/dashboard` | Entra | «Empleado» |
+| `R` (Jefe de RRHH) | `/pnip/rrhh/dashboard` | Entra | Entra | Dashboard, Formularios ▸, Conflicto ▸, Informe General, Revisión de Evidencias, Historial |
+| `A` (Administrador) | `/pnip/rrhh/dashboard` | Entra | Entra | Igual que `R` |
+| `E` (externo) | `/` (fuera del módulo) | Bloqueado → `/` | Bloqueado → `/` (un externo no es empleado, regla del Día 3) | Ninguno (en `/` no hay menú, como siempre) |
+| Otro, p. ej. `I` (empleado sin R/A) | `/pnip/responsable/dashboard` | Bloqueado → `/pnip/responsable/dashboard` | Entra | Dashboard, Bandeja de Tareas |
 
 ### Qué actividades ve el Responsable
 

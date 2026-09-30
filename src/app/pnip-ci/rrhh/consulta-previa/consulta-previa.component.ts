@@ -9,7 +9,8 @@ import { Component } from '@angular/core';
  */
 @Component({
     selector: 'app-pnip-consulta-previa',
-    template: '<h2>Consulta previa</h2>'
+    template: '<h2>Consulta previa</h2>',
+    styleUrl: './consulta-previa.component.scss'
 })
 export class ConsultaPreviaComponent {
 }

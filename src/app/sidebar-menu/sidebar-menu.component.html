@@ -9,62 +9,131 @@
       <h2 class="menu-title">Menú</h2>
     </div>
     <nav class="admin-nav">
-      <button
-        type="button"
-        class="nav-btn"
-        [class.active]="activeSection === 'form'"
-        (click)="onFormClick()"
-      >
-        <span class="nav-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
-               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-            <polyline points="14 2 14 8 20 8"></polyline>
-            <line x1="16" y1="13" x2="8" y2="13"></line>
-            <line x1="16" y1="17" x2="8" y2="17"></line>
-            <polyline points="10 9 9 9 8 9"></polyline>
-          </svg>
-        </span>
-        <span class="nav-text">Formulario de conflicto de interés</span>
-      </button>
+      <!-- PNIP-CI: menú según el rol (pnip-ci.menus.ts). El grupo
+           «Formularios» contiene los 3 botones de siempre, sin cambios. -->
+      @for (item of menu; track item.etiqueta) {
+        @if (item.formulariosHost || item.hijos) {
+          <button
+            type="button"
+            class="nav-btn nav-grupo"
+            [class.grupo-activo]="grupoActivo(item)"
+            [attr.aria-expanded]="gruposAbiertos.has(item.etiqueta)"
+            [attr.title]="collapsed ? item.etiqueta : null"
+            (click)="alternarGrupo(item.etiqueta)"
+          >
+            <span class="nav-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                   stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path [attr.d]="item.icono"></path>
+              </svg>
+            </span>
+            <span class="nav-text">{{ item.etiqueta }}</span>
+            <svg class="nav-chevron" [class.nav-chevron--abierto]="gruposAbiertos.has(item.etiqueta)"
+                 xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                 aria-hidden="true">
+              <polyline points="9 6 15 12 9 18"></polyline>
+            </svg>
+          </button>
 
-      <button
-        type="button"
-        class="nav-btn"
-        (click)="onExcuseClick()"
-      >
-        <span class="nav-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
-               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-            <polyline points="7 10 12 15 17 10"></polyline>
-            <line x1="12" y1="15" x2="12" y2="3"></line>
-          </svg>
-        </span>
-        <span class="nav-text">Formulario de excusa</span>
-      </button>
+          @if (gruposAbiertos.has(item.etiqueta)) {
+            <div class="nav-hijos">
+              @if (item.formulariosHost) {
+                <!-- Botones originales del menú, sin cambios. -->
+                <button
+                  type="button"
+                  class="nav-btn"
+                  [class.active]="activeSection === 'form'"
+                  (click)="onFormClick()"
+                >
+                  <span class="nav-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                      <polyline points="14 2 14 8 20 8"></polyline>
+                      <line x1="16" y1="13" x2="8" y2="13"></line>
+                      <line x1="16" y1="17" x2="8" y2="17"></line>
+                      <polyline points="10 9 9 9 8 9"></polyline>
+                    </svg>
+                  </span>
+                  <span class="nav-text">Formulario de conflicto de interés</span>
+                </button>
 
-      <button
-        *ngIf="canViewList"
-        type="button"
-        class="nav-btn"
-        [class.active]="activeSection === 'list'"
-        (click)="onListClick()"
-      >
-        <span class="nav-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
-               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="8" y1="6" x2="21" y2="6"></line>
-            <line x1="8" y1="12" x2="21" y2="12"></line>
-            <line x1="8" y1="18" x2="21" y2="18"></line>
-            <line x1="3" y1="6" x2="3.01" y2="6"></line>
-            <line x1="3" y1="12" x2="3.01" y2="12"></line>
-            <line x1="3" y1="18" x2="3.01" y2="18"></line>
-          </svg>
-        </span>
-        <span class="nav-text">Ver Formularios</span>
-      </button>
+                <button
+                  type="button"
+                  class="nav-btn"
+                  (click)="onExcuseClick()"
+                >
+                  <span class="nav-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                      <polyline points="7 10 12 15 17 10"></polyline>
+                      <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                  </span>
+                  <span class="nav-text">Formulario de excusa</span>
+                </button>
+
+                <button
+                  *ngIf="canViewList"
+                  type="button"
+                  class="nav-btn"
+                  [class.active]="activeSection === 'list'"
+                  (click)="onListClick()"
+                >
+                  <span class="nav-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <line x1="8" y1="6" x2="21" y2="6"></line>
+                      <line x1="8" y1="12" x2="21" y2="12"></line>
+                      <line x1="8" y1="18" x2="21" y2="18"></line>
+                      <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                      <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                      <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                    </svg>
+                  </span>
+                  <span class="nav-text">Ver Formularios</span>
+                </button>
+              } @else {
+                @for (hijo of item.hijos; track hijo.etiqueta) {
+                  <a
+                    class="nav-btn"
+                    [routerLink]="hijo.ruta"
+                    [class.active]="hijo === itemActivo"
+                    [attr.aria-current]="hijo === itemActivo ? 'page' : null"
+                    [attr.title]="collapsed ? hijo.etiqueta : null"
+                  >
+                    <span class="nav-icon">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                           stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path [attr.d]="hijo.icono"></path>
+                      </svg>
+                    </span>
+                    <span class="nav-text">{{ hijo.etiqueta }}</span>
+                  </a>
+                }
+              }
+            </div>
+          }
+        } @else {
+          <a
+            class="nav-btn"
+            [routerLink]="item.ruta"
+            [class.active]="item === itemActivo"
+            [attr.aria-current]="item === itemActivo ? 'page' : null"
+            [attr.title]="collapsed ? item.etiqueta : null"
+          >
+            <span class="nav-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                   stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path [attr.d]="item.icono"></path>
+              </svg>
+            </span>
+            <span class="nav-text">{{ item.etiqueta }}</span>
+          </a>
+        }
+      }
     </nav>
   </aside>
 </div>
-

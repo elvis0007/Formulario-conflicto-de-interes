@@ -1,17 +1,13 @@
 // Variables de diseno del modulo PNIP-CI.
 //
 // Se exponen como mixin y NO como `:root { ... }` para no filtrarlas al resto
-// de la aplicacion: el shell del modulo las aplica en su `:host`, y como las
-// custom properties se heredan por el DOM, llegan a todas las pantallas que
-// se pintan dentro de su <router-outlet>.
+// de la aplicacion: cada pantalla del modulo las aplica en su `:host` (via
+// `_pantalla.scss`), y como las custom properties se heredan por el DOM,
+// llegan a los componentes compartidos que la pantalla contiene.
 //
-// Uso:
-//     @use 'ruta/a/styles/tokens';
-//     :host { @include tokens.variables; }
-//
-// Las fuentes Barlow / Barlow Condensed las importa el shell del modulo
-// (shared/components/pnip-ci-shell), no este archivo: un `@import` de CSS no
-// puede ir dentro de un mixin.
+// Uso normal (pantallas): ver `_pantalla.scss`, que tambien importa las
+// fuentes Barlow / Barlow Condensed (un `@import` de CSS no puede ir dentro
+// de un mixin).
 //
 // @author Elvis Flores
 
