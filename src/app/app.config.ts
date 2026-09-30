@@ -5,6 +5,9 @@ import { firstValueFrom } from 'rxjs';
 import { AuthService } from './services/auth.service';
 import { solicitudInterceptor } from './interceptors/solicitudes.interceptor';
 import { routes } from './app.routes';
+// BLOQUE AGREGADO POR ELVIS: import que solo usa la sesión simulada de
+// desarrollo (ver INICIO/FIN más abajo). ELIMINAR junto con ese bloque.
+import { environment } from '../environments/environment';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -17,6 +20,18 @@ export const appConfig: ApplicationConfig = {
       const authSrv = inject(AuthService);
       const router = inject(Router);
 
+      // ==================================================================
+      // INICIO — BLOQUE AGREGADO POR ELVIS (desarrollo local). Si está
+      // activo, se salta toda la validación real de intranet de abajo.
+      // ELIMINAR antes de producción, o dejar siempre apagado.
+      // ==================================================================
+      if (!environment.production && localStorage.getItem('PNIP-CI-AUTH-SIMULADA') === 'true') {
+        const rolDev = localStorage.getItem('PNIP-CI-ROL-DEV') ?? 'R';
+        authSrv.activarSesionSimuladaDev(rolDev);
+        return Promise.resolve(true);
+      }
+      // FIN — BLOQUE AGREGADO POR ELVIS
+      // ==================================================================
 
       // Verificar directamente el localStorage para debugging
       const tokenDirectoLocalStorage = localStorage.getItem('TOKEN-INTRANET');

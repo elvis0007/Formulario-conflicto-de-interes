@@ -427,4 +427,60 @@ export class AuthService {
     localStorage.removeItem('USUARIO-SISTEC');
     // window.location.href = environment.urlIntranet;
   }
+
+  // ======================================================================
+  // INICIO — BLOQUE AGREGADO POR ELVIS (desarrollo local, NO es parte del
+  // backend real). Permite simular una sesión sin depender del token de
+  // intranet, para poder trabajar sin acceso a la red de la empresa.
+  // Se debe ELIMINAR por completo antes de integrar con producción real,
+  // o dejarse siempre apagado (nunca se activa si no se prende a mano
+  // desde localStorage, y nunca se activa en build de producción).
+  // ======================================================================
+
+  /**
+   * Activa una sesión simulada solo para desarrollo local, sin llamar al
+   * backend real de intranet. No tiene ningún efecto si `environment.production`
+   * es `true`.
+   * @author Elvis Flores
+   * @param rol Rol simulado a asumir: 'R' (RRHH), 'A' (Admin) o 'E' (externo).
+   */
+  activarSesionSimuladaDev(rol: string): void {
+    if (environment.production) {
+      return;
+    }
+
+    // Usuario ficticio. Tiene la misma forma (IUsuario) que el que devuelve
+    // el backend real en procesarRespuestaLogin(); lleva el rol pedido en
+    // `roles` y `ROLES`, que son los dos campos que lee
+    // actualizarRolesDesdeUsuario().
+    const usuarioDev: IUsuario = {
+      CEDULA: '0000000000',
+      NOMBRES: 'Usuario',
+      APELLIDOS: 'Desarrollo',
+      roles: [rol],
+      ROLES: [rol]
+    };
+
+    // isAuthenticated() exige DOS cosas: que haya algún token en los signals
+    // (_tokenSistec o _tokenIntranet distinto de null) Y que haya un usuario
+    // en _usuario. Aquí se cumple la primera con un token falso en
+    // _tokenSistec. Solo en memoria: NO se escribe en localStorage, para que
+    // al apagar la bandera no quede un token falso guardado.
+    this._tokenSistec.set('TOKEN-DEV-SIMULADO');
+
+    // Segunda condición de isAuthenticated(): el usuario. También es lo que
+    // devuelven usuario() y getCurrentUser() (cabecera, formulario, PNIP-CI).
+    // Tampoco se guarda en localStorage ('USUARIO-SISTEC').
+    this._usuario.set(usuarioDev);
+
+    // hasRole() lee el signal _roles. Se llena con el mismo método privado
+    // que usa el login real, así no hay una segunda forma de calcular roles.
+    this.actualizarRolesDesdeUsuario(usuarioDev);
+
+    console.warn('[AuthService] SESIÓN SIMULADA DE DESARROLLO activa, rol:',
+      rol, '(PNIP-CI-AUTH-SIMULADA). No se validó contra intranet.');
+  }
+
+  // FIN — BLOQUE AGREGADO POR ELVIS
+  // ======================================================================
 }
