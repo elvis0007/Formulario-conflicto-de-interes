@@ -258,6 +258,14 @@ src/app/pnip-ci/
 
 > **Superado el Día 2.** El punto 1 quedó confirmado y el punto 2 se
 > corrigió: ver «Decisiones del Día 2».
+>
+> **Eliminado el 30/09/2026:** la simulación de rol propia del módulo
+> (`PNIP-CI-ROL-SIMULADO`, que en desarrollo trataba a todos como RRHH) ya
+> no existe. `RolPnipCiService` consulta siempre `AuthService.hasRole()`.
+> Para simular un rol en local se usa la sesión simulada de `AuthService`
+> (`PNIP-CI-AUTH-SIMULADA` + `PNIP-CI-ROL-DEV`); ver
+> `docs/pnip-ci/DESARROLLO_LOCAL.md`. Las menciones a `PNIP-CI-ROL-SIMULADO`
+> y a «RRHH (simulado)» que siguen en este informe son históricas.
 
 Sí había un mecanismo real (`AuthService.hasRole()`), así que
 `RolPnipCiService` lo usa, con esta traducción:

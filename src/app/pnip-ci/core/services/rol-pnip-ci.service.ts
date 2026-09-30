@@ -15,17 +15,6 @@ const ROL_BACKEND_EXTERNO = 'E';
 
 /** Ruta de inicio del resto de la app, para quien no tiene acceso. */
 const RUTA_FUERA_DEL_MODULO = '/';
-/**
- * Rol que se simula en desarrollo. Poner `null` para usar solo los roles
- * reales del backend.
- */
-const ROL_SIMULADO_POR_DEFECTO: RolPnipCi | null = 'rrhh';
-
-/**
- * Clave de `localStorage` para cambiar el rol simulado sin recompilar.
- * Valores: `rrhh` o `ninguno` (desactiva la simulacion).
- */
-const CLAVE_ROL_SIMULADO = 'PNIP-CI-ROL-SIMULADO';
 
 /**
  * Clave de `localStorage` para elegir que empleado de los datos de ejemplo
@@ -44,12 +33,14 @@ const RUTA_INICIO_RESPONSABLE = '/pnip/responsable/dashboard';
  * su identificador de empleado.
  *
  * - Rol: `R` (Jefe de RRHH) y `A` (Administrador) se tratan como `rrhh`,
- *   igual que en el resto de la app.
- * - Empleado: se usa para saber de que actividades es responsable.
- *
- * Fuera de produccion se pueden simular ambos valores desde
- * `localStorage` (`PNIP-CI-ROL-SIMULADO`, `PNIP-CI-EMPLEADO-SIMULADO`). En
- * produccion la simulacion no se aplica nunca.
+ *   igual que en el resto de la app. Siempre se consulta
+ *   `AuthService.hasRole()`, en desarrollo y en produccion: para probar
+ *   otro rol en local se usa la sesion simulada de `AuthService`
+ *   (`PNIP-CI-AUTH-SIMULADA` + `PNIP-CI-ROL-DEV`, ver
+ *   docs/pnip-ci/DESARROLLO_LOCAL.md), no un atajo propio del modulo.
+ * - Empleado: se usa para saber de que actividades es responsable. Fuera
+ *   de produccion se puede elegir desde `localStorage`
+ *   (`PNIP-CI-EMPLEADO-SIMULADO`); en produccion no se aplica nunca.
  *
  * @author Elvis Flores
  */
@@ -65,12 +56,7 @@ export class RolPnipCiService {
      * @returns Lista de roles; vacia si el usuario no es de RRHH.
      */
     obtenerRoles(): RolPnipCi[] {
-        const rolSimulado = this.obtenerRolSimulado();
         const roles: RolPnipCi[] = [];
-
-        if (rolSimulado !== null) {
-            return [rolSimulado];
-        }
 
         if (ROLES_BACKEND_RRHH.some((rol) => this.authService.hasRole(rol))) {
             roles.push('rrhh');
@@ -93,8 +79,6 @@ export class RolPnipCiService {
      * Indica si el usuario es empleado de la empresa, es decir, si puede
      * ser responsable de actividades. Todo autenticado lo es, salvo los
      * usuarios externos (rol `E`).
-     *
-     * Usa siempre el rol real: la simulacion de rol no aplica aqui.
      *
      * @returns `true` si no tiene el rol externo.
      */
@@ -125,8 +109,8 @@ export class RolPnipCiService {
     /**
      * Texto del rol para el pie del sidebar.
      *
-     * @returns `Administrador`, `Jefe de RRHH`, `RRHH (simulado)`,
-     * `Usuario externo` o `Empleado`.
+     * @returns `Administrador`, `Jefe de RRHH`, `Usuario externo` o
+     * `Empleado`.
      */
     obtenerEtiquetaRol(): string {
         if (this.authService.hasRole('A')) {
@@ -134,9 +118,6 @@ export class RolPnipCiService {
         }
         if (this.authService.hasRole('R')) {
             return 'Jefe de RRHH';
-        }
-        if (this.tieneRol('rrhh')) {
-            return 'RRHH (simulado)';
         }
 
         return this.esEmpleado() ? 'Empleado' : 'Usuario externo';
@@ -210,30 +191,6 @@ export class RolPnipCiService {
         }
 
         return usuario?.DMPER_CODIGO || usuario?.CODIGO || null;
-    }
-
-    /**
-     * Rol simulado vigente. Siempre `null` en produccion.
-     *
-     * @returns Rol simulado, o `null` si no hay simulacion activa.
-     */
-    private obtenerRolSimulado(): RolPnipCi | null {
-        let valorGuardado: string | null = null;
-
-        if (environment.production) {
-            return null;
-        }
-
-        valorGuardado = this.leerLocalStorage(CLAVE_ROL_SIMULADO);
-
-        if (valorGuardado === 'rrhh') {
-            return valorGuardado;
-        }
-        if (valorGuardado === 'ninguno') {
-            return null;
-        }
-
-        return ROL_SIMULADO_POR_DEFECTO;
     }
 
     /**

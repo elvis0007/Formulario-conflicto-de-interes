@@ -11,9 +11,6 @@ import {
 import { AuthService } from '../../../services/auth.service';
 import { DATO_ROL_REQUERIDO, rolGuard } from './rol.guard';
 
-/** Clave con la que se desactiva la simulacion de rol en desarrollo. */
-const CLAVE_ROL_SIMULADO = 'PNIP-CI-ROL-SIMULADO';
-
 describe('rolGuard', () => {
     let sesionActiva = true;
     let roles: string[] = [];
@@ -45,8 +42,6 @@ describe('rolGuard', () => {
     beforeEach(() => {
         sesionActiva = true;
         roles = [];
-        // Sin simulacion: el guard debe usar los roles reales.
-        localStorage.setItem(CLAVE_ROL_SIMULADO, 'ninguno');
 
         TestBed.configureTestingModule({
             providers: [
@@ -61,10 +56,6 @@ describe('rolGuard', () => {
                 }
             ]
         });
-    });
-
-    afterEach(() => {
-        localStorage.removeItem(CLAVE_ROL_SIMULADO);
     });
 
     describe('/pnip/responsable/** (cualquier empleado)', () => {
@@ -121,6 +112,19 @@ describe('rolGuard', () => {
             roles = ['R'];
             expect(urlDe(ejecutar(DATA_RRHH))).toBe('/login');
         });
+
+        it('ignora la simulación de rol antigua (PNIP-CI-ROL-SIMULADO)',
+            () => {
+                // Clave eliminada: si quedo guardada en algun navegador, ya
+                // no debe convertir a nadie en RRHH.
+                localStorage.setItem('PNIP-CI-ROL-SIMULADO', 'rrhh');
+                roles = ['E'];
+                try {
+                    expect(urlDe(ejecutar(DATA_RRHH))).toBe('/');
+                } finally {
+                    localStorage.removeItem('PNIP-CI-ROL-SIMULADO');
+                }
+            });
     });
 
     it('niega el paso si la ruta no declara el rol requerido', () => {

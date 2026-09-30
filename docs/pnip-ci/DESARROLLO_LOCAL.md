@@ -23,6 +23,29 @@ localStorage.setItem('PNIP-CI-ROL-DEV', 'R'); // o 'A' o 'E'
 
 `PNIP-CI-ROL-DEV` es opcional: si falta, se usa `'R'` (Jefe de RRHH).
 
+Esta es **la única forma de simular un rol**, tanto en la app host como en
+el módulo PNIP-CI. `rolGuard` y el resto de PNIP-CI consultan siempre
+`AuthService.hasRole()`, y la sesión simulada llena exactamente ese dato.
+
+### Qué ve cada rol en PNIP-CI
+
+| `PNIP-CI-ROL-DEV` | `/pnip` lleva a | `/pnip/rrhh/**` | `/pnip/responsable/**` | Pie del sidebar |
+|---|---|---|---|---|
+| `R` (Jefe de RRHH) | `/pnip/rrhh/dashboard` | Entra | Entra | «Jefe de RRHH» |
+| `A` (Administrador) | `/pnip/rrhh/dashboard` | Entra | Entra | «Administrador» |
+| `E` (externo) | `/` (fuera del módulo) | Bloqueado → `/` | Bloqueado → `/` (un externo no es empleado, regla del Día 3) | — |
+| Otro, p. ej. `I` (empleado sin R/A) | `/pnip/responsable/dashboard` | Bloqueado → `/pnip/responsable/dashboard` | Entra | «Empleado» |
+
+### Qué actividades ve el Responsable
+
+Es otro concepto: no es un rol, sino **qué empleado** está usando la app. En
+desarrollo se elige con `PNIP-CI-EMPLEADO-SIMULADO`; por defecto es
+`EMP-010`, de los datos de ejemplo:
+
+```js
+localStorage.setItem('PNIP-CI-EMPLEADO-SIMULADO', 'EMP-001');
+```
+
 ## Desactivar
 
 ```js
@@ -94,14 +117,6 @@ en memoria sigue viva hasta la recarga.
   pantallas del host que consultan el backend (por ejemplo `/admin`) darán
   error.
 - Las pantallas de PNIP-CI usan datos simulados y funcionan con normalidad.
-- **PNIP-CI tiene además su propia simulación de rol**
-  (`PNIP-CI-ROL-SIMULADO`, Día 1): en desarrollo trata a cualquiera como
-  RRHH. Para ver el comportamiento real del rol elegido en
-  `PNIP-CI-ROL-DEV` dentro del módulo (por ejemplo un externo `E`, o un
-  empleado que solo ve la vista de Responsable), añade:
-  ```js
-  localStorage.setItem('PNIP-CI-ROL-SIMULADO', 'ninguno');
-  ```
 - El código del bloque **sí está** en el JavaScript del build de producción:
   el optimizador no lo elimina. No se ejecuta nunca, porque ahí
   `environment.production` es `true`.
@@ -139,3 +154,4 @@ quedó registrado el intento, pero no salieron a la red.
 | Desarrollo: sesión simulada activa, se pasa por `/login` y luego se escribe `#/pnip/...` sin recargar | **Antes:** `/login`. **Ahora:** entra al dashboard. |
 | Desarrollo sin bandera: en `/login` se escribe `#/pnip/...` sin recargar | `/login`, igual que antes (el listener no actúa sin bandera). |
 | **Producción**, los mismos casos anteriores | Siempre `/login`: la bandera y el listener se ignoran. |
+| Roles en PNIP-CI (sesión simulada) | `R` y `A` entran a RRHH. `E` queda bloqueado en RRHH y en Responsable, y va a `/`, aunque tenga guardada la clave antigua `PNIP-CI-ROL-SIMULADO=rrhh`. `I` entra solo a Responsable. |
