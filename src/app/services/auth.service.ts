@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable, signal } from '@angular/core';
 import FingerprintJS from '@fingerprintjs/fingerprintjs';
-import { catchError, map, Observable, of } from 'rxjs';
+import { catchError, map, Observable, of, tap } from 'rxjs';
 import { IRespuestaLogin } from '../models/respuesta-login';
 import { IUsuario } from '../models/usuario';
 import { environment } from '../../environments/environment';
@@ -61,6 +61,34 @@ export class AuthService {
     return null;
   }
 
+  obtenerValidacionUsuario(
+    username: any,
+    password: any
+  ): Observable<{respuesta: string; token: string}[]> {
+    // Base64 de un texto en UTF-8 (igual que Base64.encode de js-base64,
+    // que este proyecto no tiene instalado): así las tildes y la ñ se
+    // codifican bien.
+    const codificarBase64 = (texto: string): string =>
+      btoa(String.fromCharCode(...new TextEncoder().encode(texto)));
+
+    return this.http
+      .get<{respuesta: string; token: string}[]>(`http://172.20.35.209:7001/WSIntranet/rest/intranet/ingresarUsuario`, {
+        params: {
+          inDsgus_cuenta: codificarBase64(String(username)),
+          inDsgus_clave: codificarBase64(String(password)),
+          inAgent: String(this._huella() ?? ''),
+        },
+      })
+      .pipe(
+        tap((res) => {
+          if (res[0]?.respuesta === 'm1') {
+            localStorage.setItem('usuario', username);
+            localStorage.setItem('TOKEN-INTRANET', res[0].token);
+            this._tokenIntranet.set(res[0].token);
+          }
+        })
+      );
+  }
   private actualizarRolesDesdeUsuario(usuario: IUsuario | null): void {
     if (!usuario) {
       this._roles.set([]);
