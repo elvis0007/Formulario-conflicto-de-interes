@@ -1,3 +1,7 @@
+// [PNIP-CI] Elvis Flores - 30/09/2026
+// Qué hace: imports del menú ampliado (rutas, rol del usuario e ítems de
+// gestión de conflictos). Al import de @angular/core se agregan DestroyRef,
+// OnChanges, SimpleChanges e inject.
 import { Component, DestroyRef, EventEmitter, HostListener, Input, OnChanges, OnInit, Output, SimpleChanges, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -6,28 +10,38 @@ import { filter } from 'rxjs';
 import { AuthService } from '../services/auth.service';
 import { MENU_RESPONSABLE, MENU_RRHH } from './menu-items';
 import { ItemMenu, buscarGrupo, buscarItemActivo } from './item-menu';
+// [FIN PNIP-CI]
 
 type SidebarSection = 'form' | 'list';
 
+// [PNIP-CI] Elvis Flores - 30/09/2026
+// Qué hace: ruta del PDF de excusa para descargarlo fuera de /admin.
 /**
- * PNIP-CI: descarga del formulario de excusa. Es el mismo archivo y la misma
- * forma que usa AdminComponent.downloadExcusePdf(); se usa solo cuando el
- * menú está fuera de /admin (nadie escucha `excuseClicked`).
+ * Descarga del formulario de excusa. Es el mismo archivo y la misma forma
+ * que usa AdminComponent.downloadExcusePdf(); se usa solo cuando el menú
+ * está fuera de /admin (nadie escucha `excuseClicked`).
  */
 const RUTA_PDF_EXCUSA = '/sisci/assets/FORMULARIO_DE_EXCUSAS_EV_EEASA.pdf';
+// [FIN PNIP-CI]
 
 @Component({
   selector: 'app-sidebar-menu',
   standalone: true,
+  // [PNIP-CI] Elvis Flores - 30/09/2026
+  // Qué hace: agrega RouterLink (los ítems nuevos son enlaces).
   imports: [CommonModule, RouterLink],
+  // [FIN PNIP-CI]
   templateUrl: './sidebar-menu.component.html',
   styleUrl: './sidebar-menu.component.scss'
 })
+// [PNIP-CI] Elvis Flores - 30/09/2026
+// Qué hace: la clase implementa además OnChanges (ver ngOnChanges) y
+// activeSection admite `null`: así se usa fuera de /admin (en /rrhh o
+// /responsable), donde ninguna de las dos vistas de AdminComponent está
+// activa.
 export class SidebarMenuComponent implements OnInit, OnChanges {
-  // PNIP-CI: `null` cuando el menú está fuera de /admin (en /rrhh o
-  // /responsable), donde ninguna de las dos vistas de AdminComponent está
-  // activa.
   @Input() activeSection: SidebarSection | null = 'form';
+  // [FIN PNIP-CI]
   @Input() canViewList: boolean = false;
 
 
@@ -38,12 +52,11 @@ export class SidebarMenuComponent implements OnInit, OnChanges {
   @Output() excuseClicked = new EventEmitter<void>();
   @Output() listClicked = new EventEmitter<void>();
 
-  // ==================================================================
-  // PNIP-CI: menú ampliado (Dashboard, Formularios ▸, Conflicto ▸,
-  // Informe General, Revisión de Evidencias, Historial) y distinto según
-  // el rol. Los ítems nuevos son rutas; los 3 botones de «Formularios» son
-  // los de siempre.
-  // ==================================================================
+  // [PNIP-CI] Elvis Flores - 30/09/2026
+  // Qué hace: estado del menú ampliado (Dashboard, Formularios ▸,
+  // Conflicto ▸, Informe General, Revisión de Evidencias, Historial),
+  // distinto según el rol. Los ítems nuevos son rutas; los 3 botones de
+  // «Formularios» son los de siempre.
   private readonly router = inject(Router);
   private readonly authService = inject(AuthService);
   private readonly destroyRef = inject(DestroyRef);
@@ -59,14 +72,15 @@ export class SidebarMenuComponent implements OnInit, OnChanges {
 
   /** Grupos desplegados, por etiqueta. */
   readonly gruposAbiertos = new Set<string>();
-  // FIN PNIP-CI
-  // ==================================================================
+  // [FIN PNIP-CI]
 
   ngOnInit(): void {
     this.updateViewportState();
 
-    // PNIP-CI: el rol sale de AuthService.hasRole(), igual que en rolGuard
-    // y en AdminComponent.
+    // [PNIP-CI] Elvis Flores - 30/09/2026
+    // Qué hace: elige el menú según el rol (sale de AuthService.hasRole(),
+    // igual que en rolGuard y en AdminComponent) y sigue la URL para
+    // resaltar el ítem activo.
     this.esRrhh = this.authService.hasRole('R') || this.authService.hasRole('A');
     this.menu = this.esRrhh ? MENU_RRHH : MENU_RESPONSABLE;
     this.actualizarItemActivo(this.router.url);
@@ -79,19 +93,31 @@ export class SidebarMenuComponent implements OnInit, OnChanges {
         next: (e) => this.actualizarItemActivo(e.urlAfterRedirects),
         error: (err: unknown) => console.error('[SidebarMenuComponent] Navegación:', err)
       });
+    // [FIN PNIP-CI]
   }
 
-  // PNIP-CI: dentro de /admin, el grupo «Formularios» se abre solo, porque
+  // [PNIP-CI] Elvis Flores - 30/09/2026
+  // Qué hace: dentro de /admin, el grupo «Formularios» se abre solo, porque
   // una de sus opciones es la activa.
+  /**
+   * Abre el grupo «Formularios» cuando AdminComponent indica una sección.
+   *
+   * @param changes Cambios de los inputs.
+   * @author Elvis Flores
+   */
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['activeSection'] && this.activeSection !== null) {
       this.gruposAbiertos.add('Formularios');
     }
   }
+  // [FIN PNIP-CI]
 
-  // PNIP-CI: si nadie escucha el evento (menú fuera de /admin), navega a
-  // /admin con la vista del formulario. Dentro de /admin se emite como
-  // siempre y AdminComponent hace lo mismo que antes.
+  // [PNIP-CI] Elvis Flores - 30/09/2026
+  // Qué hace: los 3 botones de siempre. Si nadie escucha su evento (menú
+  // fuera de /admin): el formulario navega a /admin?vista=formulario, la
+  // excusa descarga el mismo PDF que AdminComponent y «Ver Formularios»
+  // navega a /admin. Dentro de /admin se emiten como siempre y
+  // AdminComponent hace lo mismo que antes.
   onFormClick(): void {
     if (this.formClicked.observed) {
       this.formClicked.emit();
@@ -100,7 +126,6 @@ export class SidebarMenuComponent implements OnInit, OnChanges {
     this.router.navigate(['/admin'], { queryParams: { vista: 'formulario' } });
   }
 
-  // PNIP-CI: fuera de /admin descarga el mismo PDF que AdminComponent.
   onExcuseClick(): void {
     if (this.excuseClicked.observed) {
       this.excuseClicked.emit();
@@ -109,7 +134,6 @@ export class SidebarMenuComponent implements OnInit, OnChanges {
     this.descargarPdfExcusa();
   }
 
-  // PNIP-CI: fuera de /admin navega a /admin, que para RRHH abre la lista.
   onListClick(): void {
     if (!this.canViewList) {
       return;
@@ -120,6 +144,7 @@ export class SidebarMenuComponent implements OnInit, OnChanges {
     }
     this.router.navigate(['/admin']);
   }
+  // [FIN PNIP-CI]
 
   // Deslizar el menú al pasar el mouse sin afectar el resto del layout.
   onMouseEnter(): void {
@@ -146,11 +171,15 @@ export class SidebarMenuComponent implements OnInit, OnChanges {
     this.collapsed = !this.isMobileViewport;
   }
 
-  // ==================================================================
-  // PNIP-CI: grupos, ítem activo y descarga fuera de /admin.
-  // ==================================================================
+  // [PNIP-CI] Elvis Flores - 30/09/2026
+  // Qué hace: grupos desplegables, ítem activo y descarga fuera de /admin.
 
-  /** Abre o cierra un grupo. */
+  /**
+   * Abre o cierra un grupo.
+   *
+   * @param etiqueta Etiqueta del grupo.
+   * @author Elvis Flores
+   */
   alternarGrupo(etiqueta: string): void {
     if (this.gruposAbiertos.has(etiqueta)) {
       this.gruposAbiertos.delete(etiqueta);
@@ -159,7 +188,13 @@ export class SidebarMenuComponent implements OnInit, OnChanges {
     }
   }
 
-  /** El grupo se resalta si contiene la opción activa. */
+  /**
+   * El grupo se resalta si contiene la opción activa.
+   *
+   * @param grupo Grupo del menú.
+   * @returns `true` si alguna de sus opciones es la activa.
+   * @author Elvis Flores
+   */
   grupoActivo(grupo: ItemMenu): boolean {
     if (grupo.formulariosHost) {
       return this.activeSection !== null;
@@ -170,6 +205,9 @@ export class SidebarMenuComponent implements OnInit, OnChanges {
   /**
    * Calcula el ítem activo por prefijo de URL (así Plan de Acción resalta
    * «Análisis de Conflictos») y abre su grupo.
+   *
+   * @param url URL actual.
+   * @author Elvis Flores
    */
   private actualizarItemActivo(url: string): void {
     const activo = buscarItemActivo(this.menu, url);
@@ -181,6 +219,11 @@ export class SidebarMenuComponent implements OnInit, OnChanges {
     }
   }
 
+  /**
+   * Descarga el PDF del formulario de excusa.
+   *
+   * @author Elvis Flores
+   */
   private descargarPdfExcusa(): void {
     const link = document.createElement('a');
     link.href = RUTA_PDF_EXCUSA;
@@ -189,6 +232,5 @@ export class SidebarMenuComponent implements OnInit, OnChanges {
     link.click();
     document.body.removeChild(link);
   }
-  // FIN PNIP-CI
-  // ==================================================================
+  // [FIN PNIP-CI]
 }

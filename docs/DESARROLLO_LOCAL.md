@@ -129,18 +129,20 @@ en memoria sigue viva hasta la recarga.
 
 ## Dónde está el código (para retirarlo)
 
-Busca `BLOQUE AGREGADO POR ELVIS` en todo el proyecto. Aparece en dos
-archivos:
+Todo lo que existe solo para desarrollo está marcado con `[PNIP-CI DEV]`
+(ver [CONVENCIONES.md](CONVENCIONES.md#cambios-en-archivos-del-host)).
+Busca `[PNIP-CI DEV]` en todo el proyecto: cada bloque empieza con
+`// [PNIP-CI DEV] Elvis Flores - dd/mm/aaaa - ELIMINAR ANTES DE PRODUCCIÓN`
+y termina con `// [FIN PNIP-CI DEV]`. Hoy son:
 
 | # | Archivo | Dónde | Qué hay |
 |---|---|---|---|
-| 1 | `src/app/services/auth.service.ts` | Clase `AuthService`, al final, después de `logout()`, entre `INICIO — BLOQUE AGREGADO POR ELVIS` y `FIN — BLOQUE AGREGADO POR ELVIS` | Método `activarSesionSimuladaDev(rol)` |
-| 2 | `src/app/app.config.ts` | Dentro del callback de `provideAppInitializer`, justo después de `const router = inject(Router);`, entre `INICIO` y `FIN — BLOQUE AGREGADO POR ELVIS` | El listener `reactivarSesionSimuladaDev` (cambios de URL sin recarga) y el `if` que activa la simulación al cargar y devuelve `true` |
-| 2b | `src/app/app.config.ts` | Imports del principio, marcado con `// BLOQUE AGREGADO POR ELVIS: import…` | `import { environment } …`, que solo usa el bloque 2. Se borra junto con él |
+| 1 | `src/app/services/auth.service.ts` | Clase `AuthService`, al final, después de `logout()` | Método `activarSesionSimuladaDev(rol)` |
+| 2 | `src/app/app.config.ts` | Dentro del callback de `provideAppInitializer`, justo después de `const router = inject(Router);` | El listener `reactivarSesionSimuladaDev` (cambios de URL sin recarga) y el `if` que activa la simulación al cargar y devuelve `true` |
+| 2b | `src/app/app.config.ts` | Imports del principio | `import { environment } …`, que solo usa el bloque 2. Se borra junto con él |
 
-Para retirarlo, borra esos bloques completos, comentarios incluidos, y
-listo: nada más en el proyecto depende de ellos. También puedes revertir el
-commit `chore(pnip-ci): sesión simulada de desarrollo, aislada y reversible`.
+Para retirarlo, borra esos bloques completos, marcadores incluidos: nada
+más en el proyecto depende de ellos.
 
 ## Verificación hecha (Edge headless, 30/09/2026 y 01/10/2026)
 

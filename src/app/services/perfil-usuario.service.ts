@@ -30,7 +30,7 @@ const RUTA_INICIO_RRHH = RUTAS.rrhh.dashboard;
 const RUTA_INICIO_RESPONSABLE = RUTAS.responsable.dashboard;
 
 /**
- * Traduce la sesion del usuario al modulo PNIP-CI: su rol (solo `rrhh`) y
+ * Traduce la sesion del usuario a la gestión de conflictos: su rol (solo `rrhh`) y
  * su identificador de empleado.
  *
  * - Rol: `R` (Jefe de RRHH) y `A` (Administrador) se tratan como `rrhh`,
@@ -52,7 +52,7 @@ export class PerfilUsuarioService {
   private readonly authService = inject(AuthService);
 
   /**
-   * Devuelve los roles PNIP-CI del usuario actual.
+   * Devuelve los roles de gestión de conflictos del usuario actual.
    *
    * @returns Lista de roles; vacia si el usuario no es de RRHH.
    */

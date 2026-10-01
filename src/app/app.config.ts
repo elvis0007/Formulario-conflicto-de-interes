@@ -5,9 +5,11 @@ import { firstValueFrom } from 'rxjs';
 import { AuthService } from './services/auth.service';
 import { solicitudInterceptor } from './interceptors/solicitudes.interceptor';
 import { routes } from './app.routes';
-// BLOQUE AGREGADO POR ELVIS: import que solo usa la sesión simulada de
-// desarrollo (ver INICIO/FIN más abajo). ELIMINAR junto con ese bloque.
+// [PNIP-CI DEV] Elvis Flores - 30/09/2026 - ELIMINAR ANTES DE PRODUCCIÓN
+// Qué hace: import que solo usa la sesión simulada de desarrollo (ver el
+// bloque [PNIP-CI DEV] más abajo). Se elimina junto con ese bloque.
 import { environment } from '../environments/environment';
+// [FIN PNIP-CI DEV]
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -20,11 +22,10 @@ export const appConfig: ApplicationConfig = {
       const authSrv = inject(AuthService);
       const router = inject(Router);
 
-      // ==================================================================
-      // INICIO — BLOQUE AGREGADO POR ELVIS (desarrollo local). Si está
-      // activo, se salta toda la validación real de intranet de abajo.
-      // ELIMINAR antes de producción, o dejar siempre apagado.
-      // ==================================================================
+      // [PNIP-CI DEV] Elvis Flores - 30/09/2026 - ELIMINAR ANTES DE PRODUCCIÓN
+      // Qué hace: sesión simulada de desarrollo local. Si está activa, se
+      // salta toda la validación real de intranet de abajo. Apagada por
+      // defecto y nunca activa en producción (ver docs/DESARROLLO_LOCAL.md).
       // Este initializer solo corre al CARGAR la página. Hay dos casos en
       // que la sesión simulada falta sin que la página se recargue:
       //   1. Se puso la bandera con la app ya abierta y se escribió una URL
@@ -51,8 +52,7 @@ export const appConfig: ApplicationConfig = {
         authSrv.activarSesionSimuladaDev(rolDev);
         return Promise.resolve(true);
       }
-      // FIN — BLOQUE AGREGADO POR ELVIS
-      // ==================================================================
+      // [FIN PNIP-CI DEV]
 
       // Verificar directamente el localStorage para debugging
       const tokenDirectoLocalStorage = localStorage.getItem('TOKEN-INTRANET');

@@ -5,7 +5,7 @@
  * PENDIENTE de confirmar con backend:
  * - `TIPOS_CONTRATO`: la app host usa el catalogo de modalidades de
  *   nomina (por regimen), que tiene muchos mas valores. Hay que decidir si
- *   PNIP-CI usa ese catalogo o estas cuatro categorias.
+ *   la gestión de conflictos usa ese catalogo o estas cuatro categorias.
  * - `TIPOS_PROCESO_EXCUSA`: la especificacion indica que los campos exactos
  *   del formulario de excusa estan por confirmar.
  *

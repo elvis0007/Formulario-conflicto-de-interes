@@ -9,8 +9,10 @@
       <h2 class="menu-title">Menú</h2>
     </div>
     <nav class="admin-nav">
-      <!-- PNIP-CI: menú según el rol (menu-items.ts). El grupo
-           «Formularios» contiene los 3 botones de siempre, sin cambios. -->
+      <!-- [PNIP-CI] Elvis Flores - 30/09/2026
+           Qué hace: menú según el rol (menu-items.ts), con grupos
+           desplegables. Reemplaza la lista fija de 3 botones: el grupo
+           «Formularios» contiene esos 3 botones de siempre, sin cambios. -->
       @for (item of menu; track item.etiqueta) {
         @if (item.formulariosHost || item.hijos) {
           <button
@@ -134,6 +136,7 @@
           </a>
         }
       }
+      <!-- [FIN PNIP-CI] -->
     </nav>
   </aside>
 </div>

@@ -1,13 +1,16 @@
 <div class="app-container">
   <app-header *ngIf="!esLoginRoute"></app-header>
+  <!-- [PNIP-CI] Elvis Flores - 30/09/2026
+       Qué hace: en /rrhh/** y /responsable/** agrega a <main> la clase
+       app-main--gestion y pinta el menú lateral real junto al contenido,
+       igual que en /admin. En el resto de rutas no se pinta. -->
   <main class="app-main" [class.app-main--gestion]="esRutaGestion">
-    <!-- PNIP-CI: en /rrhh/** y /responsable/** el menú lateral real va junto
-         al contenido, igual que en /admin. En el resto de rutas no se pinta. -->
     <app-sidebar-menu
       *ngIf="esRutaGestion"
       [activeSection]="null"
       [canViewList]="puedeVerListaFormularios"
     ></app-sidebar-menu>
+    <!-- [FIN PNIP-CI] -->
     <router-outlet />
   </main>
   <app-footer *ngIf="!esLoginRoute"></app-footer>

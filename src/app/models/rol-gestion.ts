@@ -1,5 +1,5 @@
 /**
- * Rol de un usuario dentro del modulo PNIP-CI.
+ * Rol de un usuario dentro de la gestión de conflictos.
  *
  * Solo existe `rrhh` (gestiona formularios, conflictos y planes, y revisa
  * evidencias). «Responsable» NO es un rol: cualquier empleado autenticado

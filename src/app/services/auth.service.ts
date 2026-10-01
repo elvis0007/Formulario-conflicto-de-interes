@@ -428,14 +428,11 @@ export class AuthService {
     // window.location.href = environment.urlIntranet;
   }
 
-  // ======================================================================
-  // INICIO — BLOQUE AGREGADO POR ELVIS (desarrollo local, NO es parte del
-  // backend real). Permite simular una sesión sin depender del token de
-  // intranet, para poder trabajar sin acceso a la red de la empresa.
-  // Se debe ELIMINAR por completo antes de integrar con producción real,
-  // o dejarse siempre apagado (nunca se activa si no se prende a mano
-  // desde localStorage, y nunca se activa en build de producción).
-  // ======================================================================
+  // [PNIP-CI DEV] Elvis Flores - 30/09/2026 - ELIMINAR ANTES DE PRODUCCIÓN
+  // Qué hace: sesión simulada de desarrollo local (NO es parte del backend
+  // real), para trabajar sin token de intranet ni acceso a la red de la
+  // empresa. Nunca se activa si no se prende a mano desde localStorage, y
+  // nunca en el build de producción.
 
   /**
    * Activa una sesión simulada solo para desarrollo local, sin llamar al
@@ -469,7 +466,8 @@ export class AuthService {
     this._tokenSistec.set('TOKEN-DEV-SIMULADO');
 
     // Segunda condición de isAuthenticated(): el usuario. También es lo que
-    // devuelven usuario() y getCurrentUser() (cabecera, formulario, PNIP-CI).
+    // devuelven usuario() y getCurrentUser() (cabecera, formulario, gestión
+    // de conflictos).
     // Tampoco se guarda en localStorage ('USUARIO-SISTEC').
     this._usuario.set(usuarioDev);
 
@@ -481,6 +479,5 @@ export class AuthService {
       rol, '(SISCI-DEV-SESION-SIMULADA). No se validó contra intranet.');
   }
 
-  // FIN — BLOQUE AGREGADO POR ELVIS
-  // ======================================================================
+  // [FIN PNIP-CI DEV]
 }

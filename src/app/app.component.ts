@@ -6,13 +6,20 @@ import { filter } from 'rxjs/operators';
 import { FooterComponent } from './footer/footer.component';
 import { HeaderComponent } from './header/header.component';
 import { AuthService } from './services/auth.service';
+// [PNIP-CI] Elvis Flores - 01/10/2026
+// Qué hace: imports para reconocer las rutas de gestión de conflictos
+// (reemplaza el import de RUTAS_PERMITIDAS) y pintar el menú lateral en ellas.
 import { esRutaPermitida } from './app.routes';
 import { esRutaDeGestion } from './app.paths';
 import { SidebarMenuComponent } from './sidebar-menu/sidebar-menu.component';
+// [FIN PNIP-CI]
 
 @Component({
   selector: 'app-root',
+  // [PNIP-CI] Elvis Flores - 30/09/2026
+  // Qué hace: agrega SidebarMenuComponent a los imports.
   imports: [CommonModule, RouterOutlet, HeaderComponent, FooterComponent, SidebarMenuComponent],
+  // [FIN PNIP-CI]
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss'
 })
@@ -25,10 +32,12 @@ export class AppComponent implements OnInit, OnDestroy {
   private popStateHandler?: (event: PopStateEvent) => void;
   private currentUrl: string = '';
   esLoginRoute: boolean = false;
-  // PNIP-CI: en /rrhh/** y /responsable/** el layout pinta el menú lateral
+  // [PNIP-CI] Elvis Flores - 30/09/2026
+  // Qué hace: en /rrhh/** y /responsable/** el layout pinta el menú lateral
   // real junto al contenido (en /admin lo sigue pintando AdminComponent).
   esRutaGestion: boolean = false;
   puedeVerListaFormularios: boolean = false;
+  // [FIN PNIP-CI]
 
   ngOnInit(): void {
     // Intentar obtener token automáticamente al iniciar
@@ -36,7 +45,10 @@ export class AppComponent implements OnInit, OnDestroy {
     
     this.currentUrl = this.location.path();
     this.esLoginRoute = this.currentUrl.startsWith('/login');
+    // [PNIP-CI] Elvis Flores - 30/09/2026
+    // Qué hace: decide si se pinta el menú lateral en la URL inicial.
     this.actualizarMenuGestion(this.currentUrl);
+    // [FIN PNIP-CI]
 
     this.navigationSubscription = this.router.events
       .pipe(filter(event => event instanceof NavigationEnd))
@@ -44,7 +56,10 @@ export class AppComponent implements OnInit, OnDestroy {
         const url = (event.urlAfterRedirects || event.url).split('?')[0];
         this.currentUrl = url;
         this.esLoginRoute = url.startsWith('/login');
+        // [PNIP-CI] Elvis Flores - 30/09/2026
+        // Qué hace: decide si se pinta el menú lateral en cada navegación.
         this.actualizarMenuGestion(url);
+        // [FIN PNIP-CI]
         this.validarYRederigirRuta(url);
       });
 
@@ -84,9 +99,14 @@ export class AppComponent implements OnInit, OnDestroy {
         } else {
           rutaPermitida = '/admin';
         }
+      // [PNIP-CI] Elvis Flores - 01/10/2026
+      // Qué hace: esRutaPermitida() acepta RUTAS_PERMITIDAS (igual que el
+      // rutasPermitidas.includes() al que reemplaza) y además /rrhh/** y
+      // /responsable/**, cuyo acceso controla rolGuard.
       } else if (!esRutaPermitida(url) && !url.startsWith('/admin')) {
         rutaPermitida = esAdminOJefeRRHH ? '/admin' : '/';
       }
+      // [FIN PNIP-CI]
 
       if (rutaPermitida && rutaPermitida !== url) {
         event.preventDefault();
@@ -94,7 +114,10 @@ export class AppComponent implements OnInit, OnDestroy {
         setTimeout(() => {
           this.router.navigateByUrl(rutaPermitida!, { replaceUrl: true });
         }, 0);
+      // [PNIP-CI] Elvis Flores - 01/10/2026
+      // Qué hace: la misma comprobación con esRutaPermitida() (ver arriba).
       } else if (rutaPermitida === null && url !== this.currentUrl && !esRutaPermitida(url)) {
+      // [FIN PNIP-CI]
         event.preventDefault();
         const rutaCorrecta = esAdminOJefeRRHH ? '/admin' : '/';
         this.location.replaceState(rutaCorrecta);
@@ -107,12 +130,20 @@ export class AppComponent implements OnInit, OnDestroy {
     window.addEventListener('popstate', this.popStateHandler);
   }
 
-  // PNIP-CI: decide si se pinta el menú lateral real en esta ruta y si
+  // [PNIP-CI] Elvis Flores - 30/09/2026
+  // Qué hace: decide si se pinta el menú lateral real en esta ruta y si
   // muestra «Ver Formularios» (mismo criterio que AdminComponent: A o R).
+  /**
+   * Actualiza `esRutaGestion` y `puedeVerListaFormularios` para una URL.
+   *
+   * @param url URL actual (puede traer query string).
+   * @author Elvis Flores
+   */
   private actualizarMenuGestion(url: string): void {
     this.esRutaGestion = esRutaDeGestion(url.split('?')[0]);
     this.puedeVerListaFormularios = this.authService.hasRole('A') || this.authService.hasRole('R');
   }
+  // [FIN PNIP-CI]
 
   private validarYRederigirRuta(url: string): void {
     const urlSinQuery = url.split('?')[0];
@@ -150,10 +181,15 @@ export class AppComponent implements OnInit, OnDestroy {
       return;
     }
 
+    // [PNIP-CI] Elvis Flores - 01/10/2026
+    // Qué hace: esRutaPermitida() acepta RUTAS_PERMITIDAS (igual que el
+    // rutasPermitidas.includes() al que reemplaza) y además /rrhh/** y
+    // /responsable/**, cuyo acceso controla rolGuard.
     if (!esRutaPermitida(urlSinQuery) && !urlSinQuery.startsWith('/admin')) {
       const rutaCorrecta = esAdminOJefeRRHH ? '/admin' : '/';
       this.router.navigate([rutaCorrecta], { replaceUrl: true });
     }
+    // [FIN PNIP-CI]
   }
 
   private intentarAutenticacionAutomatica(): void {

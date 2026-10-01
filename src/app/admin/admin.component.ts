@@ -105,11 +105,14 @@ export class AdminComponent implements OnInit {
         this.showList = true;
         this.openManageRRHHModal();
       }
-      // PNIP-CI: el menú lateral, fuera de /admin, abre directo el formulario.
+      // [PNIP-CI] Elvis Flores - 30/09/2026
+      // Qué hace: con ?vista=formulario (lo usa el menú lateral fuera de
+      // /admin) abre directo el formulario.
       if (params.get('vista') === 'formulario') {
         this.showForm = true;
         this.showList = false;
       }
+      // [FIN PNIP-CI]
     });
   }
 

@@ -1,5 +1,5 @@
 /**
- * Tipos enumerados del dominio PNIP-CI.
+ * Tipos enumerados del dominio de gestión de conflictos.
  *
  * @author Elvis Flores
  */

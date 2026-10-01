@@ -17,7 +17,7 @@ import { PerfilUsuarioService } from '../services/perfil-usuario.service';
 export const DATO_ROL_REQUERIDO = 'rolRequerido';
 
 /**
- * Guard de acceso del modulo PNIP-CI.
+ * Guard de acceso de las pantallas de gestión de conflictos.
  *
  * - Sin sesion (`AuthService.isAuthenticated()`, lo mismo que usa
  *   `authGuard`): envia a `/login`.

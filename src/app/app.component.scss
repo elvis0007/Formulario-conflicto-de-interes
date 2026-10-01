@@ -8,9 +8,11 @@
   flex: 1;
 }
 
-/* PNIP-CI: en /rrhh/** y /responsable/** el menú lateral y la pantalla van
-   en fila, con el mismo acomodo que en /admin (AdminComponent: menú sticky bajo la cabecera
-   de 64px y contenido flexible). El resto de rutas no usa esta clase. */
+// [PNIP-CI] Elvis Flores - 30/09/2026
+// Qué hace: en /rrhh/** y /responsable/** el menú lateral y la pantalla van
+// en fila, con el mismo acomodo que en /admin (AdminComponent: menú sticky
+// bajo la cabecera de 64px y contenido flexible). El resto de rutas no usa
+// esta clase.
 .app-main--gestion {
   display: flex;
   align-items: flex-start;
@@ -43,3 +45,4 @@
     }
   }
 }
+// [FIN PNIP-CI]

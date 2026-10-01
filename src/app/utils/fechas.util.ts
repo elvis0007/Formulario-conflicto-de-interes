@@ -1,5 +1,5 @@
 /**
- * Utilidades puras de fechas del modulo PNIP-CI.
+ * Utilidades puras de fechas de la gestión de conflictos.
  *
  * Todas trabajan con fechas de calendario (sin hora) en hora local, para
  * que el cambio de zona horaria nunca mueva un dia.

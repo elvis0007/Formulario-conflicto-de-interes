@@ -143,10 +143,9 @@
   padding: 9px;
 }
 
-/* ==================================================================
-   PNIP-CI: ítems que son enlaces, grupos desplegables y sus hijos.
-   Mismo aspecto que los botones de siempre (.nav-btn).
-   ================================================================== */
+// [PNIP-CI] Elvis Flores - 30/09/2026
+// Qué hace: estilos de los ítems que son enlaces, los grupos desplegables y
+// sus hijos. Mismo aspecto que los botones de siempre (.nav-btn).
 a.nav-btn {
   color: var(--ci-text);
   text-decoration: none;
@@ -207,7 +206,7 @@ a.nav-btn {
   border-top: 1px dashed var(--ci-line);
   padding-top: 4px;
 }
-/* FIN PNIP-CI */
+// [FIN PNIP-CI]
 
 /* Móvil: se abre con "Mostrar menú" y va en el flujo, a lo ancho, sin tapar nada */
 @media (max-width: 768px) {

@@ -17,10 +17,40 @@ Ver también [ARQUITECTURA.md](ARQUITECTURA.md) (qué hay en cada carpeta) y
 - En interfaces, documentar cada propiedad cuyo significado no sea evidente
   por su nombre (formatos de fecha, unidades, de dónde sale el valor…).
 - Comentarios en español. Explican el *por qué*, no repiten el código.
-- Los comentarios `PNIP-CI` que marcan cambios en archivos de la
-  declaración (el menú lateral, `AppComponent`, `AdminComponent`…) se
-  mantienen: PNIP.CI es el código del procedimiento de gestión de
-  conflictos de interés y permiten ubicar qué se agregó para él.
+- Los cambios en archivos que ya existían antes de la gestión de conflictos
+  se marcan como indica [Cambios en archivos del host](#cambios-en-archivos-del-host).
+
+## Cambios en archivos del host
+
+Son «archivos del host» los que ya existían antes de la gestión de
+conflictos: `header`, `sidebar-menu`, `admin`, `app.component`,
+`app.routes`, `app.config`, `auth.service`… Todo bloque que se agregue o
+modifique en ellos va marcado así (PNIP.CI es el código del procedimiento
+de gestión de conflictos de interés):
+
+```ts
+// [PNIP-CI] Elvis Flores - dd/mm/aaaa
+// Qué hace: <descripción breve de lo que hace este bloque>
+... código ...
+// [FIN PNIP-CI]
+```
+
+Los bloques que existen **solo para desarrollo** y deben eliminarse antes
+de producción usan un marcador distinto, para encontrarlos fácil:
+
+```ts
+// [PNIP-CI DEV] Elvis Flores - dd/mm/aaaa - ELIMINAR ANTES DE PRODUCCIÓN
+// Qué hace: ...
+// [FIN PNIP-CI DEV]
+```
+
+- En HTML se usa `<!-- ... -->` con el mismo texto; en SCSS, `//`.
+- La fecha es la del último cambio del bloque.
+- Los métodos nuevos llevan además su TSDoc con `@author Elvis Flores`.
+- Las líneas que se quitan del host no dejan marcador; se explican en el
+  `Qué hace` del bloque que las reemplaza.
+- Buscar `[PNIP-CI` lista todos los cambios en el host;
+  `[PNIP-CI DEV]`, solo los de desarrollo.
 
 ## Nomenclatura
 
