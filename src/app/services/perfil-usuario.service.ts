@@ -9,8 +9,14 @@ import { EMPLEADO_SIMULADO_POR_DEFECTO } from './mock-data/personas.data';
 const ROLES_BACKEND_RRHH: readonly string[] = ['R', 'A'];
 
 /**
+ * Abreviatura del rol del backend que da acceso a la parte de Responsable
+ * (se asigna a quien recibe actividades en un plan de accion).
+ */
+const ROL_BACKEND_RESPONSABLE = 'P';
+
+/**
  * Abreviatura del rol de usuario externo (entra con cedula y clave
- * temporal). No es empleado, asi que no puede ser responsable.
+ * temporal). Solo se usa para la etiqueta del rol.
  */
 const ROL_BACKEND_EXTERNO = 'E';
 
@@ -26,15 +32,15 @@ const CLAVE_EMPLEADO_SIMULADO = 'SISCI-DEV-EMPLEADO';
 /** Pantalla de inicio de RRHH. */
 const RUTA_INICIO_RRHH = RUTAS.rrhh.dashboard;
 
-/** Pantalla de inicio de cualquier empleado (vista de responsable). */
+/** Pantalla de inicio del Responsable (rol `P`). */
 const RUTA_INICIO_RESPONSABLE = RUTAS.responsable.dashboard;
 
 /**
- * Traduce la sesion del usuario a la gestión de conflictos: su rol (solo `rrhh`) y
- * su identificador de empleado.
+ * Traduce la sesion del usuario a la gestión de conflictos: sus roles
+ * (`rrhh` y/o `responsable`) y su identificador de empleado.
  *
  * - Rol: `R` (Jefe de RRHH) y `A` (Administrador) se tratan como `rrhh`,
- *   igual que en el resto de la app. Siempre se consulta
+ *   igual que en el resto de la app; `P` es `responsable`. Siempre se consulta
  *   `AuthService.hasRole()`, en desarrollo y en produccion: para probar
  *   otro rol en local se usa la sesion simulada de `AuthService`
  *   (`SISCI-DEV-SESION-SIMULADA` + `SISCI-DEV-ROL`, ver
@@ -54,13 +60,20 @@ export class PerfilUsuarioService {
   /**
    * Devuelve los roles de gestión de conflictos del usuario actual.
    *
-   * @returns Lista de roles; vacia si el usuario no es de RRHH.
+   * - `rrhh` con `R` o `A`.
+   * - `responsable` con `P`.
+   *
+   * @returns Lista de roles (los dos si tiene ambos); vacia si no tiene
+   * ninguno.
    */
   obtenerRoles(): RolGestion[] {
     const roles: RolGestion[] = [];
 
     if (ROLES_BACKEND_RRHH.some((rol) => this.authService.hasRole(rol))) {
       roles.push('rrhh');
+    }
+    if (this.authService.hasRole(ROL_BACKEND_RESPONSABLE)) {
+      roles.push('responsable');
     }
 
     return roles;
@@ -77,23 +90,14 @@ export class PerfilUsuarioService {
   }
 
   /**
-   * Indica si el usuario es empleado de la empresa, es decir, si puede
-   * ser responsable de actividades. Todo autenticado lo es, salvo los
-   * usuarios externos (rol `E`).
+   * Pantalla a la que debe ir el usuario al entrar a la gestión de
+   * conflictos, o al ser rechazado por `rolGuard`:
+   * - Con `R` o `A` (aunque tambien tenga `P`) → dashboard de RRHH.
+   * - Solo con `P` → dashboard de responsable.
+   * - Sin ninguno → `/` (fuera de la gestión de conflictos).
    *
-   * @returns `true` si no tiene el rol externo.
-   */
-  esEmpleado(): boolean {
-    return !this.authService.hasRole(ROL_BACKEND_EXTERNO);
-  }
-
-  /**
-   * Pantalla a la que debe ir el usuario al entrar al modulo, o al ser
-   * rechazado por `rolGuard`:
-   * - RRHH → dashboard de RRHH.
-   * - Otro empleado → dashboard de responsable.
-   * - Externo → `/` (fuera del modulo). Nunca apunta a una ruta que el
-   *   guard vaya a rechazar, para no crear un bucle de redirecciones.
+   * Nunca apunta a una ruta que el guard vaya a rechazar, para no crear un
+   * bucle de redirecciones.
    *
    * @returns Ruta absoluta de la pantalla de inicio.
    */
@@ -101,18 +105,19 @@ export class PerfilUsuarioService {
     if (this.tieneRol('rrhh')) {
       return RUTA_INICIO_RRHH;
     }
+    if (this.tieneRol('responsable')) {
+      return RUTA_INICIO_RESPONSABLE;
+    }
 
-    return this.esEmpleado()
-      ? RUTA_INICIO_RESPONSABLE
-      : RUTA_FUERA_DEL_MODULO;
+    return RUTA_FUERA_DEL_MODULO;
   }
 
   /**
-   * Texto del rol del usuario (lo usaba el pie del sidebar propio del
-   * modulo, retirado; se conserva para las pantallas).
+   * Texto del rol del usuario, para la cabecera. Si tiene varios, el de
+   * mayor nivel: `A` > `R` > `P`.
    *
-   * @returns `Administrador`, `Jefe de RRHH`, `Usuario externo` o
-   * `Empleado`.
+   * @returns `Administrador`, `Jefe de RRHH`, `Responsable`,
+   * `Usuario externo` o `Empleado`.
    */
   obtenerEtiquetaRol(): string {
     if (this.authService.hasRole('A')) {
@@ -121,8 +126,13 @@ export class PerfilUsuarioService {
     if (this.authService.hasRole('R')) {
       return 'Jefe de RRHH';
     }
+    if (this.authService.hasRole(ROL_BACKEND_RESPONSABLE)) {
+      return 'Responsable';
+    }
 
-    return this.esEmpleado() ? 'Empleado' : 'Usuario externo';
+    return this.authService.hasRole(ROL_BACKEND_EXTERNO)
+      ? 'Usuario externo'
+      : 'Empleado';
   }
 
   /**

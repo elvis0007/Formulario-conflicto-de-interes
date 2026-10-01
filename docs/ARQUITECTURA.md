@@ -22,17 +22,21 @@ siempre con `AuthService.hasRole(abreviatura)`.
 
 | Rol | Quién | Declaración | Gestión de conflictos |
 |---|---|---|---|
-| `A` | Administrador | `/admin`: formularios recibidos y gestión de roles | Todo lo de RRHH (`/rrhh/**`) y su bandeja de responsable |
-| `R` | Jefe de RRHH | `/admin`: formularios recibidos | Igual que `A` |
-| `E` | Usuario externo (entra con cédula y clave temporal) | Llena su declaración en `/` | Ninguna: no es empleado, así que no puede ser responsable de actividades |
-| Sin `A`/`R`/`E` | Cualquier empleado | Llena su declaración en `/` y ve «Mis declaraciones» | Su bandeja de responsable (`/responsable/**`) |
-| `P` | Rol nuevo, llega en el próximo cambio | — | — |
+| `A` | Administrador | `/admin`: formularios recibidos y gestión de roles (ícono de persona de la cabecera, modal «Gestión de Roles») | Todo lo de RRHH (`/rrhh/**`) |
+| `R` | Jefe de RRHH | `/admin`: formularios recibidos | Todo lo de RRHH (`/rrhh/**`) |
+| `P` | Responsable: el backend se lo asigna a quien recibe actividades en un plan de acción | Llena su declaración en `/` y ve «Mis declaraciones» | Su bandeja de actividades (`/responsable/**`) |
+| `E` | Usuario externo (entra con cédula y clave temporal) | Llena su declaración en `/` | Ninguna |
+| Sin `A`/`R`/`P` | Cualquier otro empleado | Llena su declaración en `/` y ve «Mis declaraciones» | Ninguna |
 
-«Responsable» **no es un rol**: es el empleado al que el plan de acción le
-asigna una actividad. Por eso `/responsable/**` está abierto a cualquier
-empleado autenticado que no sea externo. Dentro de la gestión de
-conflictos, `A` y `R` se tratan igual (tipo `RolGestion = 'rrhh'`, ver
-`PerfilUsuarioService`).
+Un usuario puede tener **más de un rol** a la vez (por ejemplo `R` y `P`):
+entonces ve todo lo de cada uno. Dentro de la gestión de conflictos, `A` y
+`R` se tratan igual (`RolGestion` `'rrhh'`) y `P` es `'responsable'`
+(ver `PerfilUsuarioService`). Cuando hace falta mostrar un solo rol, se
+muestra el de mayor nivel: `A` > `R` > `P`.
+
+**Pendiente con backend:** quién asigna el rol `P` y si el modal «Gestión
+de Roles» debe permitir asignarlo. Hoy ese modal solo gestiona
+administradores y jefes de RRHH; no se le agregó una sección para `P`.
 
 ## Cómo se controla el acceso
 
@@ -41,9 +45,12 @@ conflictos, `A` y `R` se tratan igual (tipo `RolGestion = 'rrhh'`, ver
   `A`/`R` a `/admin` y al resto a `/`.
 - **Gestión de conflictos**: `rolGuard` (`guards/rol.guard.ts`), una vez por
   grupo:
-  - `/rrhh/**` exige `A` o `R`; si no, envía a la pantalla de inicio del
-    usuario.
-  - `/responsable/**` exige ser empleado (no `E`).
+  - `/rrhh/**` exige `A` o `R`.
+  - `/responsable/**` exige `P`.
+  - Si no cumple, envía a la pantalla de inicio del usuario
+    (`PerfilUsuarioService.obtenerRutaInicio()`): con `A`/`R`,
+    `/rrhh/dashboard`; solo con `P`, `/responsable/dashboard`; sin
+    ninguno, `/`.
   - Sin sesión, los dos envían a `/login`.
 
 ## Carpetas

@@ -428,7 +428,7 @@ export class AuthService {
     // window.location.href = environment.urlIntranet;
   }
 
-  // [PNIP-CI DEV] Elvis Flores - 30/09/2026 - ELIMINAR ANTES DE PRODUCCIÓN
+  // [PNIP-CI DEV] Elvis Flores - 01/10/2026 - ELIMINAR ANTES DE PRODUCCIÓN
   // Qué hace: sesión simulada de desarrollo local (NO es parte del backend
   // real), para trabajar sin token de intranet ni acceso a la red de la
   // empresa. Nunca se activa si no se prende a mano desde localStorage, y
@@ -439,23 +439,27 @@ export class AuthService {
    * backend real de intranet. No tiene ningún efecto si `environment.production`
    * es `true`.
    * @author Elvis Flores
-   * @param rol Rol simulado a asumir: 'R' (RRHH), 'A' (Admin) o 'E' (externo).
+   * @param rol Rol o roles simulados, separados por coma: 'A' (Admin),
+   * 'R' (Jefe de RRHH), 'P' (Responsable), 'E' (externo)... p. ej. 'R,P'.
    */
   activarSesionSimuladaDev(rol: string): void {
     if (environment.production) {
       return;
     }
 
+    // Uno o varios roles, separados por coma ('R,P').
+    const rolesDev = rol.split(',').map((r) => r.trim()).filter((r) => r !== '');
+
     // Usuario ficticio. Tiene la misma forma (IUsuario) que el que devuelve
-    // el backend real en procesarRespuestaLogin(); lleva el rol pedido en
-    // `roles` y `ROLES`, que son los dos campos que lee
+    // el backend real en procesarRespuestaLogin(); lleva los roles pedidos
+    // en `roles` y `ROLES`, que son los dos campos que lee
     // actualizarRolesDesdeUsuario().
     const usuarioDev: IUsuario = {
       CEDULA: '0000000000',
       NOMBRES: 'Usuario',
       APELLIDOS: 'Desarrollo',
-      roles: [rol],
-      ROLES: [rol]
+      roles: rolesDev,
+      ROLES: rolesDev
     };
 
     // isAuthenticated() exige DOS cosas: que haya algún token en los signals

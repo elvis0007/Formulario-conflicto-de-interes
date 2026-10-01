@@ -59,21 +59,32 @@ describe('rolGuard', () => {
     });
   });
 
-  describe('/responsable/** (cualquier empleado)', () => {
-    const DATA_RESPONSABLE = { [DATO_ROL_REQUERIDO]: null };
+  describe('/responsable/** (rol responsable: P)', () => {
+    const DATA_RESPONSABLE = { [DATO_ROL_REQUERIDO]: 'responsable' };
 
-    for (const rol of ['R', 'A', 'I']) {
-      it('deja pasar a un empleado con rol ' + rol, () => {
-        roles = [rol];
-        expect(ejecutar(DATA_RESPONSABLE)).toBeTrue();
-      });
-    }
-
-    it('deja pasar a un empleado sin ningún rol', () => {
+    it('deja pasar al Responsable (P)', () => {
+      roles = ['P'];
       expect(ejecutar(DATA_RESPONSABLE)).toBeTrue();
     });
 
-    it('no deja pasar a un externo (E) y lo saca del módulo', () => {
+    it('deja pasar a quien tiene R y P', () => {
+      roles = ['R', 'P'];
+      expect(ejecutar(DATA_RESPONSABLE)).toBeTrue();
+    });
+
+    for (const rol of ['R', 'A']) {
+      it('no deja pasar a ' + rol + ' sin P: va al dashboard de RRHH', () => {
+        roles = [rol];
+        expect(urlDe(ejecutar(DATA_RESPONSABLE))).toBe(RUTAS.rrhh.dashboard);
+      });
+    }
+
+    it('no deja pasar a un empleado sin roles (I) y lo saca a /', () => {
+      roles = ['I'];
+      expect(urlDe(ejecutar(DATA_RESPONSABLE))).toBe('/');
+    });
+
+    it('no deja pasar a un externo (E) y lo saca a /', () => {
       roles = ['E'];
       expect(urlDe(ejecutar(DATA_RESPONSABLE))).toBe('/');
     });
@@ -97,10 +108,15 @@ describe('rolGuard', () => {
       expect(ejecutar(DATA_RRHH)).toBeTrue();
     });
 
-    it('no deja pasar a un empleado sin R/A: va a su dashboard', () => {
-      roles = ['I'];
+    it('no deja pasar a P sin R/A: va al dashboard de responsable', () => {
+      roles = ['P'];
       expect(urlDe(ejecutar(DATA_RRHH)))
         .toBe(RUTAS.responsable.dashboard);
+    });
+
+    it('no deja pasar a un empleado sin roles (I) y lo saca a /', () => {
+      roles = ['I'];
+      expect(urlDe(ejecutar(DATA_RRHH))).toBe('/');
     });
 
     it('no deja pasar a un externo (E) y lo saca del módulo', () => {

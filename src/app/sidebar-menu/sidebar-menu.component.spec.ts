@@ -87,10 +87,33 @@ describe('SidebarMenuComponent (menú real ampliado)', () => {
       expect(textos(crear())).toContain('Informe General');
     });
 
+    it('Responsable (solo P) ve Dashboard y Bandeja de Tareas', () => {
+      roles = ['P'];
+      const raiz = crear();
+
+      expect(textos(raiz)).toEqual(['Dashboard', 'Bandeja de Tareas']);
+      expect(item(raiz, 'Dashboard').getAttribute('href')).toBe(RUTAS.responsable.dashboard);
+      expect(item(raiz, 'Bandeja de Tareas').getAttribute('href')).toBe(RUTAS.responsable.planes);
+    });
+
+    it('R y P: menú de RRHH más «Mis actividades»', () => {
+      roles = ['R', 'P'];
+      const raiz = crear();
+
+      expect(textos(raiz)).toEqual(['Dashboard', 'Formularios', 'Conflicto',
+        'Informe General', 'Revisión de Evidencias', 'Historial', 'Mis actividades']);
+      expect(item(raiz, 'Mis actividades').getAttribute('href')).toBe(RUTAS.responsable.planes);
+    });
+
+    it('R sin P no ve «Mis actividades»', () => {
+      roles = ['R'];
+      expect(textos(crear())).not.toContain('Mis actividades');
+    });
+
     for (const rol of ['E', 'I']) {
-      it(`sin R/A (${rol}) solo ve Dashboard y Bandeja de Tareas`, () => {
+      it(`sin R/A/P (${rol}) no ve ningún ítem`, () => {
         roles = [rol];
-        expect(textos(crear())).toEqual(['Dashboard', 'Bandeja de Tareas']);
+        expect(textos(crear())).toEqual([]);
       });
     }
 

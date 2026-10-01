@@ -103,12 +103,12 @@ export const routes: Routes = [
   },
   // [FIN PNIP-CI]
   // [PNIP-CI] Elvis Flores - 01/10/2026
-  // Qué hace: pantallas del Responsable (/responsable/**). Sin rol:
-  // cualquier empleado (no externo) puede ser responsable de una actividad.
+  // Qué hace: pantallas del Responsable (/responsable/**). Exigen el rol
+  // de gestión 'responsable' (rol P del backend), que controla rolGuard.
   {
     path: SEGMENTO_RESPONSABLE,
     canActivate: [rolGuard],
-    data: { [DATO_ROL_REQUERIDO]: null },
+    data: { [DATO_ROL_REQUERIDO]: 'responsable' },
     children: [
       { path: '', pathMatch: 'full', redirectTo: SEGMENTOS.responsable.dashboard },
       {

@@ -5,14 +5,11 @@ import { RolGestion } from '../models';
 import { PerfilUsuarioService } from '../services/perfil-usuario.service';
 
 /**
- * Clave de `Route.data` donde cada ruta indica el rol que exige.
- *
- * - Un `RolGestion` (`'rrhh'`): exige sesion y ese rol.
- * - `null`: exige sesion y ser EMPLEADO (pantallas de responsable: cualquier
- *   empleado puede ser responsable de una actividad; un usuario externo no).
+ * Clave de `Route.data` donde cada ruta indica el `RolGestion` que exige
+ * (`'rrhh'` o `'responsable'`), ademas de la sesion.
  *
  * Es obligatorio declararla: si falta, el guard niega el paso, para que
- * olvidarla nunca abra una pantalla de RRHH.
+ * olvidarla nunca abra una pantalla protegida.
  */
 export const DATO_ROL_REQUERIDO = 'rolRequerido';
 
@@ -21,9 +18,8 @@ export const DATO_ROL_REQUERIDO = 'rolRequerido';
  *
  * - Sin sesion (`AuthService.isAuthenticated()`, lo mismo que usa
  *   `authGuard`): envia a `/login`.
- * - `data.rolRequerido === null`: deja pasar a cualquier empleado
- *   autenticado; los externos (`E`) no pasan.
- * - Con el rol exigido: deja pasar.
+ * - Con el rol exigido (`rrhh`: `R` o `A`; `responsable`: `P`): deja
+ *   pasar.
  * - Si no cumple: envia a su pantalla de inicio
  *   (`PerfilUsuarioService.obtenerRutaInicio`).
  *
@@ -35,7 +31,7 @@ export const rolGuard: CanActivateFn = (route) => {
   const authService = inject(AuthService);
   const rolService = inject(PerfilUsuarioService);
   const router = inject(Router);
-  let rolRequerido: RolGestion | null = null;
+  let rolRequerido: RolGestion;
 
   if (!authService.isAuthenticated()) {
     return router.createUrlTree(['/login']);
@@ -49,12 +45,9 @@ export const rolGuard: CanActivateFn = (route) => {
     return router.createUrlTree(['/']);
   }
 
-  rolRequerido = route.data[DATO_ROL_REQUERIDO] as RolGestion | null;
+  rolRequerido = route.data[DATO_ROL_REQUERIDO] as RolGestion;
 
-  if (rolRequerido === null && rolService.esEmpleado()) {
-    return true;
-  }
-  if (rolRequerido !== null && rolService.tieneRol(rolRequerido)) {
+  if (rolService.tieneRol(rolRequerido)) {
     return true;
   }
 

@@ -18,11 +18,21 @@ En la consola del navegador (F12), con la app abierta en `ng serve`:
 ```js
 // Activar
 localStorage.setItem('SISCI-DEV-SESION-SIMULADA', 'true');
-localStorage.setItem('SISCI-DEV-ROL', 'R'); // o 'A' o 'E'
+localStorage.setItem('SISCI-DEV-ROL', 'R'); // o 'A', 'P', 'E', 'R,P'...
 // recargar la página
 ```
 
-`SISCI-DEV-ROL` es opcional: si falta, se usa `'R'` (Jefe de RRHH).
+`SISCI-DEV-ROL` es opcional: si falta, se usa `'R'` (Jefe de RRHH). Acepta
+uno o **varios roles separados por coma** (`'R,P'`, `'A,P'`): la sesión
+simulada los carga todos con el mismo mecanismo que el login real
+(`actualizarRolesDesdeUsuario`).
+
+### Por qué no se prueba con el login real
+
+Para probar como `A`, `R` o `P` **siempre se usa la sesión simulada**. El
+login real de RRHH/Admin redirige a la intranet, que está fuera de
+`localhost`, y no vuelve al servidor local. Es una limitación conocida del
+SSO, no un error de la app.
 
 Esta es **la única forma de simular un rol** en toda la app. `authGuard`,
 `rolGuard` y `PerfilUsuarioService` consultan siempre
@@ -36,15 +46,18 @@ de su grupo.
 
 | `SISCI-DEV-ROL` | `/rrhh/**` | `/responsable/**` | Menú lateral |
 |---|---|---|---|
-| `R` (Jefe de RRHH) | Entra | Entra | Dashboard, Formularios ▸, Conflicto ▸, Informe General, Revisión de Evidencias, Historial |
-| `A` (Administrador) | Entra | Entra | Igual que `R` |
-| `E` (externo) | Bloqueado → `/` | Bloqueado → `/` (un externo no es empleado) | Ninguno (en `/` no hay menú, como siempre) |
-| Otro, p. ej. `I` (empleado sin R/A) | Bloqueado → `/responsable/dashboard` | Entra | Dashboard, Bandeja de Tareas |
+| `R` (Jefe de RRHH) | Entra | Bloqueado → `/rrhh/dashboard` | Dashboard, Formularios ▸, Conflicto ▸, Informe General, Revisión de Evidencias, Historial |
+| `A` (Administrador) | Entra | Bloqueado → `/rrhh/dashboard` | Igual que `R` |
+| `P` (Responsable) | Bloqueado → `/responsable/dashboard` | Entra | Dashboard, Bandeja de Tareas |
+| `R,P` o `A,P` | Entra | Entra | El de `R` más «Mis actividades» (→ `/responsable/planes`) |
+| `E` (externo) | Bloqueado → `/` | Bloqueado → `/` | Ninguno (en `/` no hay menú, como siempre) |
+| Otro, p. ej. `I` (empleado sin A/R/P) | Bloqueado → `/` | Bloqueado → `/` | Ninguno |
 
 ### Qué actividades ve el Responsable
 
-Es otro concepto: no es un rol, sino **qué empleado** está usando la app. En
-desarrollo se elige con `SISCI-DEV-EMPLEADO`; por defecto es
+El rol `P` dice que el usuario **puede** entrar a `/responsable/**`; qué
+actividades ve depende de **qué empleado** es. En desarrollo se elige con
+`SISCI-DEV-EMPLEADO`; por defecto es
 `EMP-010`, de los datos de ejemplo:
 
 ```js

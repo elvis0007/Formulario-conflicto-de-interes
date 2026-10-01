@@ -1,14 +1,14 @@
-// [PNIP-CI] Elvis Flores - 30/09/2026
-// Qué hace: imports del menú ampliado (rutas, rol del usuario e ítems de
-// gestión de conflictos). Al import de @angular/core se agregan DestroyRef,
+// [PNIP-CI] Elvis Flores - 01/10/2026
+// Qué hace: imports del menú ampliado (rutas, roles de gestión del usuario
+// e ítems de gestión de conflictos). Al import de @angular/core se agregan DestroyRef,
 // OnChanges, SimpleChanges e inject.
 import { Component, DestroyRef, EventEmitter, HostListener, Input, OnChanges, OnInit, Output, SimpleChanges, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterLink } from '@angular/router';
 import { filter } from 'rxjs';
-import { AuthService } from '../services/auth.service';
-import { MENU_RESPONSABLE, MENU_RRHH } from './menu-items';
+import { PerfilUsuarioService } from '../services/perfil-usuario.service';
+import { obtenerMenu } from './menu-items';
 import { ItemMenu, buscarGrupo, buscarItemActivo } from './item-menu';
 // [FIN PNIP-CI]
 
@@ -52,20 +52,17 @@ export class SidebarMenuComponent implements OnInit, OnChanges {
   @Output() excuseClicked = new EventEmitter<void>();
   @Output() listClicked = new EventEmitter<void>();
 
-  // [PNIP-CI] Elvis Flores - 30/09/2026
+  // [PNIP-CI] Elvis Flores - 01/10/2026
   // Qué hace: estado del menú ampliado (Dashboard, Formularios ▸,
   // Conflicto ▸, Informe General, Revisión de Evidencias, Historial),
-  // distinto según el rol. Los ítems nuevos son rutas; los 3 botones de
+  // distinto según los roles (R/A, P o ambos). Los ítems nuevos son rutas; los 3 botones de
   // «Formularios» son los de siempre.
   private readonly router = inject(Router);
-  private readonly authService = inject(AuthService);
+  private readonly perfilUsuario = inject(PerfilUsuarioService);
   private readonly destroyRef = inject(DestroyRef);
 
-  /** RRHH (roles R o A): ve el menú completo. El resto, el de Responsable. */
-  esRrhh = false;
-
-  /** Ítems del menú según el rol. */
-  menu: readonly ItemMenu[] = MENU_RESPONSABLE;
+  /** Ítems del menú según los roles (ver obtenerMenu). */
+  menu: readonly ItemMenu[] = [];
 
   /** Ítem (ruta) que corresponde a la URL actual. */
   itemActivo: ItemMenu | null = null;
@@ -77,12 +74,14 @@ export class SidebarMenuComponent implements OnInit, OnChanges {
   ngOnInit(): void {
     this.updateViewportState();
 
-    // [PNIP-CI] Elvis Flores - 30/09/2026
-    // Qué hace: elige el menú según el rol (sale de AuthService.hasRole(),
-    // igual que en rolGuard y en AdminComponent) y sigue la URL para
-    // resaltar el ítem activo.
-    this.esRrhh = this.authService.hasRole('R') || this.authService.hasRole('A');
-    this.menu = this.esRrhh ? MENU_RRHH : MENU_RESPONSABLE;
+    // [PNIP-CI] Elvis Flores - 01/10/2026
+    // Qué hace: elige el menú según los roles de gestión (los mismos que usa
+    // rolGuard: R/A → RRHH, P → Responsable, ambos → RRHH + «Mis
+    // actividades») y sigue la URL para resaltar el ítem activo.
+    this.menu = obtenerMenu(
+      this.perfilUsuario.tieneRol('rrhh'),
+      this.perfilUsuario.tieneRol('responsable')
+    );
     this.actualizarItemActivo(this.router.url);
     this.router.events
       .pipe(

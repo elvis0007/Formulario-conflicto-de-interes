@@ -1,5 +1,10 @@
 import { RUTAS } from '../app.paths';
-import { MENU_RESPONSABLE, MENU_RRHH } from './menu-items';
+import {
+  MENU_RESPONSABLE,
+  MENU_RRHH,
+  MENU_RRHH_Y_RESPONSABLE,
+  obtenerMenu
+} from './menu-items';
 import { buscarGrupo, buscarItemActivo } from './item-menu';
 
 describe('item-menu', () => {
@@ -51,5 +56,21 @@ describe('item-menu', () => {
 
     expect(buscarGrupo(MENU_RRHH, activo)?.etiqueta).toBe('Conflicto');
     expect(buscarGrupo(MENU_RRHH, null)).toBeNull();
+  });
+
+  it('obtenerMenu elige el menú según los roles', () => {
+    expect(obtenerMenu(true, false)).toBe(MENU_RRHH);
+    expect(obtenerMenu(true, true)).toBe(MENU_RRHH_Y_RESPONSABLE);
+    expect(obtenerMenu(false, true)).toBe(MENU_RESPONSABLE);
+    expect(obtenerMenu(false, false)).toEqual([]);
+  });
+
+  it('con R y P, un plan del responsable resalta «Mis actividades»', () => {
+    expect(buscarItemActivo(MENU_RRHH_Y_RESPONSABLE,
+      RUTAS.responsable.planes + '/PL-003')?.etiqueta)
+      .toBe('Mis actividades');
+    expect(buscarItemActivo(MENU_RRHH_Y_RESPONSABLE,
+      RUTAS.rrhh.historial)?.etiqueta)
+      .toBe('Historial');
   });
 });
