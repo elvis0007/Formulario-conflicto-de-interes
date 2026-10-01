@@ -1,8 +1,17 @@
-import { Component, OnInit, effect } from '@angular/core';
+// [PNIP-CI] Elvis Flores - 01/10/2026
+// Qué hace: al import de @angular/core se agregan computed e inject.
+import { Component, OnInit, computed, effect, inject } from '@angular/core';
+// [FIN PNIP-CI]
 import { CommonModule } from '@angular/common';
 import { NavigationEnd, Router } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { AuthService } from '../services/auth.service';
+// [PNIP-CI] Elvis Flores - 01/10/2026
+// Qué hace: perfil del usuario (nombre y rol en texto) y rutas de gestión
+// de conflictos.
+import { PerfilUsuarioService } from '../services/perfil-usuario.service';
+import { RUTAS, esRutaDeGestion } from '../app.paths';
+// [FIN PNIP-CI]
 
 @Component({
   selector: 'app-header',
@@ -19,6 +28,28 @@ export class HeaderComponent implements OnInit {
   isRegularUser = false;
   loggedUserFullName = '';
   loggedUserShortName = '';
+
+  // [PNIP-CI] Elvis Flores - 01/10/2026
+  // Qué hace: datos de la cabecera para la gestión de conflictos: quién
+  // está logueado y con qué rol, si la ruta es de gestión (/rrhh/** o
+  // /responsable/**) y si el usuario es Responsable (rol P).
+  private readonly perfilUsuario = inject(PerfilUsuarioService);
+
+  /** Hay un usuario en sesión (si no, no se muestra el bloque de usuario). */
+  readonly haySesion = computed(() => this.authService.usuario() !== null);
+
+  /** Nombre del usuario logueado (`PerfilUsuarioService`). */
+  readonly nombreUsuarioSesion = computed(() => this.perfilUsuario.obtenerNombreUsuario());
+
+  /** Rol en texto; con varios roles, el de mayor nivel (A > R > P). */
+  readonly etiquetaRolSesion = computed(() => this.perfilUsuario.obtenerEtiquetaRol());
+
+  /** La URL actual es /rrhh/** o /responsable/**. */
+  esRutaGestion = false;
+
+  /** El usuario tiene el rol P (Responsable). */
+  esResponsable = false;
+  // [FIN PNIP-CI]
 
   constructor(
     private authService: AuthService,
@@ -55,6 +86,11 @@ export class HeaderComponent implements OnInit {
     this.canManageRRHH = this.authService.isAdminRole();
     this.isAdminOrRrhh = this.authService.hasRole('A') || this.authService.hasRole('R');
     this.isRegularUser = !this.isAdminOrRrhh;
+    // [PNIP-CI] Elvis Flores - 01/10/2026
+    // Qué hace: estado de la cabecera para la gestión de conflictos en la
+    // URL inicial.
+    this.actualizarCabeceraGestion(this.router.url);
+    // [FIN PNIP-CI]
 
     this.router.events
       .pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
@@ -63,8 +99,38 @@ export class HeaderComponent implements OnInit {
         this.canManageRRHH = this.authService.isAdminRole();
         this.isAdminOrRrhh = this.authService.hasRole('A') || this.authService.hasRole('R');
         this.isRegularUser = !this.isAdminOrRrhh;
+        // [PNIP-CI] Elvis Flores - 01/10/2026
+        // Qué hace: estado de la cabecera para la gestión de conflictos en
+        // cada navegación.
+        this.actualizarCabeceraGestion(event.urlAfterRedirects);
+        // [FIN PNIP-CI]
       });
   }
+
+  // [PNIP-CI] Elvis Flores - 01/10/2026
+  // Qué hace: estado de la cabecera para la gestión de conflictos y acceso
+  // del Responsable a su dashboard.
+  /**
+   * Actualiza `esRutaGestion` y `esResponsable` para una URL.
+   *
+   * @param url URL actual (puede traer query string).
+   * @author Elvis Flores
+   */
+  private actualizarCabeceraGestion(url: string): void {
+    this.esRutaGestion = esRutaDeGestion(url.split('?')[0]);
+    this.esResponsable = this.authService.hasRole('P');
+  }
+
+  /**
+   * Lleva al Responsable a su dashboard de actividades de conflicto de
+   * interés.
+   *
+   * @author Elvis Flores
+   */
+  irAMisActividades(): void {
+    this.router.navigate([RUTAS.responsable.dashboard]);
+  }
+  // [FIN PNIP-CI]
 
   toggleDarkMode(): void {
     this.darkMode = !this.darkMode;

@@ -38,6 +38,21 @@ muestra el de mayor nivel: `A` > `R` > `P`.
 de Roles» debe permitir asignarlo. Hoy ese modal solo gestiona
 administradores y jefes de RRHH; no se le agregó una sección para `P`.
 
+## Cabecera según el rol
+
+La cabecera (`HeaderComponent`) muestra siempre el nombre del usuario
+logueado y su rol en texto (el de mayor nivel: A > R > P). Además:
+
+| Ícono | Quién lo ve | Dónde |
+|---|---|---|
+| Generar código de acceso | `A` y `R` | `/admin`, `/rrhh/**` y `/responsable/**` |
+| Gestionar Jefes de RRHH (modal «Gestión de Roles») | Solo `A` | `/admin`, `/rrhh/**` y `/responsable/**` |
+| Mis actividades de conflicto de interés (→ `/responsable/dashboard`) | Quien tiene `P` | En toda la app |
+| Mis declaraciones, modo oscuro, cerrar sesión | Todos | En toda la app |
+
+El Responsable (`P` sin `A`/`R`) entra por defecto al formulario de
+declaración, que no tiene menú lateral: por eso tiene su propio ícono.
+
 ## Cómo se controla el acceso
 
 - **Declaración**: `authGuard` en cada ruta, más la comprobación de

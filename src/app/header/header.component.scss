@@ -120,3 +120,41 @@ body.dark-mode .app-header {
   background-color: #6b6b6b;
 }
 
+// [PNIP-CI] Elvis Flores - 01/10/2026
+// Qué hace: bloque «usuario logueado» (nombre y rol). Texto blanco como el
+// resto de la cabecera, así se lee igual sobre el azul y sobre el gris del
+// modo oscuro. Bajo 1280 px se oculta: si no, el título de la cabecera
+// pasa a dos líneas.
+.header-usuario {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  max-width: 220px;
+  padding-right: 12px;
+  border-right: 1px solid rgba(255, 255, 255, 0.25);
+  line-height: 1.25;
+  text-align: right;
+}
+
+.header-usuario-nombre {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.header-usuario-rol {
+  font-size: 11px;
+  opacity: 0.85;
+  white-space: nowrap;
+}
+
+@media (max-width: 1280px) {
+  .header-usuario {
+    display: none;
+  }
+}
+// [FIN PNIP-CI]
+

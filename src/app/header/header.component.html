@@ -6,8 +6,21 @@
   
   
   <div class="header-actions">
+    <!-- [PNIP-CI] Elvis Flores - 01/10/2026
+         Qué hace: muestra quién está logueado y su rol en texto. -->
+    <div class="header-usuario" *ngIf="haySesion()">
+      <span class="header-usuario-nombre" [title]="nombreUsuarioSesion()">{{ nombreUsuarioSesion() }}</span>
+      <span class="header-usuario-rol">{{ etiquetaRolSesion() }}</span>
+    </div>
+    <!-- [FIN PNIP-CI] -->
+
+    <!-- [PNIP-CI] Elvis Flores - 01/10/2026
+         Qué hace: el ícono aparece también en /rrhh/** y /responsable/**.
+         Solo cambia su *ngIf (antes: isAdminRoute). Fuera de /admin se
+         exige A o R, que son los únicos que llegan a /admin, así que su
+         regla de rol no cambia. Al hacer clic hace lo mismo que siempre. -->
     <button
-      *ngIf="isAdminRoute"
+      *ngIf="isAdminRoute || (esRutaGestion && isAdminOrRrhh)"
       class="header-icon-btn"
       (click)="openGenerateCodeModal()"
       title="Generar código de acceso"
@@ -18,9 +31,14 @@
         <line x1="10" y1="17" x2="14" y2="17"></line>
       </svg>
     </button>
+    <!-- [FIN PNIP-CI] -->
 
+    <!-- [PNIP-CI] Elvis Flores - 01/10/2026
+         Qué hace: el ícono aparece también en /rrhh/** y /responsable/**.
+         Solo cambia su *ngIf (antes: isAdminRoute && canManageRRHH); sigue
+         siendo solo para A. Al hacer clic hace lo mismo que siempre. -->
     <button
-      *ngIf="isAdminRoute && canManageRRHH"
+      *ngIf="(isAdminRoute || esRutaGestion) && canManageRRHH"
       class="header-icon-btn"
       (click)="openManageRrhhModal()"
       title="Gestionar Jefes de RRHH"
@@ -31,6 +49,26 @@
         
       </svg>
     </button>
+    <!-- [FIN PNIP-CI] -->
+
+    <!-- [PNIP-CI] Elvis Flores - 01/10/2026
+         Qué hace: acceso del Responsable (rol P) a su dashboard. Lo
+         necesita porque entra por defecto al formulario, que no tiene menú
+         lateral. -->
+    <button
+      *ngIf="esResponsable"
+      class="header-icon-btn"
+      (click)="irAMisActividades()"
+      title="Mis actividades de conflicto de interés"
+      aria-label="Mis actividades de conflicto de interés"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+        <rect x="9" y="2" width="6" height="4" rx="1" ry="1"></rect>
+        <polyline points="9 14 11 16 15 12"></polyline>
+      </svg>
+    </button>
+    <!-- [FIN PNIP-CI] -->
 
     <button
       class="header-icon-btn"
