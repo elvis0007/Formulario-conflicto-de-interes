@@ -1,0 +1,218 @@
+// Campana de la cabecera. Usa la paleta del host (la misma del menú
+// lateral, --ci-*), no los tokens de las pantallas de gestión de conflictos.
+:host {
+  --ci-ink: #163b5f;
+  --ci-accent: #1a5490;
+  --ci-muted: #5c6b84;
+  --ci-text: #22314f;
+  --ci-line: #d3dae4;
+  --ci-paper: #ffffff;
+  --ci-hover: #eaf2fa;
+  // Fondo de la cabecera (borde del contador).
+  --fondo-cabecera: #163b5f;
+
+  position: relative;
+  display: inline-flex;
+}
+
+// Mismo aspecto que .header-icon-btn de HeaderComponent.
+.campana {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  border: none;
+  border-radius: 4px;
+  background: none;
+  color: white;
+  cursor: pointer;
+  transition: background-color 0.3s;
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+
+  &:focus-visible {
+    outline: 2px solid white;
+    outline-offset: 2px;
+  }
+
+  svg {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+.contador {
+  position: absolute;
+  top: 0;
+  right: 0;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border: 2px solid var(--fondo-cabecera);
+  border-radius: 999px;
+  background-color: #d32f2f;
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 14px;
+  text-align: center;
+}
+
+.panel {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  width: 410px;
+  max-width: calc(100vw - 32px);
+  max-height: min(560px, calc(100vh - 96px));
+  border: 1px solid var(--ci-line);
+  border-radius: 10px;
+  background-color: var(--ci-paper);
+  box-shadow: 0 10px 24px rgba(22, 59, 95, 0.18);
+  color: var(--ci-text);
+  text-align: left;
+}
+
+.panel-cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--ci-line);
+}
+
+.panel-titulo {
+  margin: 0;
+  color: var(--ci-ink);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.marcar {
+  padding: 4px 8px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ci-accent);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background-color: var(--ci-hover);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--ci-accent);
+    outline-offset: 1px;
+  }
+
+  &:disabled {
+    color: var(--ci-muted);
+    cursor: default;
+    opacity: 0.7;
+  }
+}
+
+.lista {
+  flex: 1;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.notificacion {
+  display: grid;
+  grid-template-columns: 10px 1fr;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--ci-line);
+}
+
+.no-leida {
+  background-color: var(--ci-hover);
+}
+
+.punto {
+  width: 10px;
+  height: 10px;
+  margin-top: 6px;
+  border-radius: 50%;
+  background-color: #8a94a6;
+}
+
+// Un color por tono (tipo de notificación, ver mapearTipoNotificacionATono).
+.punto--rojo { background-color: #d32f2f; }
+.punto--naranja { background-color: #e67e22; }
+.punto--ambar { background-color: #d4a017; }
+.punto--verde { background-color: #2e8b57; }
+.punto--azul { background-color: #1a5490; }
+.punto--gris { background-color: #8a94a6; }
+
+.notificacion-cuerpo {
+  min-width: 0;
+}
+
+.notificacion-titulo,
+.notificacion-texto {
+  margin: 0;
+}
+
+.notificacion-titulo {
+  color: var(--ci-ink);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.notificacion-texto {
+  margin-top: 2px;
+  color: var(--ci-text);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.notificacion-tiempo {
+  display: block;
+  margin-top: 4px;
+  color: var(--ci-muted);
+  font-size: 12px;
+}
+
+.vacio {
+  margin: 0;
+  padding: 24px 16px;
+  color: var(--ci-muted);
+  font-size: 14px;
+  text-align: center;
+}
+
+.panel-pie {
+  padding: 10px 16px;
+  color: var(--ci-muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+.solo-lectores {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+// Modo oscuro: el mismo ajuste que hace el menú lateral.
+:host-context(body.dark-mode) {
+  --ci-paper: #f4f6f9;
+  --ci-line: #c2cad6;
+}

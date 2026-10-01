@@ -122,6 +122,20 @@ describe('HeaderComponent (gestión de conflictos)', () => {
     expect(navegar).toHaveBeenCalledWith([RUTAS.responsable.dashboard]);
   });
 
+  for (const r of [['A'], ['R'], ['P']]) {
+    it(`con ${r} aparece la campana de notificaciones`, async () => {
+      roles = r;
+      expect((await crearEn('/')).querySelector('app-notification-bell')).not.toBeNull();
+    });
+  }
+
+  for (const r of [['I'], ['E'], []]) {
+    it(`con [${r}] no aparece la campana`, async () => {
+      roles = r;
+      expect((await crearEn('/')).querySelector('app-notification-bell')).toBeNull();
+    });
+  }
+
   it('sin P no aparece «Mis actividades»', async () => {
     roles = ['I'];
     expect(iconos(await crearEn('/')))

@@ -47,6 +47,7 @@ logueado y su rol en texto (el de mayor nivel: A > R > P). Además:
 |---|---|---|
 | Generar código de acceso | `A` y `R` | `/admin`, `/rrhh/**` y `/responsable/**` |
 | Gestionar Jefes de RRHH (modal «Gestión de Roles») | Solo `A` | `/admin`, `/rrhh/**` y `/responsable/**` |
+| Campana de notificaciones (`shared/notification-bell`, datos simulados) | `A`, `R` y `P` | En toda la app |
 | Mis actividades de conflicto de interés (→ `/responsable/dashboard`) | Quien tiene `P` | En toda la app |
 | Mis declaraciones, modo oscuro, cerrar sesión | Todos | En toda la app |
 

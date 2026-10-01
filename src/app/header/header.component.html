@@ -15,6 +15,11 @@
     <!-- [FIN PNIP-CI] -->
 
     <!-- [PNIP-CI] Elvis Flores - 01/10/2026
+         Qué hace: campana de notificaciones, solo para A, R o P. -->
+    <app-notification-bell *ngIf="muestraCampana"></app-notification-bell>
+    <!-- [FIN PNIP-CI] -->
+
+    <!-- [PNIP-CI] Elvis Flores - 01/10/2026
          Qué hace: el ícono aparece también en /rrhh/** y /responsable/**.
          Solo cambia su *ngIf (antes: isAdminRoute). Fuera de /admin se
          exige A o R, que son los únicos que llegan a /admin, así que su

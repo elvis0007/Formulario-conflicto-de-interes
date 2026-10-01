@@ -1,0 +1,61 @@
+<button
+  #boton
+  type="button"
+  class="campana"
+  [attr.title]="etiquetaBoton"
+  [attr.aria-label]="etiquetaBoton"
+  [attr.aria-expanded]="abierto"
+  aria-controls="app-panel-notificaciones"
+  (click)="alternar()">
+  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+       stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+       aria-hidden="true">
+    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+    <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+  </svg>
+  @if (noLeidas > 0) {
+    <span class="contador" aria-hidden="true">{{ noLeidas }}</span>
+  }
+</button>
+
+@if (abierto) {
+  <section
+    id="app-panel-notificaciones"
+    class="panel"
+    aria-label="Notificaciones">
+    <header class="panel-cabecera">
+      <h2 class="panel-titulo">Notificaciones</h2>
+      <button
+        type="button"
+        class="marcar"
+        [disabled]="noLeidas === 0"
+        (click)="marcarTodas()">Marcar todas como leídas</button>
+    </header>
+
+    @if (notificaciones.length === 0) {
+      <p class="vacio">No hay notificaciones recientes.</p>
+    } @else {
+      <ul class="lista">
+        @for (n of notificaciones; track n.id) {
+          <li class="notificacion" [class.no-leida]="!n.leida">
+            <span [class]="'punto punto--' + tono(n)" aria-hidden="true"></span>
+            <div class="notificacion-cuerpo">
+              <p class="notificacion-titulo">
+                {{ n.titulo }}
+                @if (!n.leida) {
+                  <span class="solo-lectores">(sin leer)</span>
+                }
+              </p>
+              <p class="notificacion-texto">{{ n.texto }}</p>
+              <time class="notificacion-tiempo" [attr.datetime]="n.fecha">
+                {{ n.fecha | tiempoRelativo }}
+              </time>
+            </div>
+          </li>
+        }
+      </ul>
+    }
+
+    <footer class="panel-pie">{{ textoPie }}</footer>
+  </section>
+}

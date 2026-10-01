@@ -7,16 +7,20 @@ import { NavigationEnd, Router } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { AuthService } from '../services/auth.service';
 // [PNIP-CI] Elvis Flores - 01/10/2026
-// Qué hace: perfil del usuario (nombre y rol en texto) y rutas de gestión
-// de conflictos.
+// Qué hace: perfil del usuario (nombre y rol en texto), rutas de gestión
+// de conflictos y campana de notificaciones.
 import { PerfilUsuarioService } from '../services/perfil-usuario.service';
 import { RUTAS, esRutaDeGestion } from '../app.paths';
+import { NotificationBellComponent } from '../shared/notification-bell/notification-bell.component';
 // [FIN PNIP-CI]
 
 @Component({
   selector: 'app-header',
   standalone: true,
-  imports: [CommonModule],
+  // [PNIP-CI] Elvis Flores - 01/10/2026
+  // Qué hace: agrega NotificationBellComponent a los imports.
+  imports: [CommonModule, NotificationBellComponent],
+  // [FIN PNIP-CI]
   templateUrl: './header.component.html',
   styleUrl: './header.component.scss'
 })
@@ -49,6 +53,9 @@ export class HeaderComponent implements OnInit {
 
   /** El usuario tiene el rol P (Responsable). */
   esResponsable = false;
+
+  /** Campana de notificaciones: solo para A, R o P. */
+  muestraCampana = false;
   // [FIN PNIP-CI]
 
   constructor(
@@ -108,10 +115,11 @@ export class HeaderComponent implements OnInit {
   }
 
   // [PNIP-CI] Elvis Flores - 01/10/2026
-  // Qué hace: estado de la cabecera para la gestión de conflictos y acceso
-  // del Responsable a su dashboard.
+  // Qué hace: estado de la cabecera para la gestión de conflictos (ruta,
+  // rol P y campana) y acceso del Responsable a su dashboard.
   /**
-   * Actualiza `esRutaGestion` y `esResponsable` para una URL.
+   * Actualiza `esRutaGestion`, `esResponsable` y `muestraCampana` para
+   * una URL.
    *
    * @param url URL actual (puede traer query string).
    * @author Elvis Flores
@@ -119,6 +127,9 @@ export class HeaderComponent implements OnInit {
   private actualizarCabeceraGestion(url: string): void {
     this.esRutaGestion = esRutaDeGestion(url.split('?')[0]);
     this.esResponsable = this.authService.hasRole('P');
+    this.muestraCampana = this.esResponsable
+      || this.authService.hasRole('A')
+      || this.authService.hasRole('R');
   }
 
   /**
