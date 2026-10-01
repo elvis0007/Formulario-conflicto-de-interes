@@ -21,45 +21,45 @@ const DURACION_POR_DEFECTO_MS = 2000;
  * @author Elvis Flores
  */
 export class ConfirmacionTemporal {
-    /** Si la confirmacion esta visible. */
-    activa = false;
+  /** Si la confirmacion esta visible. */
+  activa = false;
 
-    /** Temporizador en curso. */
-    private temporizador: ReturnType<typeof setTimeout> | null = null;
+  /** Temporizador en curso. */
+  private temporizador: ReturnType<typeof setTimeout> | null = null;
 
-    /**
-     * @param duracionMs Tiempo que se muestra la confirmacion.
-     */
-    constructor(private readonly duracionMs = DURACION_POR_DEFECTO_MS) {
+  /**
+   * @param duracionMs Tiempo que se muestra la confirmacion.
+   */
+  constructor(private readonly duracionMs = DURACION_POR_DEFECTO_MS) {
+  }
+
+  /**
+   * Muestra la confirmacion (reinicia el tiempo si ya estaba visible).
+   */
+  disparar(): void {
+    this.limpiarTemporizador();
+    this.activa = true;
+    this.temporizador = setTimeout(() => {
+      this.activa = false;
+      this.temporizador = null;
+    }, this.duracionMs);
+  }
+
+  /**
+   * Oculta la confirmacion y detiene el temporizador.
+   */
+  cancelar(): void {
+    this.limpiarTemporizador();
+    this.activa = false;
+  }
+
+  /**
+   * Detiene el temporizador en curso, si lo hay.
+   */
+  private limpiarTemporizador(): void {
+    if (this.temporizador !== null) {
+      clearTimeout(this.temporizador);
+      this.temporizador = null;
     }
-
-    /**
-     * Muestra la confirmacion (reinicia el tiempo si ya estaba visible).
-     */
-    disparar(): void {
-        this.limpiarTemporizador();
-        this.activa = true;
-        this.temporizador = setTimeout(() => {
-            this.activa = false;
-            this.temporizador = null;
-        }, this.duracionMs);
-    }
-
-    /**
-     * Oculta la confirmacion y detiene el temporizador.
-     */
-    cancelar(): void {
-        this.limpiarTemporizador();
-        this.activa = false;
-    }
-
-    /**
-     * Detiene el temporizador en curso, si lo hay.
-     */
-    private limpiarTemporizador(): void {
-        if (this.temporizador !== null) {
-            clearTimeout(this.temporizador);
-            this.temporizador = null;
-        }
-    }
+  }
 }

@@ -8,9 +8,9 @@ import { Component } from '@angular/core';
  * @author Elvis Flores
  */
 @Component({
-    selector: 'app-consulta-previa',
-    template: '<h2>Consulta previa</h2>',
-    styleUrl: './consulta-previa.component.scss'
+  selector: 'app-consulta-previa',
+  template: '<h2>Consulta previa</h2>',
+  styleUrl: './consulta-previa.component.scss'
 })
 export class ConsultaPreviaComponent {
 }

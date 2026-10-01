@@ -1,43 +1,43 @@
 :host {
-    display: inline-flex;
+  display: inline-flex;
 }
 
 .boton {
-    display: grid;
-    place-items: center;
-    width: 32px;
-    height: 32px;
-    padding: 0;
-    border: 1px solid var(--hairline);
-    border-radius: 8px;
-    background-color: var(--paper);
-    color: var(--accent-700);
-    cursor: pointer;
-    transition: background-color 0.15s ease, color 0.15s ease,
-        border-color 0.15s ease;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  background-color: var(--paper);
+  color: var(--accent-700);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease,
+    border-color 0.15s ease;
 
-    &:hover {
-        border-color: var(--accent);
-        background-color: var(--accent);
-        color: var(--paper);
-    }
+  &:hover {
+    border-color: var(--accent);
+    background-color: var(--accent);
+    color: var(--paper);
+  }
 
-    &:focus-visible {
-        outline: 2px solid var(--accent);
-        outline-offset: 2px;
-    }
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
 }
 
 .flecha {
-    transition: transform 0.16s ease;
+  transition: transform 0.16s ease;
 }
 
 .boton--expandido .flecha {
-    transform: rotate(180deg);
+  transform: rotate(180deg);
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .flecha {
-        transition: none;
-    }
+  .flecha {
+    transition: none;
+  }
 }

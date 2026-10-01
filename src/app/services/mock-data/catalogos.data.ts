@@ -14,15 +14,15 @@
 
 /** Tipos de contrato del formulario de conflicto de interes. */
 export const TIPOS_CONTRATO: readonly string[] = [
-    'Ocasional',
-    'Permanente',
-    'Servicios ocasionales LOEP',
-    'Nombramientos provisionales LOEP'
+  'Ocasional',
+  'Permanente',
+  'Servicios ocasionales LOEP',
+  'Nombramientos provisionales LOEP'
 ];
 
 /** Tipos de proceso del formulario de excusa. */
 export const TIPOS_PROCESO_EXCUSA: readonly string[] = [
-    'Proceso de selección',
-    'Proceso de compra',
-    'Evaluación de desempeño'
+  'Proceso de selección',
+  'Proceso de compra',
+  'Evaluación de desempeño'
 ];

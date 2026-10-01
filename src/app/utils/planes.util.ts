@@ -11,20 +11,20 @@ import { Actividad, EstadoPlan, PlanAccion } from '../models';
  * (ver `hayPlanActivo`).
  */
 const ESTADOS_PLAN_VIGENTE: readonly EstadoPlan[] = [
-    'borrador',
-    'activo',
-    'activo_vencidas'
+  'borrador',
+  'activo',
+  'activo_vencidas'
 ];
 
 /**
  * Resultado de `calcularAvance`.
  */
 export interface AvancePlan {
-    /** Actividades en estado `aprobada`. */
-    cumplidas: number;
-    total: number;
-    /** Porcentaje entero de 0 a 100; 0 si el plan no tiene actividades. */
-    porcentaje: number;
+  /** Actividades en estado `aprobada`. */
+  cumplidas: number;
+  total: number;
+  /** Porcentaje entero de 0 a 100; 0 si el plan no tiene actividades. */
+  porcentaje: number;
 }
 
 /**
@@ -48,24 +48,24 @@ export interface AvancePlan {
  * @returns Estado derivado del plan.
  */
 export function derivarEstadoPlan(
-    actividades: readonly Actividad[],
-    fechaInicio: string | undefined
+  actividades: readonly Actividad[],
+  fechaInicio: string | undefined
 ): EstadoPlan {
-    const todasAprobadas = actividades.length > 0
-        && actividades.every((a) => a.estado === 'aprobada');
-    const algunaVencida = actividades.some((a) => a.estado === 'vencida');
+  const todasAprobadas = actividades.length > 0
+    && actividades.every((a) => a.estado === 'aprobada');
+  const algunaVencida = actividades.some((a) => a.estado === 'vencida');
 
-    if (fechaInicio === undefined || fechaInicio === '') {
-        return 'borrador';
-    }
-    if (todasAprobadas) {
-        return 'cerrado';
-    }
-    if (algunaVencida) {
-        return 'activo_vencidas';
-    }
+  if (fechaInicio === undefined || fechaInicio === '') {
+    return 'borrador';
+  }
+  if (todasAprobadas) {
+    return 'cerrado';
+  }
+  if (algunaVencida) {
+    return 'activo_vencidas';
+  }
 
-    return 'activo';
+  return 'activo';
 }
 
 /**
@@ -76,12 +76,12 @@ export function derivarEstadoPlan(
  * actividades, sin dividir por cero).
  */
 export function calcularAvance(actividades: readonly Actividad[]): AvancePlan {
-    const total = actividades.length;
-    const cumplidas = actividades
-        .filter((a) => a.estado === 'aprobada').length;
-    const porcentaje = total === 0 ? 0 : Math.round(cumplidas * 100 / total);
+  const total = actividades.length;
+  const cumplidas = actividades
+    .filter((a) => a.estado === 'aprobada').length;
+  const porcentaje = total === 0 ? 0 : Math.round(cumplidas * 100 / total);
 
-    return { cumplidas, total, porcentaje };
+  return { cumplidas, total, porcentaje };
 }
 
 /**
@@ -99,5 +99,5 @@ export function calcularAvance(actividades: readonly Actividad[]): AvancePlan {
  * @returns `true` si hay algun plan vigente y no se debe crear otro.
  */
 export function hayPlanActivo(planes: readonly PlanAccion[]): boolean {
-    return planes.some((plan) => ESTADOS_PLAN_VIGENTE.includes(plan.estado));
+  return planes.some((plan) => ESTADOS_PLAN_VIGENTE.includes(plan.estado));
 }

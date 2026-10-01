@@ -2,34 +2,34 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { BadgeComponent } from './badge.component';
 
 describe('BadgeComponent', () => {
-    let fixture: ComponentFixture<BadgeComponent>;
+  let fixture: ComponentFixture<BadgeComponent>;
 
-    /**
-     * @returns Elemento de la pildora.
-     */
-    function pildora(): HTMLElement {
-        return fixture.nativeElement.querySelector('.badge');
-    }
+  /**
+   * @returns Elemento de la pildora.
+   */
+  function pildora(): HTMLElement {
+    return fixture.nativeElement.querySelector('.badge');
+  }
 
-    beforeEach(() => {
-        fixture = TestBed.createComponent(BadgeComponent);
-        fixture.componentRef.setInput('tono', 'rojo');
-        fixture.componentRef.setInput('texto', 'Alto');
-        fixture.detectChanges();
-    });
+  beforeEach(() => {
+    fixture = TestBed.createComponent(BadgeComponent);
+    fixture.componentRef.setInput('tono', 'rojo');
+    fixture.componentRef.setInput('texto', 'Alto');
+    fixture.detectChanges();
+  });
 
-    it('muestra siempre el texto', () => {
-        expect(pildora().textContent?.trim()).toBe('Alto');
-    });
+  it('muestra siempre el texto', () => {
+    expect(pildora().textContent?.trim()).toBe('Alto');
+  });
 
-    it('arma las variables de color con el tono', () => {
-        expect(pildora().style.backgroundColor).toBe('var(--rojo-fill)');
-        expect(pildora().style.color).toBe('var(--rojo-text)');
-    });
+  it('arma las variables de color con el tono', () => {
+    expect(pildora().style.backgroundColor).toBe('var(--rojo-fill)');
+    expect(pildora().style.color).toBe('var(--rojo-text)');
+  });
 
-    it('cambia de color al cambiar el tono', () => {
-        fixture.componentRef.setInput('tono', 'verde');
-        fixture.detectChanges();
-        expect(pildora().style.backgroundColor).toBe('var(--verde-fill)');
-    });
+  it('cambia de color al cambiar el tono', () => {
+    fixture.componentRef.setInput('tono', 'verde');
+    fixture.detectChanges();
+    expect(pildora().style.backgroundColor).toBe('var(--verde-fill)');
+  });
 });

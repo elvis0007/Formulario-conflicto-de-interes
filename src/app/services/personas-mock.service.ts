@@ -12,35 +12,35 @@ import { simularRespuesta } from './mock-data/simular-respuesta';
  * @author Elvis Flores
  */
 @Injectable({
-    providedIn: 'root'
+  providedIn: 'root'
 })
 export class PersonasMockService {
 
-    /**
-     * Obtiene todos los empleados.
-     *
-     * @returns Lista de personas; vacia si la consulta falla.
-     */
-    obtenerPersonas(): Observable<Persona[]> {
-        return simularRespuesta([...PERSONAS]).pipe(
-            manejarError<Persona[]>('PersonasMockService.obtenerPersonas', [])
-        );
-    }
+  /**
+   * Obtiene todos los empleados.
+   *
+   * @returns Lista de personas; vacia si la consulta falla.
+   */
+  obtenerPersonas(): Observable<Persona[]> {
+    return simularRespuesta([...PERSONAS]).pipe(
+      manejarError<Persona[]>('PersonasMockService.obtenerPersonas', [])
+    );
+  }
 
-    /**
-     * Obtiene un empleado por id.
-     *
-     * @param id Id de la persona.
-     * @returns La persona, o `undefined` si no existe o la consulta falla.
-     */
-    obtenerPersonaPorId(id: string): Observable<Persona | undefined> {
-        const persona = PERSONAS.find((p) => p.id === id);
+  /**
+   * Obtiene un empleado por id.
+   *
+   * @param id Id de la persona.
+   * @returns La persona, o `undefined` si no existe o la consulta falla.
+   */
+  obtenerPersonaPorId(id: string): Observable<Persona | undefined> {
+    const persona = PERSONAS.find((p) => p.id === id);
 
-        return simularRespuesta(persona).pipe(
-            manejarError<Persona | undefined>(
-                'PersonasMockService.obtenerPersonaPorId',
-                undefined
-            )
-        );
-    }
+    return simularRespuesta(persona).pipe(
+      manejarError<Persona | undefined>(
+        'PersonasMockService.obtenerPersonaPorId',
+        undefined
+      )
+    );
+  }
 }

@@ -22,12 +22,12 @@
 
 /// Tokens, tipografia y margenes de una pantalla del modulo.
 @mixin raiz {
-    @include tokens.variables;
+  @include tokens.variables;
 
-    display: block;
-    // Mismo aire que deja el host alrededor de sus pantallas.
-    padding: 20px 20px 40px;
-    color: var(--ink);
-    font-family: var(--font-sans);
-    line-height: 1.5;
+  display: block;
+  // Mismo aire que deja el host alrededor de sus pantallas.
+  padding: 20px 20px 40px;
+  color: var(--ink);
+  font-family: var(--font-sans);
+  line-height: 1.5;
 }

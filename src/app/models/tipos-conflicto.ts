@@ -37,8 +37,8 @@ export type EstadoPlan = 'borrador' | 'activo' | 'activo_vencidas' | 'cerrado';
  * aprueba ni la rechaza.
  */
 export type EstadoActividad =
-    | 'pendiente'
-    | 'en_revision'
-    | 'aprobada'
-    | 'rechazada'
-    | 'vencida';
+  | 'pendiente'
+  | 'en_revision'
+  | 'aprobada'
+  | 'rechazada'
+  | 'vencida';

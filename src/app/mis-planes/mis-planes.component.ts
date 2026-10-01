@@ -8,9 +8,9 @@ import { Component } from '@angular/core';
  * @author Elvis Flores
  */
 @Component({
-    selector: 'app-mis-planes',
-    template: '<h2>Mis planes de acción</h2>',
-    styleUrl: './mis-planes.component.scss'
+  selector: 'app-mis-planes',
+  template: '<h2>Mis planes de acción</h2>',
+  styleUrl: './mis-planes.component.scss'
 })
 export class MisPlanesComponent {
 }

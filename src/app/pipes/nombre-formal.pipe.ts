@@ -2,7 +2,7 @@ import { Pipe, PipeTransform } from '@angular/core';
 
 /** Palabras que forman parte del apellido o nombre siguiente. */
 const PARTICULAS: ReadonlySet<string> = new Set([
-    'de', 'del', 'la', 'las', 'los', 'san', 'santa', 'y'
+  'de', 'del', 'la', 'las', 'los', 'san', 'santa', 'y'
 ]);
 
 /** Cuantos apellidos se asumen al final del nombre completo. */
@@ -28,52 +28,52 @@ const APELLIDOS_ASUMIDOS = 2;
  * @author Elvis Flores
  */
 @Pipe({
-    name: 'nombreFormal'
+  name: 'nombreFormal'
 })
 export class NombreFormalPipe implements PipeTransform {
 
-    /**
-     * @param valor Nombre completo en orden «nombres apellidos».
-     * @returns Nombre en mayusculas con los apellidos primero; `''` si no
-     * hay valor.
-     */
-    transform(valor: string | null | undefined): string {
-        const grupos = this.agrupar((valor ?? '').trim());
-        const corte = grupos.length <= APELLIDOS_ASUMIDOS
-            ? grupos.length - 1
-            : grupos.length - APELLIDOS_ASUMIDOS;
-        let ordenado: string[] = [];
+  /**
+   * @param valor Nombre completo en orden «nombres apellidos».
+   * @returns Nombre en mayusculas con los apellidos primero; `''` si no
+   * hay valor.
+   */
+  transform(valor: string | null | undefined): string {
+    const grupos = this.agrupar((valor ?? '').trim());
+    const corte = grupos.length <= APELLIDOS_ASUMIDOS
+      ? grupos.length - 1
+      : grupos.length - APELLIDOS_ASUMIDOS;
+    let ordenado: string[] = [];
 
-        if (grupos.length <= 1) {
-            return grupos.join(' ').toLocaleUpperCase('es');
-        }
-
-        ordenado = [...grupos.slice(corte), ...grupos.slice(0, corte)];
-
-        return ordenado.join(' ').toLocaleUpperCase('es');
+    if (grupos.length <= 1) {
+      return grupos.join(' ').toLocaleUpperCase('es');
     }
 
-    /**
-     * Separa en palabras, uniendo cada particula con la palabra siguiente.
-     *
-     * @param texto Nombre completo.
-     * @returns Grupos (`['Juan', 'Carlos', 'de la Torre', 'Vela']`).
-     */
-    private agrupar(texto: string): string[] {
-        const grupos: string[] = [];
-        let pendiente: string[] = [];
+    ordenado = [...grupos.slice(corte), ...grupos.slice(0, corte)];
 
-        for (const palabra of texto.split(/\s+/).filter((p) => p !== '')) {
-            pendiente.push(palabra);
-            if (!PARTICULAS.has(palabra.toLocaleLowerCase('es'))) {
-                grupos.push(pendiente.join(' '));
-                pendiente = [];
-            }
-        }
-        if (pendiente.length > 0) {
-            grupos.push(pendiente.join(' '));
-        }
+    return ordenado.join(' ').toLocaleUpperCase('es');
+  }
 
-        return grupos;
+  /**
+   * Separa en palabras, uniendo cada particula con la palabra siguiente.
+   *
+   * @param texto Nombre completo.
+   * @returns Grupos (`['Juan', 'Carlos', 'de la Torre', 'Vela']`).
+   */
+  private agrupar(texto: string): string[] {
+    const grupos: string[] = [];
+    let pendiente: string[] = [];
+
+    for (const palabra of texto.split(/\s+/).filter((p) => p !== '')) {
+      pendiente.push(palabra);
+      if (!PARTICULAS.has(palabra.toLocaleLowerCase('es'))) {
+        grupos.push(pendiente.join(' '));
+        pendiente = [];
+      }
     }
+    if (pendiente.length > 0) {
+      grupos.push(pendiente.join(' '));
+    }
+
+    return grupos;
+  }
 }

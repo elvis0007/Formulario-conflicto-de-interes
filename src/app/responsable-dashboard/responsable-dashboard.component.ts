@@ -8,9 +8,9 @@ import { Component } from '@angular/core';
  * @author Elvis Flores
  */
 @Component({
-    selector: 'app-responsable-dashboard',
-    template: '<h2>Dashboard del responsable</h2>',
-    styleUrl: './responsable-dashboard.component.scss'
+  selector: 'app-responsable-dashboard',
+  template: '<h2>Dashboard del responsable</h2>',
+  styleUrl: './responsable-dashboard.component.scss'
 })
 export class ResponsableDashboardComponent {
 }

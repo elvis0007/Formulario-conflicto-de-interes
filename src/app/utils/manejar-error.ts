@@ -14,11 +14,11 @@ import { MonoTypeOperatorFunction, catchError, of } from 'rxjs';
  * @author Elvis Flores
  */
 export function manejarError<T>(
-    origen: string,
-    valorPorDefecto: T
+  origen: string,
+  valorPorDefecto: T
 ): MonoTypeOperatorFunction<T> {
-    return catchError((err: unknown) => {
-        console.error('[' + origen + '] Error al obtener datos:', err);
-        return of(valorPorDefecto);
-    });
+  return catchError((err: unknown) => {
+    console.error('[' + origen + '] Error al obtener datos:', err);
+    return of(valorPorDefecto);
+  });
 }

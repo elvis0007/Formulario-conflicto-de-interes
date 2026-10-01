@@ -21,46 +21,46 @@ import { Actividad } from '../models';
  * @author Elvis Flores
  */
 @Pipe({
-    name: 'plazoTexto'
+  name: 'plazoTexto'
 })
 export class PlazoTextoPipe implements PipeTransform {
 
-    /**
-     * @param plazo Objeto con `plazoMeses` y `plazoDias` (p. ej. una
-     * `Actividad`).
-     * @param conPrefijo `true` para anteponer `Plazo: `.
-     * @returns Texto del plazo; `''` si no hay plazo.
-     */
-    transform(
-        plazo: Pick<Actividad, 'plazoMeses' | 'plazoDias'> | null | undefined,
-        conPrefijo: boolean = false
-    ): string {
-        const partes: string[] = [];
-        let texto = '';
+  /**
+   * @param plazo Objeto con `plazoMeses` y `plazoDias` (p. ej. una
+   * `Actividad`).
+   * @param conPrefijo `true` para anteponer `Plazo: `.
+   * @returns Texto del plazo; `''` si no hay plazo.
+   */
+  transform(
+    plazo: Pick<Actividad, 'plazoMeses' | 'plazoDias'> | null | undefined,
+    conPrefijo: boolean = false
+  ): string {
+    const partes: string[] = [];
+    let texto = '';
 
-        if (!plazo) {
-            return '';
-        }
-
-        if (plazo.plazoMeses !== 0) {
-            partes.push(this.unidad(plazo.plazoMeses, 'mes', 'meses'));
-        }
-        if (plazo.plazoDias !== 0 || partes.length === 0) {
-            partes.push(this.unidad(plazo.plazoDias, 'día', 'días'));
-        }
-
-        texto = partes.join(' ');
-
-        return conPrefijo ? 'Plazo: ' + texto : texto;
+    if (!plazo) {
+      return '';
     }
 
-    /**
-     * @param cantidad Numero de unidades.
-     * @param singular Unidad en singular.
-     * @param plural Unidad en plural.
-     * @returns `1 mes`, `3 meses`...
-     */
-    private unidad(cantidad: number, singular: string, plural: string): string {
-        return cantidad + ' ' + (cantidad === 1 ? singular : plural);
+    if (plazo.plazoMeses !== 0) {
+      partes.push(this.unidad(plazo.plazoMeses, 'mes', 'meses'));
     }
+    if (plazo.plazoDias !== 0 || partes.length === 0) {
+      partes.push(this.unidad(plazo.plazoDias, 'día', 'días'));
+    }
+
+    texto = partes.join(' ');
+
+    return conPrefijo ? 'Plazo: ' + texto : texto;
+  }
+
+  /**
+   * @param cantidad Numero de unidades.
+   * @param singular Unidad en singular.
+   * @param plural Unidad en plural.
+   * @returns `1 mes`, `3 meses`...
+   */
+  private unidad(cantidad: number, singular: string, plural: string): string {
+    return cantidad + ' ' + (cantidad === 1 ? singular : plural);
+  }
 }

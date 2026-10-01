@@ -8,9 +8,9 @@ import { Component } from '@angular/core';
  * @author Elvis Flores
  */
 @Component({
-    selector: 'app-historial',
-    template: '<h2>Historial</h2>',
-    styleUrl: './historial.component.scss'
+  selector: 'app-historial',
+  template: '<h2>Historial</h2>',
+  styleUrl: './historial.component.scss'
 })
 export class HistorialComponent {
 }

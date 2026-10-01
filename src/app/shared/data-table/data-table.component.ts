@@ -1,10 +1,10 @@
 import { NgTemplateOutlet } from '@angular/common';
 import {
-    Component,
-    ContentChild,
-    Input,
-    OnChanges,
-    SimpleChanges
+  Component,
+  ContentChild,
+  Input,
+  OnChanges,
+  SimpleChanges
 } from '@angular/core';
 import { DetalleTablaDirective, FilaTablaDirective } from './plantillas-tabla';
 
@@ -12,20 +12,20 @@ import { DetalleTablaDirective, FilaTablaDirective } from './plantillas-tabla';
  * Cabecera de una columna de `DataTableComponent`.
  */
 export interface ColumnaTabla {
-    /** Texto de la cabecera. */
-    titulo: string;
-    /** Ancho CSS opcional (p. ej. `110px`). */
-    ancho?: string;
-    /** Alineacion del titulo; izquierda por defecto. */
-    alinear?: 'left' | 'center' | 'right';
+  /** Texto de la cabecera. */
+  titulo: string;
+  /** Ancho CSS opcional (p. ej. `110px`). */
+  ancho?: string;
+  /** Alineacion del titulo; izquierda por defecto. */
+  alinear?: 'left' | 'center' | 'right';
 }
 
 /** Fila de la pagina actual, con lo que necesita la plantilla. */
 interface FilaVista<T> {
-    fila: T;
-    clave: string;
-    indice: number;
-    alternar: () => void;
+  fila: T;
+  clave: string;
+  indice: number;
+  alternar: () => void;
 }
 
 /** Contador para ids unicos de detalle entre varias tablas. */
@@ -52,149 +52,149 @@ let contadorTablas = 0;
  * @author Elvis Flores
  */
 @Component({
-    selector: 'app-data-table',
-    imports: [NgTemplateOutlet],
-    templateUrl: './data-table.component.html',
-    styleUrl: './data-table.component.scss'
+  selector: 'app-data-table',
+  imports: [NgTemplateOutlet],
+  templateUrl: './data-table.component.html',
+  styleUrl: './data-table.component.scss'
 })
 export class DataTableComponent<T> implements OnChanges {
-    /** Filas (ya filtradas) a mostrar. */
-    @Input({ required: true }) filas: readonly T[] = [];
+  /** Filas (ya filtradas) a mostrar. */
+  @Input({ required: true }) filas: readonly T[] = [];
 
-    /** Cabeceras de columna. */
-    @Input({ required: true }) columnas: readonly ColumnaTabla[] = [];
+  /** Cabeceras de columna. */
+  @Input({ required: true }) columnas: readonly ColumnaTabla[] = [];
 
-    /** Color de la cabecera. */
-    @Input() variante: 'surface' | 'navy' = 'surface';
+  /** Color de la cabecera. */
+  @Input() variante: 'surface' | 'navy' = 'surface';
 
-    /**
-     * Clave unica de cada fila, para recordar cuales estan desplegadas al
-     * paginar o filtrar. Por defecto, su posicion en la lista.
-     */
-    @Input() claveFila: (fila: T, indice: number) => string =
-        (_fila, indice) => String(indice);
+  /**
+   * Clave unica de cada fila, para recordar cuales estan desplegadas al
+   * paginar o filtrar. Por defecto, su posicion en la lista.
+   */
+  @Input() claveFila: (fila: T, indice: number) => string =
+    (_fila, indice) => String(indice);
 
-    /** Nombre accesible de la tabla. */
-    @Input() etiqueta = '';
+  /** Nombre accesible de la tabla. */
+  @Input() etiqueta = '';
 
-    /** Opciones de «Mostrar n registros». */
-    @Input() tamanosPagina: readonly number[] = [5, 10, 15];
+  /** Opciones de «Mostrar n registros». */
+  @Input() tamanosPagina: readonly number[] = [5, 10, 15];
 
-    /** Registros por pagina. */
-    @Input() tamanoPagina = 10;
+  /** Registros por pagina. */
+  @Input() tamanoPagina = 10;
 
-    /** Plantilla de celdas. */
-    @ContentChild(FilaTablaDirective) plantillaFila?: FilaTablaDirective<T>;
+  /** Plantilla de celdas. */
+  @ContentChild(FilaTablaDirective) plantillaFila?: FilaTablaDirective<T>;
 
-    /** Plantilla del detalle desplegable. */
-    @ContentChild(DetalleTablaDirective)
-    plantillaDetalle?: DetalleTablaDirective<T>;
+  /** Plantilla del detalle desplegable. */
+  @ContentChild(DetalleTablaDirective)
+  plantillaDetalle?: DetalleTablaDirective<T>;
 
-    /** Pagina visible (desde 1). */
-    paginaActual = 1;
+  /** Pagina visible (desde 1). */
+  paginaActual = 1;
 
-    /** Filas de la pagina visible. */
-    vista: FilaVista<T>[] = [];
+  /** Filas de la pagina visible. */
+  vista: FilaVista<T>[] = [];
 
-    /** Claves de las filas desplegadas. */
-    readonly expandidas = new Set<string>();
+  /** Claves de las filas desplegadas. */
+  readonly expandidas = new Set<string>();
 
-    /** Prefijo de ids de esta tabla. */
-    private readonly prefijoId = 'app-tabla-' + (++contadorTablas);
+  /** Prefijo de ids de esta tabla. */
+  private readonly prefijoId = 'app-tabla-' + (++contadorTablas);
 
-    /**
-     * @returns Numero de paginas (minimo 1).
-     */
-    get totalPaginas(): number {
-        return Math.max(1, Math.ceil(this.filas.length / this.tamanoPagina));
+  /**
+   * @returns Numero de paginas (minimo 1).
+   */
+  get totalPaginas(): number {
+    return Math.max(1, Math.ceil(this.filas.length / this.tamanoPagina));
+  }
+
+  /**
+   * Vuelve a la primera pagina si cambian las filas o el tamano.
+   *
+   * @param cambios Cambios de inputs.
+   */
+  ngOnChanges(cambios: SimpleChanges): void {
+    if (cambios['filas'] || cambios['tamanoPagina']) {
+      this.paginaActual = 1;
     }
+    this.actualizarVista();
+  }
 
-    /**
-     * Vuelve a la primera pagina si cambian las filas o el tamano.
-     *
-     * @param cambios Cambios de inputs.
-     */
-    ngOnChanges(cambios: SimpleChanges): void {
-        if (cambios['filas'] || cambios['tamanoPagina']) {
-            this.paginaActual = 1;
-        }
-        this.actualizarVista();
+  /**
+   * @param clave Clave de la fila.
+   * @returns Id del `<tr>` de detalle de esa fila.
+   */
+  idDetalle(clave: string): string {
+    return this.prefijoId + '-detalle-' + clave;
+  }
+
+  /**
+   * Cambia los registros por pagina y vuelve a la primera.
+   *
+   * @param valor Valor elegido en el selector.
+   */
+  cambiarTamano(valor: string): void {
+    const tamano = Number(valor);
+
+    if (Number.isInteger(tamano) && tamano > 0) {
+      this.tamanoPagina = tamano;
+      this.paginaActual = 1;
+      this.actualizarVista();
     }
+  }
 
-    /**
-     * @param clave Clave de la fila.
-     * @returns Id del `<tr>` de detalle de esa fila.
-     */
-    idDetalle(clave: string): string {
-        return this.prefijoId + '-detalle-' + clave;
+  /**
+   * Va a la pagina anterior, si existe.
+   */
+  anterior(): void {
+    if (this.paginaActual > 1) {
+      this.paginaActual--;
+      this.actualizarVista();
     }
+  }
 
-    /**
-     * Cambia los registros por pagina y vuelve a la primera.
-     *
-     * @param valor Valor elegido en el selector.
-     */
-    cambiarTamano(valor: string): void {
-        const tamano = Number(valor);
-
-        if (Number.isInteger(tamano) && tamano > 0) {
-            this.tamanoPagina = tamano;
-            this.paginaActual = 1;
-            this.actualizarVista();
-        }
+  /**
+   * Va a la pagina siguiente, si existe.
+   */
+  siguiente(): void {
+    if (this.paginaActual < this.totalPaginas) {
+      this.paginaActual++;
+      this.actualizarVista();
     }
+  }
 
-    /**
-     * Va a la pagina anterior, si existe.
-     */
-    anterior(): void {
-        if (this.paginaActual > 1) {
-            this.paginaActual--;
-            this.actualizarVista();
-        }
+  /**
+   * Despliega o recoge el detalle de una fila.
+   *
+   * @param clave Clave de la fila.
+   */
+  alternar(clave: string): void {
+    if (this.expandidas.has(clave)) {
+      this.expandidas.delete(clave);
+    } else {
+      this.expandidas.add(clave);
     }
+  }
 
-    /**
-     * Va a la pagina siguiente, si existe.
-     */
-    siguiente(): void {
-        if (this.paginaActual < this.totalPaginas) {
-            this.paginaActual++;
-            this.actualizarVista();
-        }
-    }
+  /**
+   * Calcula las filas de la pagina actual.
+   */
+  private actualizarVista(): void {
+    const inicio = (this.paginaActual - 1) * this.tamanoPagina;
 
-    /**
-     * Despliega o recoge el detalle de una fila.
-     *
-     * @param clave Clave de la fila.
-     */
-    alternar(clave: string): void {
-        if (this.expandidas.has(clave)) {
-            this.expandidas.delete(clave);
-        } else {
-            this.expandidas.add(clave);
-        }
-    }
+    this.vista = this.filas
+      .slice(inicio, inicio + this.tamanoPagina)
+      .map((fila, i) => {
+        const indice = inicio + i;
+        const clave = this.claveFila(fila, indice);
 
-    /**
-     * Calcula las filas de la pagina actual.
-     */
-    private actualizarVista(): void {
-        const inicio = (this.paginaActual - 1) * this.tamanoPagina;
-
-        this.vista = this.filas
-            .slice(inicio, inicio + this.tamanoPagina)
-            .map((fila, i) => {
-                const indice = inicio + i;
-                const clave = this.claveFila(fila, indice);
-
-                return {
-                    fila,
-                    clave,
-                    indice,
-                    alternar: () => this.alternar(clave)
-                };
-            });
-    }
+        return {
+          fila,
+          clave,
+          indice,
+          alternar: () => this.alternar(clave)
+        };
+      });
+  }
 }

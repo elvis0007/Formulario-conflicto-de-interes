@@ -32,31 +32,31 @@ export const DATO_ROL_REQUERIDO = 'rolRequerido';
  * @author Elvis Flores
  */
 export const rolGuard: CanActivateFn = (route) => {
-    const authService = inject(AuthService);
-    const rolService = inject(PerfilUsuarioService);
-    const router = inject(Router);
-    let rolRequerido: RolGestion | null = null;
+  const authService = inject(AuthService);
+  const rolService = inject(PerfilUsuarioService);
+  const router = inject(Router);
+  let rolRequerido: RolGestion | null = null;
 
-    if (!authService.isAuthenticated()) {
-        return router.createUrlTree(['/login']);
-    }
+  if (!authService.isAuthenticated()) {
+    return router.createUrlTree(['/login']);
+  }
 
-    if (!(DATO_ROL_REQUERIDO in route.data)) {
-        console.error(
-            '[rolGuard] La ruta no define data.' + DATO_ROL_REQUERIDO,
-            route
-        );
-        return router.createUrlTree(['/']);
-    }
+  if (!(DATO_ROL_REQUERIDO in route.data)) {
+    console.error(
+      '[rolGuard] La ruta no define data.' + DATO_ROL_REQUERIDO,
+      route
+    );
+    return router.createUrlTree(['/']);
+  }
 
-    rolRequerido = route.data[DATO_ROL_REQUERIDO] as RolGestion | null;
+  rolRequerido = route.data[DATO_ROL_REQUERIDO] as RolGestion | null;
 
-    if (rolRequerido === null && rolService.esEmpleado()) {
-        return true;
-    }
-    if (rolRequerido !== null && rolService.tieneRol(rolRequerido)) {
-        return true;
-    }
+  if (rolRequerido === null && rolService.esEmpleado()) {
+    return true;
+  }
+  if (rolRequerido !== null && rolService.tieneRol(rolRequerido)) {
+    return true;
+  }
 
-    return router.parseUrl(rolService.obtenerRutaInicio());
+  return router.parseUrl(rolService.obtenerRutaInicio());
 };

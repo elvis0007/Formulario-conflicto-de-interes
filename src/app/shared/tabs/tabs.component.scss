@@ -1,36 +1,36 @@
 .pestanas {
-    display: flex;
-    gap: 4px;
-    border-bottom: 1px solid var(--hairline);
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--hairline);
 }
 
 .pestana {
-    margin-bottom: -1px;
-    padding: 10px 16px;
-    border: 0;
-    border-bottom: 3px solid transparent;
-    background: transparent;
-    color: var(--text2);
-    font-family: var(--font-sans);
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
+  margin-bottom: -1px;
+  padding: 10px 16px;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  background: transparent;
+  color: var(--text2);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
 
-    &:hover {
-        color: var(--ink);
-    }
+  &:hover {
+    color: var(--ink);
+  }
 
-    &:focus-visible {
-        outline: 2px solid var(--accent);
-        outline-offset: -2px;
-    }
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+  }
 }
 
 .pestana--activa {
-    border-bottom-color: var(--accent);
-    color: var(--accent-900);
+  border-bottom-color: var(--accent);
+  color: var(--accent-900);
 }
 
 .pestana--atenuada:not(.pestana--activa) {
-    color: var(--text3);
+  color: var(--text3);
 }

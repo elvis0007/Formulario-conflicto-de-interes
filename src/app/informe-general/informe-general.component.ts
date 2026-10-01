@@ -8,9 +8,9 @@ import { Component } from '@angular/core';
  * @author Elvis Flores
  */
 @Component({
-    selector: 'app-informe-general',
-    template: '<h2>Informe general</h2>',
-    styleUrl: './informe-general.component.scss'
+  selector: 'app-informe-general',
+  template: '<h2>Informe general</h2>',
+  styleUrl: './informe-general.component.scss'
 })
 export class InformeGeneralComponent {
 }

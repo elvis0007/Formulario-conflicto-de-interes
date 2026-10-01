@@ -13,38 +13,38 @@ import { simularRespuesta } from './mock-data/simular-respuesta';
  * @author Elvis Flores
  */
 @Injectable({
-    providedIn: 'root'
+  providedIn: 'root'
 })
 export class ConflictosMockService {
 
-    /**
-     * Obtiene todos los conflictos.
-     *
-     * @returns Lista de conflictos; vacia si la consulta falla.
-     */
-    obtenerConflictos(): Observable<Conflicto[]> {
-        return simularRespuesta([...CONFLICTOS]).pipe(
-            manejarError<Conflicto[]>(
-                'ConflictosMockService.obtenerConflictos',
-                []
-            )
-        );
-    }
+  /**
+   * Obtiene todos los conflictos.
+   *
+   * @returns Lista de conflictos; vacia si la consulta falla.
+   */
+  obtenerConflictos(): Observable<Conflicto[]> {
+    return simularRespuesta([...CONFLICTOS]).pipe(
+      manejarError<Conflicto[]>(
+        'ConflictosMockService.obtenerConflictos',
+        []
+      )
+    );
+  }
 
-    /**
-     * Obtiene un conflicto por id.
-     *
-     * @param id Id del conflicto.
-     * @returns El conflicto, o `undefined` si no existe o la consulta falla.
-     */
-    obtenerConflictoPorId(id: string): Observable<Conflicto | undefined> {
-        const conflicto = CONFLICTOS.find((c) => c.id === id);
+  /**
+   * Obtiene un conflicto por id.
+   *
+   * @param id Id del conflicto.
+   * @returns El conflicto, o `undefined` si no existe o la consulta falla.
+   */
+  obtenerConflictoPorId(id: string): Observable<Conflicto | undefined> {
+    const conflicto = CONFLICTOS.find((c) => c.id === id);
 
-        return simularRespuesta(conflicto).pipe(
-            manejarError<Conflicto | undefined>(
-                'ConflictosMockService.obtenerConflictoPorId',
-                undefined
-            )
-        );
-    }
+    return simularRespuesta(conflicto).pipe(
+      manejarError<Conflicto | undefined>(
+        'ConflictosMockService.obtenerConflictoPorId',
+        undefined
+      )
+    );
+  }
 }

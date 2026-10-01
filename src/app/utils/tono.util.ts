@@ -1,8 +1,8 @@
 import {
-    EstadoActividad,
-    EstadoPlan,
-    Notificacion,
-    Riesgo
+  EstadoActividad,
+  EstadoPlan,
+  Notificacion,
+  Riesgo
 } from '../models';
 
 /**
@@ -27,36 +27,36 @@ export type Tono = 'rojo' | 'ambar' | 'verde' | 'azul' | 'naranja' | 'gris';
 
 /** Tono de cada nivel de riesgo. */
 const TONO_RIESGO: Readonly<Record<Riesgo, Tono>> = {
-    alto: 'rojo',
-    medio: 'ambar',
-    bajo: 'verde',
-    ninguno: 'gris'
+  alto: 'rojo',
+  medio: 'ambar',
+  bajo: 'verde',
+  ninguno: 'gris'
 };
 
 /** Tono de cada estado de plan. */
 const TONO_ESTADO_PLAN: Readonly<Record<EstadoPlan, Tono>> = {
-    borrador: 'ambar',
-    activo: 'azul',
-    activo_vencidas: 'rojo',
-    cerrado: 'verde'
+  borrador: 'ambar',
+  activo: 'azul',
+  activo_vencidas: 'rojo',
+  cerrado: 'verde'
 };
 
 /** Tono de cada estado de actividad (igual en ambas vistas, salvo `vencida`). */
 const TONO_ESTADO_ACTIVIDAD: Readonly<Record<EstadoActividad, Tono>> = {
-    pendiente: 'ambar',
-    en_revision: 'gris',
-    aprobada: 'verde',
-    rechazada: 'naranja',
-    vencida: 'rojo'
+  pendiente: 'ambar',
+  en_revision: 'gris',
+  aprobada: 'verde',
+  rechazada: 'naranja',
+  vencida: 'rojo'
 };
 
 /** Tono del punto de color de cada tipo de notificacion. */
 const TONO_NOTIFICACION: Readonly<Record<Notificacion['tipo'], Tono>> = {
-    ok: 'verde',
-    rechazo: 'naranja',
-    vencido: 'rojo',
-    alerta: 'rojo',
-    info: 'azul'
+  ok: 'verde',
+  rechazo: 'naranja',
+  vencido: 'rojo',
+  alerta: 'rojo',
+  info: 'azul'
 };
 
 /**
@@ -65,7 +65,7 @@ const TONO_NOTIFICACION: Readonly<Record<Notificacion['tipo'], Tono>> = {
  * `ninguno` → gris.
  */
 export function mapearRiesgoATono(riesgo: Riesgo): Tono {
-    return TONO_RIESGO[riesgo];
+  return TONO_RIESGO[riesgo];
 }
 
 /**
@@ -74,7 +74,7 @@ export function mapearRiesgoATono(riesgo: Riesgo): Tono {
  * `cerrado` → verde.
  */
 export function mapearEstadoPlanATono(estado: EstadoPlan): Tono {
-    return TONO_ESTADO_PLAN[estado];
+  return TONO_ESTADO_PLAN[estado];
 }
 
 /**
@@ -101,14 +101,14 @@ export function mapearEstadoPlanATono(estado: EstadoPlan): Tono {
  * @returns Tono de la insignia de estado.
  */
 export function mapearEstadoActividadATono(
-    estado: EstadoActividad,
-    vistaResponsable: boolean
+  estado: EstadoActividad,
+  vistaResponsable: boolean
 ): Tono {
-    if (vistaResponsable && estado === 'vencida') {
-        return TONO_ESTADO_ACTIVIDAD.pendiente;
-    }
+  if (vistaResponsable && estado === 'vencida') {
+    return TONO_ESTADO_ACTIVIDAD.pendiente;
+  }
 
-    return TONO_ESTADO_ACTIVIDAD[estado];
+  return TONO_ESTADO_ACTIVIDAD[estado];
 }
 
 /**
@@ -117,5 +117,5 @@ export function mapearEstadoActividadATono(
  * `info` → azul.
  */
 export function mapearTipoNotificacionATono(tipo: Notificacion['tipo']): Tono {
-    return TONO_NOTIFICACION[tipo];
+  return TONO_NOTIFICACION[tipo];
 }

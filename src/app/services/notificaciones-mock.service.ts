@@ -15,58 +15,58 @@ import { simularRespuesta } from './mock-data/simular-respuesta';
  * @author Elvis Flores
  */
 @Injectable({
-    providedIn: 'root'
+  providedIn: 'root'
 })
 export class NotificacionesMockService {
-    /** Estado en memoria de las notificaciones. */
-    private readonly notificaciones: Notificacion[] =
-        structuredClone([...NOTIFICACIONES]);
+  /** Estado en memoria de las notificaciones. */
+  private readonly notificaciones: Notificacion[] =
+    structuredClone([...NOTIFICACIONES]);
 
-    /**
-     * Obtiene todas las notificaciones, de la mas reciente a la mas antigua.
-     *
-     * @returns Lista de notificaciones; vacia si la consulta falla.
-     */
-    obtenerNotificaciones(): Observable<Notificacion[]> {
-        const ordenadas = [...this.notificaciones]
-            .sort((a, b) => b.fecha.localeCompare(a.fecha));
+  /**
+   * Obtiene todas las notificaciones, de la mas reciente a la mas antigua.
+   *
+   * @returns Lista de notificaciones; vacia si la consulta falla.
+   */
+  obtenerNotificaciones(): Observable<Notificacion[]> {
+    const ordenadas = [...this.notificaciones]
+      .sort((a, b) => b.fecha.localeCompare(a.fecha));
 
-        return simularRespuesta(ordenadas).pipe(
-            manejarError<Notificacion[]>(
-                'NotificacionesMockService.obtenerNotificaciones',
-                []
-            )
-        );
+    return simularRespuesta(ordenadas).pipe(
+      manejarError<Notificacion[]>(
+        'NotificacionesMockService.obtenerNotificaciones',
+        []
+      )
+    );
+  }
+
+  /**
+   * Cuenta las notificaciones sin leer.
+   *
+   * @returns Numero de notificaciones no leidas; 0 si la consulta falla.
+   */
+  contarNoLeidas(): Observable<number> {
+    const noLeidas = this.notificaciones.filter((n) => !n.leida).length;
+
+    return simularRespuesta(noLeidas).pipe(
+      manejarError<number>('NotificacionesMockService.contarNoLeidas', 0)
+    );
+  }
+
+  /**
+   * Marca todas las notificaciones como leidas.
+   *
+   * @returns Observable que completa cuando el cambio esta guardado.
+   */
+  marcarTodasComoLeidas(): Observable<void> {
+    for (const notificacion of this.notificaciones) {
+      notificacion.leida = true;
     }
 
-    /**
-     * Cuenta las notificaciones sin leer.
-     *
-     * @returns Numero de notificaciones no leidas; 0 si la consulta falla.
-     */
-    contarNoLeidas(): Observable<number> {
-        const noLeidas = this.notificaciones.filter((n) => !n.leida).length;
-
-        return simularRespuesta(noLeidas).pipe(
-            manejarError<number>('NotificacionesMockService.contarNoLeidas', 0)
-        );
-    }
-
-    /**
-     * Marca todas las notificaciones como leidas.
-     *
-     * @returns Observable que completa cuando el cambio esta guardado.
-     */
-    marcarTodasComoLeidas(): Observable<void> {
-        for (const notificacion of this.notificaciones) {
-            notificacion.leida = true;
-        }
-
-        return simularRespuesta<void>(undefined).pipe(
-            manejarError<void>(
-                'NotificacionesMockService.marcarTodasComoLeidas',
-                undefined
-            )
-        );
-    }
+    return simularRespuesta<void>(undefined).pipe(
+      manejarError<void>(
+        'NotificacionesMockService.marcarTodasComoLeidas',
+        undefined
+      )
+    );
+  }
 }

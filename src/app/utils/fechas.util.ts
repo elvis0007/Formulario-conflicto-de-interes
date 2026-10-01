@@ -20,12 +20,12 @@ const PATRON_DMA = /^(\d{2})\/(\d{2})\/(\d{4})$/;
  * Resultado de `calcularDiasRestantes`.
  */
 export interface DiasRestantes {
-    /** Texto para mostrar: `Vence en n días`, `Vence hoy`, `Vencida hace n días`. */
-    texto: string;
-    /** `true` si la fecha limite ya paso (hoy todavia no cuenta como vencida). */
-    vencida: boolean;
-    /** Dias hasta la fecha limite: positivo si falta, 0 hoy, negativo si vencio. */
-    dias: number;
+  /** Texto para mostrar: `Vence en n días`, `Vence hoy`, `Vencida hace n días`. */
+  texto: string;
+  /** `true` si la fecha limite ya paso (hoy todavia no cuenta como vencida). */
+  vencida: boolean;
+  /** Dias hasta la fecha limite: positivo si falta, 0 hoy, negativo si vencio. */
+  dias: number;
 }
 
 /**
@@ -38,33 +38,33 @@ export interface DiasRestantes {
  * (p. ej. `31/02/2026`).
  */
 export function parsearFecha(texto: string): Date {
-    const iso = PATRON_ISO.exec(texto);
-    const dma = PATRON_DMA.exec(texto);
-    let anio = 0;
-    let mes = 0;
-    let dia = 0;
-    let fecha: Date;
+  const iso = PATRON_ISO.exec(texto);
+  const dma = PATRON_DMA.exec(texto);
+  let anio = 0;
+  let mes = 0;
+  let dia = 0;
+  let fecha: Date;
 
-    if (iso !== null) {
-        anio = Number(iso[1]);
-        mes = Number(iso[2]);
-        dia = Number(iso[3]);
-    } else if (dma !== null) {
-        dia = Number(dma[1]);
-        mes = Number(dma[2]);
-        anio = Number(dma[3]);
-    } else {
-        throw new RangeError('Formato de fecha no valido: ' + texto);
-    }
+  if (iso !== null) {
+    anio = Number(iso[1]);
+    mes = Number(iso[2]);
+    dia = Number(iso[3]);
+  } else if (dma !== null) {
+    dia = Number(dma[1]);
+    mes = Number(dma[2]);
+    anio = Number(dma[3]);
+  } else {
+    throw new RangeError('Formato de fecha no valido: ' + texto);
+  }
 
-    fecha = new Date(anio, mes - 1, dia);
+  fecha = new Date(anio, mes - 1, dia);
 
-    if (fecha.getFullYear() !== anio || fecha.getMonth() !== mes - 1
-        || fecha.getDate() !== dia) {
-        throw new RangeError('La fecha no existe: ' + texto);
-    }
+  if (fecha.getFullYear() !== anio || fecha.getMonth() !== mes - 1
+    || fecha.getDate() !== dia) {
+    throw new RangeError('La fecha no existe: ' + texto);
+  }
 
-    return fecha;
+  return fecha;
 }
 
 /**
@@ -74,10 +74,10 @@ export function parsearFecha(texto: string): Date {
  * @returns Texto `dd/mm/aaaa`.
  */
 export function formatearFecha(fecha: Date): string {
-    const dia = String(fecha.getDate()).padStart(2, '0');
-    const mes = String(fecha.getMonth() + 1).padStart(2, '0');
+  const dia = String(fecha.getDate()).padStart(2, '0');
+  const mes = String(fecha.getMonth() + 1).padStart(2, '0');
 
-    return dia + '/' + mes + '/' + fecha.getFullYear();
+  return dia + '/' + mes + '/' + fecha.getFullYear();
 }
 
 /**
@@ -96,32 +96,32 @@ export function formatearFecha(fecha: Date): string {
  * no negativo.
  */
 export function calcularFechaLimite(
-    fechaInicio: string,
-    meses: number,
-    dias: number
+  fechaInicio: string,
+  meses: number,
+  dias: number
 ): string {
-    const inicio = parsearFecha(fechaInicio);
-    const mesDestino = inicio.getMonth() + meses;
-    let ultimoDiaMes = 0;
-    let limite: Date;
+  const inicio = parsearFecha(fechaInicio);
+  const mesDestino = inicio.getMonth() + meses;
+  let ultimoDiaMes = 0;
+  let limite: Date;
 
-    if (!Number.isInteger(meses) || !Number.isInteger(dias)
-        || meses < 0 || dias < 0) {
-        throw new RangeError(
-            'Plazo no valido: ' + meses + ' meses, ' + dias + ' dias'
-        );
-    }
-
-    ultimoDiaMes = new Date(inicio.getFullYear(), mesDestino + 1, 0)
-        .getDate();
-    limite = new Date(
-        inicio.getFullYear(),
-        mesDestino,
-        Math.min(inicio.getDate(), ultimoDiaMes)
+  if (!Number.isInteger(meses) || !Number.isInteger(dias)
+    || meses < 0 || dias < 0) {
+    throw new RangeError(
+      'Plazo no valido: ' + meses + ' meses, ' + dias + ' dias'
     );
-    limite.setDate(limite.getDate() + dias);
+  }
 
-    return formatearFecha(limite);
+  ultimoDiaMes = new Date(inicio.getFullYear(), mesDestino + 1, 0)
+    .getDate();
+  limite = new Date(
+    inicio.getFullYear(),
+    mesDestino,
+    Math.min(inicio.getDate(), ultimoDiaMes)
+  );
+  limite.setDate(limite.getDate() + dias);
+
+  return formatearFecha(limite);
 }
 
 /**
@@ -136,13 +136,13 @@ export function calcularFechaLimite(
  * @returns `true` si la fecha esta en el rango.
  */
 export function estaEnRangoFechas(
-    fechaIso: string,
-    desde: string,
-    hasta: string
+  fechaIso: string,
+  desde: string,
+  hasta: string
 ): boolean {
-    const dia = fechaIso.substring(0, 10);
+  const dia = fechaIso.substring(0, 10);
 
-    return (desde === '' || dia >= desde) && (hasta === '' || dia <= hasta);
+  return (desde === '' || dia >= desde) && (hasta === '' || dia <= hasta);
 }
 
 /**
@@ -156,17 +156,17 @@ export function estaEnRangoFechas(
  * si la fecha no es valida.
  */
 export function esDeUltimosDias(
-    fechaIso: string,
-    dias: number,
-    ahora: Date = new Date()
+  fechaIso: string,
+  dias: number,
+  ahora: Date = new Date()
 ): boolean {
-    const momento = new Date(fechaIso).getTime();
+  const momento = new Date(fechaIso).getTime();
 
-    if (Number.isNaN(momento)) {
-        return false;
-    }
+  if (Number.isNaN(momento)) {
+    return false;
+  }
 
-    return momento >= ahora.getTime() - dias * MS_POR_DIA;
+  return momento >= ahora.getTime() - dias * MS_POR_DIA;
 }
 
 /**
@@ -181,28 +181,28 @@ export function esDeUltimosDias(
  * @throws RangeError si `fechaLimite` no es una fecha valida.
  */
 export function calcularDiasRestantes(
-    fechaLimite: string,
-    hoy: Date = new Date()
+  fechaLimite: string,
+  hoy: Date = new Date()
 ): DiasRestantes {
-    const limite = parsearFecha(fechaLimite);
-    const utcLimite = Date.UTC(
-        limite.getFullYear(), limite.getMonth(), limite.getDate()
-    );
-    const utcHoy = Date.UTC(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
-    const dias = Math.round((utcLimite - utcHoy) / MS_POR_DIA);
-    const cantidad = Math.abs(dias);
-    const unidad = cantidad === 1 ? ' día' : ' días';
+  const limite = parsearFecha(fechaLimite);
+  const utcLimite = Date.UTC(
+    limite.getFullYear(), limite.getMonth(), limite.getDate()
+  );
+  const utcHoy = Date.UTC(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+  const dias = Math.round((utcLimite - utcHoy) / MS_POR_DIA);
+  const cantidad = Math.abs(dias);
+  const unidad = cantidad === 1 ? ' día' : ' días';
 
-    if (dias > 0) {
-        return { texto: 'Vence en ' + cantidad + unidad, vencida: false, dias };
-    }
-    if (dias === 0) {
-        return { texto: 'Vence hoy', vencida: false, dias };
-    }
+  if (dias > 0) {
+    return { texto: 'Vence en ' + cantidad + unidad, vencida: false, dias };
+  }
+  if (dias === 0) {
+    return { texto: 'Vence hoy', vencida: false, dias };
+  }
 
-    return {
-        texto: 'Vencida hace ' + cantidad + unidad,
-        vencida: true,
-        dias
-    };
+  return {
+    texto: 'Vencida hace ' + cantidad + unidad,
+    vencida: true,
+    dias
+  };
 }

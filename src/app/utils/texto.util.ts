@@ -12,11 +12,11 @@
  * @returns Texto normalizado.
  */
 export function normalizarTexto(texto: string): string {
-    return texto
-        .normalize('NFD')
-        .replace(/[̀-ͯ]/g, '')
-        .toLowerCase()
-        .trim();
+  return texto
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .trim();
 }
 
 /**
@@ -28,16 +28,16 @@ export function normalizarTexto(texto: string): string {
  * @returns `true` si hay coincidencia.
  */
 export function contieneTexto(
-    campos: readonly (string | null | undefined)[],
-    termino: string
+  campos: readonly (string | null | undefined)[],
+  termino: string
 ): boolean {
-    const buscado = normalizarTexto(termino);
+  const buscado = normalizarTexto(termino);
 
-    if (buscado === '') {
-        return true;
-    }
+  if (buscado === '') {
+    return true;
+  }
 
-    return campos.some(
-        (campo) => campo != null && normalizarTexto(campo).includes(buscado)
-    );
+  return campos.some(
+    (campo) => campo != null && normalizarTexto(campo).includes(buscado)
+  );
 }

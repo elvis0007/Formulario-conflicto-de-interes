@@ -8,9 +8,9 @@ import { Component } from '@angular/core';
  * @author Elvis Flores
  */
 @Component({
-    selector: 'app-rrhh-dashboard',
-    template: '<h2>Dashboard RRHH</h2>',
-    styleUrl: './rrhh-dashboard.component.scss'
+  selector: 'app-rrhh-dashboard',
+  template: '<h2>Dashboard RRHH</h2>',
+  styleUrl: './rrhh-dashboard.component.scss'
 })
 export class RrhhDashboardComponent {
 }

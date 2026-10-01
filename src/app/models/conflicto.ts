@@ -9,28 +9,28 @@ import { Clasificacion, Relacion, Riesgo } from './tipos-conflicto';
  * @author Elvis Flores
  */
 export interface Conflicto {
-    id: string;
-    personaA: Persona;
-    /** Papel de la persona A en el conflicto (p. ej. `Jefe`). */
-    rolA: string;
-    personaB: Persona;
-    /** Papel de la persona B en el conflicto (p. ej. `Subordinado`). */
-    rolB: string;
-    /**
-     * Texto que describe el vinculo cuando es igual en ambos sentidos
-     * (p. ej. `Hermanos`); si no existe se muestran `rolA` y `rolB`.
-     */
-    etiquetaSimetrica?: string;
-    relacion: Relacion;
-    /** Grado de parentesco (1 = padres/hijos ... 4 = primos). */
-    grado: 1 | 2 | 3 | 4;
-    riesgo: Riesgo;
-    clasificacion: Clasificacion;
-    /** Explicacion de por que se asigno el nivel de `riesgo`. */
-    motivoRiesgo: string;
-    /** Datos que llevaron a detectar el conflicto (formularios, nombres...). */
-    evidenciasDeteccion: string[];
-    /** Fecha de deteccion (ISO 8601). */
-    fechaDeteccion: string;
-    planes: PlanAccion[];
+  id: string;
+  personaA: Persona;
+  /** Papel de la persona A en el conflicto (p. ej. `Jefe`). */
+  rolA: string;
+  personaB: Persona;
+  /** Papel de la persona B en el conflicto (p. ej. `Subordinado`). */
+  rolB: string;
+  /**
+   * Texto que describe el vinculo cuando es igual en ambos sentidos
+   * (p. ej. `Hermanos`); si no existe se muestran `rolA` y `rolB`.
+   */
+  etiquetaSimetrica?: string;
+  relacion: Relacion;
+  /** Grado de parentesco (1 = padres/hijos ... 4 = primos). */
+  grado: 1 | 2 | 3 | 4;
+  riesgo: Riesgo;
+  clasificacion: Clasificacion;
+  /** Explicacion de por que se asigno el nivel de `riesgo`. */
+  motivoRiesgo: string;
+  /** Datos que llevaron a detectar el conflicto (formularios, nombres...). */
+  evidenciasDeteccion: string[];
+  /** Fecha de deteccion (ISO 8601). */
+  fechaDeteccion: string;
+  planes: PlanAccion[];
 }

@@ -1,12 +1,12 @@
 <div class="grupo" role="group" [attr.aria-label]="etiquetaGrupo">
-    @for (opcion of opciones; track opcion.valor) {
-        <button
-            type="button"
-            class="pill"
-            [class.pill--seleccionada]="opcion.valor === seleccionado"
-            [style.background-color]="fondo(opcion)"
-            [style.border-color]="fondo(opcion)"
-            [attr.aria-pressed]="opcion.valor === seleccionado"
-            (click)="elegir(opcion)">{{ texto(opcion) }}</button>
-    }
+  @for (opcion of opciones; track opcion.valor) {
+    <button
+      type="button"
+      class="pill"
+      [class.pill--seleccionada]="opcion.valor === seleccionado"
+      [style.background-color]="fondo(opcion)"
+      [style.border-color]="fondo(opcion)"
+      [attr.aria-pressed]="opcion.valor === seleccionado"
+      (click)="elegir(opcion)">{{ texto(opcion) }}</button>
+  }
 </div>

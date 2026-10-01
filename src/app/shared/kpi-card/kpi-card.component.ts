@@ -17,43 +17,43 @@ import { Tono } from '../../utils/tono.util';
  * @author Elvis Flores
  */
 @Component({
-    selector: 'app-kpi-card',
-    imports: [NgTemplateOutlet],
-    templateUrl: './kpi-card.component.html',
-    styleUrl: './kpi-card.component.scss'
+  selector: 'app-kpi-card',
+  imports: [NgTemplateOutlet],
+  templateUrl: './kpi-card.component.html',
+  styleUrl: './kpi-card.component.scss'
 })
 export class KpiCardComponent {
-    /** Texto descriptivo del indicador. */
-    @Input({ required: true }) titulo!: string;
+  /** Texto descriptivo del indicador. */
+  @Input({ required: true }) titulo!: string;
 
-    /** Valor del indicador. */
-    @Input({ required: true }) valor!: string | number;
+  /** Valor del indicador. */
+  @Input({ required: true }) valor!: string | number;
 
-    /** Color del numero; si no se indica, usa `--ink`. */
-    @Input() tono?: Tono;
+  /** Color del numero; si no se indica, usa `--ink`. */
+  @Input() tono?: Tono;
 
-    /** Si la tarjeta esta seleccionada como filtro. */
-    @Input() activo = false;
+  /** Si la tarjeta esta seleccionada como filtro. */
+  @Input() activo = false;
 
-    /** Si la tarjeta responde al clic. */
-    @Input() clicable = false;
+  /** Si la tarjeta responde al clic. */
+  @Input() clicable = false;
 
-    /** Se emite al hacer clic, solo si la tarjeta es `clicable`. */
-    @Output() seleccionado = new EventEmitter<void>();
+  /** Se emite al hacer clic, solo si la tarjeta es `clicable`. */
+  @Output() seleccionado = new EventEmitter<void>();
 
-    /**
-     * @returns Variable CSS del color del numero.
-     */
-    get colorValor(): string {
-        return this.tono ? 'var(--' + this.tono + ')' : 'var(--ink)';
+  /**
+   * @returns Variable CSS del color del numero.
+   */
+  get colorValor(): string {
+    return this.tono ? 'var(--' + this.tono + ')' : 'var(--ink)';
+  }
+
+  /**
+   * Emite `seleccionado` si la tarjeta es clicable.
+   */
+  alSeleccionar(): void {
+    if (this.clicable) {
+      this.seleccionado.emit();
     }
-
-    /**
-     * Emite `seleccionado` si la tarjeta es clicable.
-     */
-    alSeleccionar(): void {
-        if (this.clicable) {
-            this.seleccionado.emit();
-        }
-    }
+  }
 }

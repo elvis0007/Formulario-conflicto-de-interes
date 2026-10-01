@@ -9,9 +9,9 @@ import { Component } from '@angular/core';
  * @author Elvis Flores
  */
 @Component({
-    selector: 'app-plan-responsable-detalle',
-    template: '<h2>Detalle del plan</h2>',
-    styleUrl: './plan-responsable-detalle.component.scss'
+  selector: 'app-plan-responsable-detalle',
+  template: '<h2>Detalle del plan</h2>',
+  styleUrl: './plan-responsable-detalle.component.scss'
 })
 export class PlanResponsableDetalleComponent {
 }

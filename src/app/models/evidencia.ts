@@ -7,13 +7,13 @@ import { Archivo } from './archivo';
  * @author Elvis Flores
  */
 export interface Evidencia {
-    archivo: Archivo;
-    /** Fecha y hora de subida, en formato ISO 8601. */
-    fechaSubida: string;
-    /** Resultado de la revision de RRHH. */
-    estado: 'pendiente' | 'aprobada' | 'rechazada';
-    /** Explicacion de RRHH; solo existe si `estado` es `rechazada`. */
-    motivoRechazo?: string;
-    /** Nombre de quien reviso la evidencia. */
-    revisadoPor?: string;
+  archivo: Archivo;
+  /** Fecha y hora de subida, en formato ISO 8601. */
+  fechaSubida: string;
+  /** Resultado de la revision de RRHH. */
+  estado: 'pendiente' | 'aprobada' | 'rechazada';
+  /** Explicacion de RRHH; solo existe si `estado` es `rechazada`. */
+  motivoRechazo?: string;
+  /** Nombre de quien reviso la evidencia. */
+  revisadoPor?: string;
 }

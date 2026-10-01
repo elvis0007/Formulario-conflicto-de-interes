@@ -8,9 +8,9 @@ import { Component } from '@angular/core';
  * @author Elvis Flores
  */
 @Component({
-    selector: 'app-analisis-conflicto',
-    template: '<h2>Análisis de conflictos</h2>',
-    styleUrl: './analisis-conflicto.component.scss'
+  selector: 'app-analisis-conflicto',
+  template: '<h2>Análisis de conflictos</h2>',
+  styleUrl: './analisis-conflicto.component.scss'
 })
 export class AnalisisConflictoComponent {
 }

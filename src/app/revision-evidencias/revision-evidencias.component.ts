@@ -8,9 +8,9 @@ import { Component } from '@angular/core';
  * @author Elvis Flores
  */
 @Component({
-    selector: 'app-revision-evidencias',
-    template: '<h2>Revisión de evidencias</h2>',
-    styleUrl: './revision-evidencias.component.scss'
+  selector: 'app-revision-evidencias',
+  template: '<h2>Revisión de evidencias</h2>',
+  styleUrl: './revision-evidencias.component.scss'
 })
 export class RevisionEvidenciasComponent {
 }
