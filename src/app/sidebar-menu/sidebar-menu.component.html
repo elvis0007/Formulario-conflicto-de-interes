@@ -9,7 +9,7 @@
       <h2 class="menu-title">Menú</h2>
     </div>
     <nav class="admin-nav">
-      <!-- PNIP-CI: menú según el rol (pnip-ci.menus.ts). El grupo
+      <!-- PNIP-CI: menú según el rol (menu-items.ts). El grupo
            «Formularios» contiene los 3 botones de siempre, sin cambios. -->
       @for (item of menu; track item.etiqueta) {
         @if (item.formulariosHost || item.hijos) {

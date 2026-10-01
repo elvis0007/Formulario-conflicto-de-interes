@@ -8,10 +8,10 @@
   flex: 1;
 }
 
-/* PNIP-CI: en /pnip/** el menú lateral y la pantalla van en fila, con el
-   mismo acomodo que en /admin (AdminComponent: menú sticky bajo la cabecera
+/* PNIP-CI: en /rrhh/** y /responsable/** el menú lateral y la pantalla van
+   en fila, con el mismo acomodo que en /admin (AdminComponent: menú sticky bajo la cabecera
    de 64px y contenido flexible). El resto de rutas no usa esta clase. */
-.app-main--pnip {
+.app-main--gestion {
   display: flex;
   align-items: flex-start;
 
@@ -27,14 +27,14 @@
 
 /* La pantalla del módulo (hermana siguiente de <router-outlet>). La crea el
    router de forma dinámica, sin el atributo de encapsulación de este
-   componente: por eso ::ng-deep, acotado a .app-main--pnip. */
-:host ::ng-deep .app-main--pnip > router-outlet + * {
+   componente: por eso ::ng-deep, acotado a .app-main--gestion. */
+:host ::ng-deep .app-main--gestion > router-outlet + * {
   flex: 1;
   min-width: 0;
 }
 
 @media (max-width: 768px) {
-  .app-main--pnip {
+  .app-main--gestion {
     flex-direction: column;
     align-items: stretch;
 

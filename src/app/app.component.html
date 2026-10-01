@@ -1,10 +1,10 @@
 <div class="app-container">
   <app-header *ngIf="!esLoginRoute"></app-header>
-  <main class="app-main" [class.app-main--pnip]="esRutaPnip">
-    <!-- PNIP-CI: en /pnip/** el menú lateral real va junto al contenido,
-         igual que en /admin. En el resto de rutas no se pinta. -->
+  <main class="app-main" [class.app-main--gestion]="esRutaGestion">
+    <!-- PNIP-CI: en /rrhh/** y /responsable/** el menú lateral real va junto
+         al contenido, igual que en /admin. En el resto de rutas no se pinta. -->
     <app-sidebar-menu
-      *ngIf="esRutaPnip"
+      *ngIf="esRutaGestion"
       [activeSection]="null"
       [canViewList]="puedeVerListaFormularios"
     ></app-sidebar-menu>

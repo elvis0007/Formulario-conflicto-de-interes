@@ -478,7 +478,7 @@ export class AuthService {
     this.actualizarRolesDesdeUsuario(usuarioDev);
 
     console.warn('[AuthService] SESIÓN SIMULADA DE DESARROLLO activa, rol:',
-      rol, '(PNIP-CI-AUTH-SIMULADA). No se validó contra intranet.');
+      rol, '(SISCI-DEV-SESION-SIMULADA). No se validó contra intranet.');
   }
 
   // FIN — BLOQUE AGREGADO POR ELVIS

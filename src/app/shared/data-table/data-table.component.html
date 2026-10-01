@@ -1,0 +1,95 @@
+<div class="marco">
+    <div class="desplazable">
+        <table
+            class="tabla"
+            [class.tabla--navy]="variante === 'navy'"
+            [attr.aria-label]="etiqueta || null">
+            <thead>
+                <tr>
+                    @for (columna of columnas; track columna.titulo) {
+                        <th
+                            scope="col"
+                            [style.width]="columna.ancho ?? null"
+                            [style.text-align]="columna.alinear ?? null">
+                            {{ columna.titulo }}
+                        </th>
+                    }
+                </tr>
+            </thead>
+            <tbody>
+                @for (v of vista; track v.clave) {
+                    <tr
+                        class="fila"
+                        [class.fila--par]="v.indice % 2 === 1"
+                        [class.fila--expandida]="expandidas.has(v.clave)">
+                        @if (plantillaFila) {
+                            <ng-container
+                                [ngTemplateOutlet]="plantillaFila.plantilla"
+                                [ngTemplateOutletContext]="{
+                                    $implicit: v.fila,
+                                    indice: v.indice,
+                                    expandida: expandidas.has(v.clave),
+                                    alternar: v.alternar,
+                                    idDetalle: idDetalle(v.clave)
+                                }" />
+                        }
+                    </tr>
+                    @if (plantillaDetalle && expandidas.has(v.clave)) {
+                        <tr class="fila-detalle" [id]="idDetalle(v.clave)">
+                            <td [attr.colspan]="columnas.length">
+                                <ng-container
+                                    [ngTemplateOutlet]="plantillaDetalle.plantilla"
+                                    [ngTemplateOutletContext]="{
+                                        $implicit: v.fila,
+                                        indice: v.indice,
+                                        expandida: true,
+                                        alternar: v.alternar,
+                                        idDetalle: idDetalle(v.clave)
+                                    }" />
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+
+    @if (filas.length === 0) {
+        <div class="vacio">
+            <ng-content select="[appVacio]" />
+        </div>
+    }
+
+    <div class="paginacion">
+        <label class="tamano">
+            Mostrar
+            <select
+                [value]="tamanoPagina"
+                (change)="cambiarTamano($any($event.target).value)">
+                @for (opcion of tamanosPagina; track opcion) {
+                    <option [value]="opcion" [selected]="opcion === tamanoPagina">
+                        {{ opcion }}
+                    </option>
+                }
+            </select>
+            registros
+        </label>
+
+        <span class="pagina" aria-live="polite">
+            Página {{ paginaActual }} de {{ totalPaginas }}
+        </span>
+
+        <div class="controles">
+            <button
+                type="button"
+                class="boton-pagina"
+                [disabled]="paginaActual === 1"
+                (click)="anterior()">« Anterior</button>
+            <button
+                type="button"
+                class="boton-pagina"
+                [disabled]="paginaActual === totalPaginas"
+                (click)="siguiente()">Siguiente »</button>
+        </div>
+    </div>
+</div>

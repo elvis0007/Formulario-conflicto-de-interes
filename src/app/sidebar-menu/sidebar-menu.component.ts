@@ -4,8 +4,8 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterLink } from '@angular/router';
 import { filter } from 'rxjs';
 import { AuthService } from '../services/auth.service';
-import { MENU_RESPONSABLE, MENU_RRHH } from '../pnip-ci/pnip-ci.menus';
-import { ItemMenu, buscarGrupo, buscarItemActivo } from '../pnip-ci/core/utils/menu.util';
+import { MENU_RESPONSABLE, MENU_RRHH } from './menu-items';
+import { ItemMenu, buscarGrupo, buscarItemActivo } from './item-menu';
 
 type SidebarSection = 'form' | 'list';
 
@@ -24,8 +24,9 @@ const RUTA_PDF_EXCUSA = '/sisci/assets/FORMULARIO_DE_EXCUSAS_EV_EEASA.pdf';
   styleUrl: './sidebar-menu.component.scss'
 })
 export class SidebarMenuComponent implements OnInit, OnChanges {
-  // PNIP-CI: `null` cuando el menú está fuera de /admin (en /pnip), donde
-  // ninguna de las dos vistas de AdminComponent está activa.
+  // PNIP-CI: `null` cuando el menú está fuera de /admin (en /rrhh o
+  // /responsable), donde ninguna de las dos vistas de AdminComponent está
+  // activa.
   @Input() activeSection: SidebarSection | null = 'form';
   @Input() canViewList: boolean = false;
 

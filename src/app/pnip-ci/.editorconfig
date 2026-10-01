@@ -1,7 +1,0 @@
-# Formato propio del modulo PNIP-CI (ver CONVENTIONS.md).
-# Hereda el resto de reglas del .editorconfig raiz del proyecto; solo cambia
-# la indentacion a 4 espacios y el largo de linea, segun el estandar EEASA.
-
-[*.{ts,html,scss}]
-indent_size = 4
-max_line_length = 80

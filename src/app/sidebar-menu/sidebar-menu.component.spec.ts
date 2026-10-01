@@ -3,6 +3,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 import { SidebarMenuComponent } from './sidebar-menu.component';
+import { RUTAS } from '../app.paths';
 
 /** Pantalla vacía para las rutas de prueba. */
 @Component({ template: '' })
@@ -54,7 +55,7 @@ describe('SidebarMenuComponent (menú real ampliado)', () => {
     });
   });
 
-  describe('fuera de /admin (como lo pinta AppComponent en /pnip)', () => {
+  describe('fuera de /admin (como lo pinta AppComponent en /rrhh y /responsable)', () => {
     let fixture: ComponentFixture<SidebarMenuComponent>;
 
     /** Crea el menú sin nadie escuchando sus eventos. */
@@ -97,13 +98,13 @@ describe('SidebarMenuComponent (menú real ampliado)', () => {
       roles = ['R'];
       const raiz = crear();
 
-      expect(item(raiz, 'Historial').getAttribute('href')).toBe('/pnip/rrhh/historial');
-      expect(item(raiz, 'Dashboard').getAttribute('href')).toBe('/pnip/rrhh/dashboard');
+      expect(item(raiz, 'Historial').getAttribute('href')).toBe(RUTAS.rrhh.historial);
+      expect(item(raiz, 'Dashboard').getAttribute('href')).toBe(RUTAS.rrhh.dashboard);
     });
 
     it('en Plan de Acción abre «Conflicto» y resalta Análisis', async () => {
       roles = ['R'];
-      await TestBed.inject(Router).navigateByUrl('/pnip/rrhh/conflictos/C-001/planes/PL-002');
+      await TestBed.inject(Router).navigateByUrl(RUTAS.rrhh.conflictos + 'C-001/planes/PL-002');
       const raiz = crear();
 
       expect(item(raiz, 'Análisis de Conflictos').classList).toContain('active');

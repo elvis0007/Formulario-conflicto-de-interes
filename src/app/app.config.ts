@@ -38,16 +38,16 @@ export const appConfig: ApplicationConfig = {
       // del Router y de AppComponent, así que corre antes que los guards.
       if (!environment.production) {
         const reactivarSesionSimuladaDev = (): void => {
-          if (localStorage.getItem('PNIP-CI-AUTH-SIMULADA') === 'true'
+          if (localStorage.getItem('SISCI-DEV-SESION-SIMULADA') === 'true'
             && !authSrv.isAuthenticated()) {
-            authSrv.activarSesionSimuladaDev(localStorage.getItem('PNIP-CI-ROL-DEV') ?? 'R');
+            authSrv.activarSesionSimuladaDev(localStorage.getItem('SISCI-DEV-ROL') ?? 'R');
           }
         };
         window.addEventListener('popstate', reactivarSesionSimuladaDev);
         window.addEventListener('hashchange', reactivarSesionSimuladaDev);
       }
-      if (!environment.production && localStorage.getItem('PNIP-CI-AUTH-SIMULADA') === 'true') {
-        const rolDev = localStorage.getItem('PNIP-CI-ROL-DEV') ?? 'R';
+      if (!environment.production && localStorage.getItem('SISCI-DEV-SESION-SIMULADA') === 'true') {
+        const rolDev = localStorage.getItem('SISCI-DEV-ROL') ?? 'R';
         authSrv.activarSesionSimuladaDev(rolDev);
         return Promise.resolve(true);
       }
