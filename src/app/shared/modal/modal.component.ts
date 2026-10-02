@@ -32,7 +32,8 @@ let contadorModales = 0;
  *   cierra poniendo `abierto` en `false`.
  * - Al abrir, mueve el foco al dialogo; Tab y Shift+Tab quedan atrapados
  *   dentro; al cerrar, devuelve el foco al elemento que lo tenia antes.
- * - El cuerpo se proyecta con `<ng-content>`.
+ * - El cuerpo se proyecta con `<ng-content>`. Lo marcado con
+ *   `appModalCabecera` (p. ej. una insignia) va junto al titulo.
  *
  * Uso:
  * `<app-modal titulo="Rechazar evidencia" [abierto]="abierto"

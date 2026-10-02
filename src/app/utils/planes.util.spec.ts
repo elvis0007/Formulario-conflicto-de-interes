@@ -2,7 +2,9 @@ import { Actividad, EstadoActividad, EstadoPlan, PlanAccion } from '../models';
 import {
   calcularAvance,
   derivarEstadoPlan,
-  hayPlanActivo
+  hayPlanActivo,
+  obtenerPlanActual,
+  textoEstadoPlan
 } from './planes.util';
 
 /**
@@ -115,5 +117,44 @@ describe('planes.util', () => {
     it('true con un plan en borrador (decisión documentada)', () => {
       expect(hayPlanActivo(planes('cerrado', 'borrador'))).toBeTrue();
     });
+  });
+});
+
+describe('planes.util: textos y plan actual', () => {
+  /**
+   * @param estados Estado de cada plan, en orden de numero.
+   * @returns Planes minimos con numero 1, 2, 3...
+   */
+  function planesDe(...estados: EstadoPlan[]): PlanAccion[] {
+    return estados.map((estado, i) => ({
+      id: 'PL-' + (i + 1),
+      numero: i + 1,
+      nombre: 'Plan ' + (i + 1),
+      conflictoId: 'C-001',
+      estado,
+      actividades: []
+    }));
+  }
+
+  it('textoEstadoPlan', () => {
+    expect(textoEstadoPlan('borrador')).toBe('Borrador');
+    expect(textoEstadoPlan('activo')).toBe('Activo');
+    expect(textoEstadoPlan('activo_vencidas')).toBe('Activo · con vencidas');
+    expect(textoEstadoPlan('cerrado')).toBe('Cerrado');
+  });
+
+  it('obtenerPlanActual: sin planes, null', () => {
+    expect(obtenerPlanActual([])).toBeNull();
+  });
+
+  it('obtenerPlanActual: el que no está cerrado', () => {
+    expect(obtenerPlanActual(planesDe('cerrado', 'activo_vencidas'))?.id).toBe('PL-2');
+    expect(obtenerPlanActual(planesDe('cerrado', 'borrador'))?.id).toBe('PL-2');
+  });
+
+  it('obtenerPlanActual: si todos están cerrados, el más reciente', () => {
+    const todosCerrados = planesDe('cerrado', 'cerrado', 'cerrado').reverse();
+
+    expect(obtenerPlanActual(todosCerrados)?.id).toBe('PL-3');
   });
 });

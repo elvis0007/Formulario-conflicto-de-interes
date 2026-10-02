@@ -18,14 +18,15 @@ type ConflictoSinPlanes = Omit<Conflicto, 'planes'>;
  * | C-006 | Hermanos       | Consanguinidad | 2     | ninguno | homonimo   | 0      |
  * | C-007 | Padre/Hija     | Consanguinidad | 1     | bajo    | pendiente  | 0      |
  * | C-008 | Suegro/Nuera   | Afinidad       | 1     | medio   | confirmado | 2      |
- * | C-009 | Cónyuges       | Afinidad       | 1     | bajo    | pendiente  | 0      |
+ * | C-009 | Cónyuges       | Afinidad       | —     | bajo    | pendiente  | 0      |
  *
  * Vinculos simetricos (una sola etiqueta): Hermanos, Primas, Cuñados y
  * Cónyuges. Con roles distintos: Tío/Sobrino, Suegro/Yerno, Padre/Hija y
  * Suegro/Nuera.
  *
- * PROVISIONAL: el grado de los conyuges (aqui 1) esta por confirmar; en el
- * modelo el grado va de 1 a 4 y el vinculo conyugal no tiene grado propio.
+ * Entre conyuges no hay grado de parentesco: C-009 lleva `grado: null`
+ * («No aplica»). PENDIENTE confirmar con backend como lo devuelve el
+ * algoritmo.
  */
 const CONFLICTOS_SIN_PLANES: readonly ConflictoSinPlanes[] = [
   {
@@ -179,7 +180,7 @@ const CONFLICTOS_SIN_PLANES: readonly ConflictoSinPlanes[] = [
     rolB: 'Esposa',
     etiquetaSimetrica: 'Cónyuges',
     relacion: 'Afinidad',
-    grado: 1,
+    grado: null,
     riesgo: 'bajo',
     clasificacion: 'pendiente',
     motivoRiesgo: 'Departamentos distintos (Financiero y Comercialización) '

@@ -2,6 +2,7 @@ import {
   Clasificacion,
   Conflicto,
   EstadoAnalisis,
+  GradoParentesco,
   Riesgo
 } from '../models';
 import { TODOS } from './filtros-listados.util';
@@ -30,8 +31,11 @@ const TEXTO_ESTADO_ANALISIS: Readonly<Record<EstadoAnalisis, string>> = {
   validado: 'Validado'
 };
 
+/** Texto cuando no hay grado de parentesco (conyuges). */
+export const TEXTO_SIN_GRADO = 'No aplica';
+
 /** Ordinal abreviado de cada grado de parentesco. */
-const ORDINAL_GRADO: Readonly<Record<Conflicto['grado'], string>> = {
+const ORDINAL_GRADO: Readonly<Record<GradoParentesco, string>> = {
   1: '1er',
   2: '2do',
   3: '3er',
@@ -88,12 +92,13 @@ export function textoEstadoAnalisis(estado: EstadoAnalisis): string {
 /**
  * Texto del grado de parentesco.
  *
- * @param grado Grado (1 a 4).
- * @returns «1er grado», «2do grado», «3er grado» o «4to grado».
+ * @param grado Grado (1 a 4), o `null` si no hay grado (conyuges).
+ * @returns «1er grado», «2do grado», «3er grado», «4to grado» o
+ * «No aplica».
  * @author Elvis Flores
  */
-export function textoGrado(grado: Conflicto['grado']): string {
-  return ORDINAL_GRADO[grado] + ' grado';
+export function textoGrado(grado: GradoParentesco | null): string {
+  return grado === null ? TEXTO_SIN_GRADO : ORDINAL_GRADO[grado] + ' grado';
 }
 
 /**

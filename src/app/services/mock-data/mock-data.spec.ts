@@ -87,12 +87,14 @@ describe('cobertura de los conflictos de ejemplo (Análisis de Conflictos)', () 
     return [...new Set(valores)].sort();
   }
 
-  it('cubren los 4 riesgos, las 2 relaciones y los grados 1 a 4', () => {
+  it('cubren los 4 riesgos, las 2 relaciones, los grados 1 a 4 y «sin grado»', () => {
     expect(distintos(CONFLICTOS.map((c) => c.riesgo)))
       .toEqual(['alto', 'bajo', 'medio', 'ninguno']);
     expect(distintos(CONFLICTOS.map((c) => c.relacion)))
       .toEqual(['Afinidad', 'Consanguinidad']);
-    expect(distintos(CONFLICTOS.map((c) => c.grado))).toEqual([1, 2, 3, 4]);
+    expect(distintos(CONFLICTOS.map((c) => c.grado))).toEqual([1, 2, 3, 4, null]);
+    expect(CONFLICTOS.filter((c) => c.grado === null).map((c) => c.etiquetaSimetrica))
+      .withContext('solo los cónyuges no tienen grado').toEqual(['Cónyuges']);
   });
 
   it('cubren las 3 clasificaciones', () => {

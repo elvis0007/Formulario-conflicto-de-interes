@@ -11,47 +11,60 @@
       <p class="resumen">
         Generado el {{ analisis.fechaGeneracion | fechaLarga }}
         <span class="resumen-separador" aria-hidden="true">·</span>
-        <strong class="resumen-pendientes">{{ textoPendientes }}</strong>
+        <strong class="resumen-pendientes" [class.resumen-pendientes--listo]="pendientes === 0">{{ textoPendientes }}</strong>
+        <span class="resumen-separador" aria-hidden="true">·</span>
+        <button type="button" class="enlace" (click)="abrirHistorial()">Análisis anteriores</button>
       </p>
     }
   </div>
 
   <div class="acciones-encabezado">
-    @if (hayAnalisis) {
-      <button
-        type="button"
-        class="boton boton--primario"
-        [disabled]="generando"
-        [attr.aria-busy]="generando"
-        (click)="generarAnalisis()">
-        @if (generando) {
-          <span class="cargando" aria-hidden="true"></span>
-          Generando…
-        } @else {
-          <app-icono nombre="analisis" [tamano]="16" />
-          Generar análisis
-        }
+    <div class="acciones-botones">
+      @if (hayAnalisis) {
+        <button
+          type="button"
+          class="boton boton--primario"
+          [disabled]="generando"
+          [attr.aria-busy]="generando"
+          (click)="generarAnalisis()">
+          @if (generando) {
+            <span class="cargando" aria-hidden="true"></span>
+            Generando…
+          } @else {
+            <app-icono nombre="analisis" [tamano]="16" />
+            Generar análisis
+          }
+        </button>
+      }
+      <button type="button" class="boton" (click)="verFormularios()">
+        <app-icono nombre="bandeja" [tamano]="16" />
+        Ver formularios
       </button>
-    }
-    <button type="button" class="boton" (click)="verFormularios()">
-      <app-icono nombre="bandeja" [tamano]="16" />
-      Ver formularios
-    </button>
-    @if (hayAnalisis) {
-      <button
-        type="button"
-        class="boton"
-        [class.boton--hecho]="descargado.activa"
-        [attr.aria-disabled]="descargado.activa"
-        (click)="descargarExcel()">
-        <app-icono nombre="excel" [tamano]="16" />
-        {{ descargado.activa ? 'Descargado ✓' : 'Descargar Excel' }}
-      </button>
-      <!-- Día 6: validar el análisis (bloquea la clasificación). -->
-      <button type="button" class="boton boton--validar">
-        <app-icono nombre="check" [tamano]="16" />
-        Validar análisis
-      </button>
+      @if (hayAnalisis) {
+        <button
+          type="button"
+          class="boton"
+          [class.boton--hecho]="descargado.activa"
+          [attr.aria-disabled]="descargado.activa"
+          (click)="descargarExcel()">
+          <app-icono nombre="excel" [tamano]="16" />
+          {{ descargado.activa ? 'Descargado ✓' : 'Descargar Excel' }}
+        </button>
+      }
+      @if (hayAnalisis && !estaValidado) {
+        <button
+          type="button"
+          class="boton boton--validar"
+          [disabled]="!puedeValidar"
+          [attr.aria-describedby]="pendientes > 0 ? 'ayuda-validar' : null"
+          (click)="pedirValidacion()">
+          <app-icono nombre="check" [tamano]="16" />
+          Validar análisis
+        </button>
+      }
+    </div>
+    @if (hayAnalisis && !estaValidado && pendientes > 0) {
+      <p id="ayuda-validar" class="ayuda ayuda--encabezado">{{ ayudaValidar }}</p>
     }
   </div>
 </header>
@@ -81,7 +94,13 @@
     [claveFila]="claveFila"
     [tamanoPagina]="tamanoPagina"
     [tamanosPagina]="tamanosPagina">
-    <ng-template appFila [appFilaDe]="filasFiltradas" let-fila>
+    <ng-template
+      appFila
+      [appFilaDe]="filasFiltradas"
+      let-fila
+      let-expandida="expandida"
+      let-alternar="alternar"
+      let-idDetalle="idDetalle">
       <td [class.archivada]="fila.archivado">
         <div
           class="involucrados"
@@ -111,18 +130,171 @@
         <app-badge [tono]="fila.tonoClasificacion" [texto]="fila.textoClasificacion" />
       </td>
       <td class="centrado" [class.archivada]="fila.archivado">
-        <!-- Día 6: abre el modal «Ver detalles». -->
-        <button type="button" class="boton boton--tabla">
+        <button type="button" class="boton boton--tabla" (click)="abrirDetalle(fila)">
           <app-icono nombre="ojo" [tamano]="16" />
           Ver detalles
         </button>
       </td>
-      <td class="no-partir planes-provisional" [class.archivada]="fila.archivado">
-        <!-- Día 6: columna real de planes (crear, ver, lista desplegable). -->
-        {{ fila.textoPlanes }}
+      <td class="celda-planes" [class.archivada]="fila.archivado">
+        @switch (fila.tipoPlanes) {
+          @case ('archivado') {
+            <span class="archivado">Archivado</span>
+          }
+          @case ('pendiente') {
+            <button
+              type="button"
+              class="boton boton--tabla"
+              disabled
+              [attr.aria-describedby]="'ayuda-plan-' + fila.conflicto.id">+ Crear plan de acción</button>
+            <span class="ayuda" [id]="'ayuda-plan-' + fila.conflicto.id">Clasifica el caso primero</span>
+          }
+          @case ('crear') {
+            <button
+              type="button"
+              class="boton boton--primario boton--tabla"
+              [disabled]="!estaValidado"
+              [attr.aria-describedby]="estaValidado ? null : 'ayuda-plan-' + fila.conflicto.id"
+              (click)="crearPlan(fila)">+ Crear plan de acción</button>
+            @if (!estaValidado) {
+              <span class="ayuda" [id]="'ayuda-plan-' + fila.conflicto.id">Valida el análisis primero</span>
+            }
+          }
+          @case ('uno') {
+            <a class="boton boton--tabla" [routerLink]="fila.planes[0].ruta">Ver plan de acción</a>
+          }
+          @case ('varios') {
+            @if (fila.planActual; as actual) {
+              <div class="plan-actual">
+                <div class="plan-actual-texto">
+                  <span class="plan-actual-titulo">{{ actual.titulo }}</span>
+                  <app-badge [tono]="actual.tonoEstado" [texto]="actual.textoEstado" />
+                  <span class="plan-actual-total">{{ fila.planes.length }} planes</span>
+                </div>
+                <app-expand-arrow-button
+                  [expandido]="expandida"
+                  [controla]="idDetalle"
+                  [etiqueta]="'los planes del conflicto ' + fila.conflicto.id"
+                  (alternar)="alternar()" />
+              </div>
+            }
+          }
+        }
       </td>
+    </ng-template>
+
+    <ng-template appDetalle [appDetalleDe]="filasFiltradas" let-fila>
+      <div class="planes-lista">
+        <h3 class="planes-lista-titulo">Planes de este conflicto ({{ fila.planes.length }})</h3>
+        <ul class="planes">
+          @for (vista of fila.planes; track vista.plan.id) {
+            <li class="plan" [class.plan--actual]="vista.actual">
+              <span class="plan-nombre">
+                {{ vista.titulo }}
+                @if (vista.actual) {
+                  <span class="marca-actual">· actual</span>
+                }
+              </span>
+              <app-badge [tono]="vista.tonoEstado" [texto]="vista.textoEstado" />
+              <span class="plan-dato">Inicio: {{ vista.inicio }}</span>
+              <span class="plan-dato">{{ vista.avance }}</span>
+              <a class="plan-abrir" [routerLink]="vista.ruta">Abrir plan →</a>
+            </li>
+          }
+        </ul>
+      </div>
     </ng-template>
 
     <p appVacio class="sin-resultados">No hay casos con ese nivel de riesgo.</p>
   </app-data-table>
 }
+
+<!-- Ver detalles -->
+<app-modal
+  ancho="ancho"
+  [titulo]="tituloDetalle"
+  [abierto]="detalle !== null"
+  (cerrar)="cerrarDetalle()">
+  <app-badge
+    appModalCabecera
+    [tono]="detalle?.tonoRiesgo ?? 'gris'"
+    [texto]="'Riesgo ' + (detalle?.textoRiesgo ?? '').toLowerCase()" />
+  @if (detalle) {
+    <app-detalle-conflicto
+      [conflicto]="detalle.conflicto"
+      [editable]="!estaValidado"
+      [guardando]="guardandoClasificacion"
+      [error]="errorClasificacion"
+      (guardar)="guardarClasificacion($event)"
+      (cancelar)="cerrarDetalle()" />
+  }
+</app-modal>
+
+<!-- Confirmar «Validar análisis» -->
+<app-modal
+  titulo="Validar análisis"
+  [abierto]="confirmandoValidar"
+  (cerrar)="confirmandoValidar = false">
+  <p class="confirmacion-texto">
+    Una vez validado no se podrá cambiar la clasificación de ningún caso.
+  </p>
+  <div class="confirmacion-botones">
+    <button type="button" class="boton" [disabled]="validando" (click)="confirmandoValidar = false">Cancelar</button>
+    <button
+      type="button"
+      class="boton boton--validar"
+      [disabled]="validando"
+      [attr.aria-busy]="validando"
+      (click)="confirmarValidacion()">{{ validando ? 'Validando…' : 'Validar análisis' }}</button>
+  </div>
+</app-modal>
+
+<!-- Confirmar «Generar análisis» sobre un Validado -->
+<app-modal
+  titulo="Generar análisis"
+  [abierto]="confirmandoGenerar"
+  (cerrar)="confirmandoGenerar = false">
+  <p class="confirmacion-texto">
+    Se creará un análisis nuevo en borrador. El actual quedará guardado en el historial.
+  </p>
+  <div class="confirmacion-botones">
+    <button type="button" class="boton" (click)="confirmandoGenerar = false">Cancelar</button>
+    <button type="button" class="boton boton--primario" (click)="confirmarGenerar()">Generar análisis</button>
+  </div>
+</app-modal>
+
+<!-- Análisis anteriores -->
+<app-modal
+  titulo="Análisis anteriores"
+  [abierto]="historialAbierto"
+  (cerrar)="historialAbierto = false">
+  @if (historial === null) {
+    <p role="status">Cargando…</p>
+  } @else if (historial.length === 0) {
+    <p class="historial-vacio">Aún no hay análisis anteriores.</p>
+  } @else {
+    <table class="historial">
+      <thead>
+        <tr>
+          <th scope="col">Generado</th>
+          <th scope="col">Estado</th>
+          <th scope="col" class="numero">Casos</th>
+          <th scope="col" class="numero">Confirmados</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (anterior of historial; track anterior.id) {
+          <tr>
+            <td>{{ anterior.fechaGeneracion | fechaLarga }}</td>
+            <td>
+              <app-badge
+                [tono]="tonoEstadoHistorial(anterior.estado)"
+                [texto]="textoEstadoHistorial(anterior.estado)" />
+            </td>
+            <td class="numero">{{ anterior.totalCasos }}</td>
+            <td class="numero">{{ anterior.confirmados }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+</app-modal>

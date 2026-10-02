@@ -69,4 +69,8 @@ describe('GradoParentescoPipe', () => {
     expect(pipe.transform(3)).toBe('3er grado');
     expect(pipe.transform(4)).toBe('4to grado');
   });
+
+  it('sin grado muestra «No aplica»', () => {
+    expect(pipe.transform(null)).toBe('No aplica');
+  });
 });

@@ -28,6 +28,11 @@ describe('analisis.util', () => {
     expect(textoGrado(4)).toBe('4to grado');
   });
 
+  it('textoGrado: sin grado (cónyuges) es «No aplica»', () => {
+    expect(textoGrado(null)).toBe('No aplica');
+    expect(conflicto('C-009').grado).toBeNull();
+  });
+
   it('textos de riesgo, clasificación y estado', () => {
     expect(textoRiesgo('medio')).toBe('Moderado');
     expect(textoRiesgo('ninguno')).toBe('Ninguno');

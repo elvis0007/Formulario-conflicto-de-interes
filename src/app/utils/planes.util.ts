@@ -101,3 +101,44 @@ export function calcularAvance(actividades: readonly Actividad[]): AvancePlan {
 export function hayPlanActivo(planes: readonly PlanAccion[]): boolean {
   return planes.some((plan) => ESTADOS_PLAN_VIGENTE.includes(plan.estado));
 }
+
+/** Texto de cada estado de plan (especificacion, seccion 3). */
+const TEXTO_ESTADO_PLAN: Readonly<Record<EstadoPlan, string>> = {
+  borrador: 'Borrador',
+  activo: 'Activo',
+  activo_vencidas: 'Activo · con vencidas',
+  cerrado: 'Cerrado'
+};
+
+/**
+ * @param estado Estado de un plan de accion.
+ * @returns «Borrador», «Activo», «Activo · con vencidas» o «Cerrado».
+ * @author Elvis Flores
+ */
+export function textoEstadoPlan(estado: EstadoPlan): string {
+  return TEXTO_ESTADO_PLAN[estado];
+}
+
+/**
+ * Plan «actual» de un conflicto: el que no esta cerrado (solo puede haber
+ * uno, ver `hayPlanActivo`) o, si todos estan cerrados, el mas reciente
+ * (mayor `numero`).
+ *
+ * @param planes Planes del conflicto.
+ * @returns El plan actual, o `null` si no hay planes.
+ * @author Elvis Flores
+ */
+export function obtenerPlanActual(planes: readonly PlanAccion[]): PlanAccion | null {
+  const vigente = planes.find((plan) => plan.estado !== 'cerrado');
+
+  if (vigente !== undefined) {
+    return vigente;
+  }
+
+  return planes.reduce<PlanAccion | null>(
+    (masReciente, plan) => masReciente === null || plan.numero > masReciente.numero
+      ? plan
+      : masReciente,
+    null
+  );
+}

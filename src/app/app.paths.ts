@@ -58,6 +58,22 @@ export const RUTAS = {
   }
 } as const;
 
+/** Valor de `:planId` para crear un plan nuevo (`.../planes/nuevo`). */
+export const PLAN_NUEVO = 'nuevo';
+
+/**
+ * URL del plan de accion de un conflicto.
+ *
+ * @param conflictoId Id del conflicto.
+ * @param planId Id del plan, o `PLAN_NUEVO` para crear uno.
+ * @returns `/rrhh/conflictos/:conflictoId/planes/:planId`.
+ * @author Elvis Flores
+ */
+export function rutaPlanAccion(conflictoId: string, planId: string): string {
+  return RUTAS.rrhh.conflictos + encodeURIComponent(conflictoId)
+    + '/planes/' + encodeURIComponent(planId);
+}
+
 /**
  * Prefijos de las rutas de gestion de conflictos. Su acceso lo controla
  * `rolGuard`, no `authGuard`.

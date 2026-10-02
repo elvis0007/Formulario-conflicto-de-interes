@@ -14,6 +14,12 @@ export type Riesgo = 'alto' | 'medio' | 'bajo' | 'ninguno';
 export type Relacion = 'Consanguinidad' | 'Afinidad';
 
 /**
+ * Grado de parentesco: 1 (padres/hijos, suegros/yernos) a 4 (primos).
+ * Entre conyuges no hay grado: ese caso usa `null` (ver `Conflicto.grado`).
+ */
+export type GradoParentesco = 1 | 2 | 3 | 4;
+
+/**
  * Resultado de la revision de RRHH sobre un conflicto detectado.
  *
  * - `pendiente`: aun no revisado.

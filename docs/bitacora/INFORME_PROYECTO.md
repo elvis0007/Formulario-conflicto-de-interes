@@ -1178,3 +1178,97 @@ builds de development y producción compilan.
   hay que decidir si regenerar un análisis validado está permitido.
 - **`docs/Especificacion_Front_PNIP-CI.md`** no está en git: se leyó como
   referencia y no se incluyó en el commit.
+
+## Día 6 — Análisis de Conflictos: detalles, clasificación, validación, planes e historial (02/10/2026)
+
+Segunda mitad de `/rrhh/analisis-conflictos` (especificación §6.5). La
+especificación del front quedó en git (`docs/Especificacion_Front_PNIP-CI.md`,
+commit aparte) y enlazada desde `ARQUITECTURA.md`. Sus rutas sugeridas
+(`/pnip/...`) son anteriores a la integración y no se tocaron.
+
+### Decisiones de negocio (confirmadas por Elvis)
+
+- **Grado entre cónyuges:** no hay grado de parentesco. `Conflicto.grado`
+  admite `null` (tipo `GradoParentesco | null`) y la tabla y el modal
+  muestran «No aplica». C-009 pasó de 1 (provisional) a `null`.
+  **PENDIENTE con backend:** cómo devuelve el algoritmo este caso.
+- **Historial de análisis:** cada análisis generado se guarda, Borrador o
+  Validado. Generar crea uno nuevo en Borrador (con id `AN-001`,
+  `AN-002`…) y el anterior pasa al historial sin cambios.
+  - `obtenerHistorialAnalisis()` devuelve un resumen de cada anterior, del
+    más reciente al más antiguo: fecha, estado, casos y confirmados.
+  - El modal «Análisis anteriores» es de solo lectura; no abre un análisis
+    viejo completo.
+  - Si el actual está Validado, «Generar análisis» pide confirmación. Esto
+    resuelve el pendiente del Día 5 sobre regenerar un análisis validado.
+
+### Decisiones de implementación
+
+- **Servicio** (`AnalisisMockService`):
+  - Métodos nuevos: `actualizarClasificacion(id, clasificacion,
+    observacion)` y `validarAnalisis()`. Devuelven `true`/`false` y pasan
+    por `manejarError`.
+  - Las reglas también se cumplen en el servicio, no solo en la pantalla:
+    solo se clasifica en Borrador y solo se valida sin pendientes.
+  - La observación se guarda en `Conflicto.observacionClasificacion`.
+  - Todo queda en memoria del servicio: al salir de la pantalla y volver,
+    los cambios siguen ahí.
+- **«Ver detalles»:**
+  - El cuerpo es un componente aparte, `DetalleConflictoComponent`
+    (`analisis-conflicto/detalle-conflicto/`), para que la pantalla no
+    crezca demasiado.
+  - Las tres clasificaciones son tarjetas con un radio real dentro, así
+    funcionan con teclado y lector de pantalla.
+  - En solo lectura se ve la opción elegida, la observación y el aviso «El
+    análisis está validado…», sin radios ni botón de guardar.
+- **Badge de riesgo en la cabecera del modal:** `ModalComponent` acepta
+  ahora contenido marcado con `appModalCabecera` junto al título.
+- **Clasificar o validar no cambia de página:** las filas se actualizan en
+  su lugar, sin reconstruir la lista que recibe `DataTableComponent`, que
+  vuelve a la página 1 cada vez que cambian las filas.
+- **«Validar análisis»:**
+  - Con pendientes, el botón está deshabilitado y debajo dice «Clasifica
+    los n casos pendientes para poder validar» (en singular si queda uno).
+  - Una vez validado, el botón desaparece; la insignia ya dice
+    «Validado».
+- **Columna «Plan de acción»:**
+  - Homónimo: «Archivado».
+  - Pendiente: crear deshabilitado, con la ayuda «Clasifica el caso
+    primero».
+  - Confirmado sin planes: crear se habilita solo con el análisis Validado
+    (si no, ayuda «Valida el análisis primero») y navega a
+    `/rrhh/conflictos/:id/planes/nuevo`.
+  - Un plan: «Ver plan de acción».
+  - Varios planes: tarjeta del plan actual con la flecha y la lista
+    desplegable, usando la fila de detalle de `DataTableComponent`.
+  - Las rutas salen de `rutaPlanAccion()` y `PLAN_NUEVO` en `app.paths.ts`.
+    La ruta con `nuevo` llega al placeholder de Plan de Acción (Día 7).
+- **Plan actual** (`obtenerPlanActual` en `planes.util.ts`): el que no está
+  cerrado (solo puede haber uno) o, si todos lo están, el de mayor número.
+  También es nuevo `textoEstadoPlan()`.
+
+### Verificación (sesión simulada como R, Edge headless)
+
+| Paso | Resultado |
+|---|---|
+| Generar | Borrador; «Validar análisis» deshabilitado con «Clasifica los 3 casos pendientes para poder validar». |
+| Ver detalles (C-005) | Cabecera con nombres y «Riesgo moderado»; franja Cuñados · Afinidad · 2do grado; dos tarjetas con «—» en lo que falta; riesgo identificado; cómo se detectó; las tres opciones. |
+| Clasificar los 3 pendientes | Cada guardado cierra el modal y actualiza el badge y el contador (3 → 2 → 1 → «Todos los casos están clasificados»). El homónimo queda atenuado y «Archivado». Con eso se habilita «Validar análisis». |
+| Validar | Confirmación «Una vez validado no se podrá cambiar…»; insignia «Validado». Los confirmados sin plan habilitan «+ Crear plan de acción». |
+| Reclasificar | El modal muestra la clasificación en solo lectura: sin radios ni «Guardar». |
+| Varios planes (C-001) | Tarjeta «Plan 02 · Rotación…» «Activo · con vencidas». Al desplegar: Plan 01 Cerrado y Plan 02 «· actual», con inicio y «x de y actividades cumplidas». |
+| Abrir plan / crear plan | `/rrhh/conflictos/C-001/planes/PL-001` y `/rrhh/conflictos/C-005/planes/nuevo` llegan al placeholder. Al volver, el análisis sigue Validado. |
+| Generar sobre el Validado | Confirmación; análisis nuevo en Borrador. «Análisis anteriores»: el anterior, Validado, 9 casos, 7 confirmados. |
+| Cónyuges | Grado «No aplica». |
+
+Pruebas: 249 pasan y fallan las 3 antiguas de `app.component.spec`. Los
+builds de development y producción compilan.
+
+### Pendiente / a tener en cuenta
+
+- **Con backend:** cómo devuelve el algoritmo el grado entre cónyuges
+  (hoy `null`).
+- **Datos de ejemplo:** no hay ningún caso confirmado sin planes de
+  entrada. El de «+ Crear plan de acción» aparece al confirmar C-005, C-007
+  o C-009, que es el flujo real.
+- **«Descargar Excel»** sigue siendo solo una confirmación visual.

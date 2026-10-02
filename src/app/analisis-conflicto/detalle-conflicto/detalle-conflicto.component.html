@@ -1,0 +1,108 @@
+<dl class="franja">
+  <div class="franja-dato">
+    <dt>Parentesco</dt>
+    <dd>{{ parentesco }}</dd>
+  </div>
+  <div class="franja-dato">
+    <dt>Relación</dt>
+    <dd>{{ conflicto.relacion }}</dd>
+  </div>
+  <div class="franja-dato">
+    <dt>Grado</dt>
+    <dd class="franja-grado">{{ conflicto.grado | gradoParentesco }}</dd>
+  </div>
+</dl>
+
+<div class="personas">
+  @for (persona of personas; track $index) {
+    <section class="persona" [attr.aria-label]="persona.nombre">
+      <header class="persona-cabecera">
+        <h3 class="persona-nombre">{{ persona.nombre }}</h3>
+        <span class="persona-rol">{{ persona.rol }}</span>
+      </header>
+      <dl class="persona-datos">
+        @for (dato of persona.datos; track dato.etiqueta) {
+          <div class="persona-dato">
+            <dt>{{ dato.etiqueta }}</dt>
+            <dd>{{ dato.valor }}</dd>
+          </div>
+        }
+      </dl>
+    </section>
+  }
+</div>
+
+<section class="bloque">
+  <h3 class="bloque-titulo">Riesgo identificado</h3>
+  <p class="motivo">{{ conflicto.motivoRiesgo }}</p>
+</section>
+
+<section class="bloque">
+  <h3 class="bloque-titulo">Cómo se detectó</h3>
+  <ul class="evidencias">
+    @for (evidencia of conflicto.evidenciasDeteccion; track $index) {
+      <li>{{ evidencia }}</li>
+    }
+  </ul>
+</section>
+
+<section class="bloque clasificacion">
+  <h3 class="bloque-titulo">Clasificación del caso</h3>
+
+  @if (editable) {
+    <fieldset class="opciones">
+      <legend class="solo-lectores">Clasificación del caso</legend>
+      @for (opcion of opciones; track opcion.valor) {
+        <label class="opcion" [class.opcion--elegida]="seleccion === opcion.valor">
+          <input
+            type="radio"
+            class="opcion-radio"
+            [name]="nombreGrupo"
+            [value]="opcion.valor"
+            [(ngModel)]="seleccion"
+            [disabled]="guardando" />
+          <span class="opcion-titulo">{{ opcion.titulo }}</span>
+          <span class="opcion-descripcion">{{ opcion.descripcion }}</span>
+        </label>
+      }
+    </fieldset>
+
+    <label class="observacion">
+      <span class="observacion-etiqueta">Observación <span class="opcional">(opcional)</span></span>
+      <textarea
+        class="observacion-campo"
+        rows="3"
+        [maxLength]="largoMaximo"
+        [(ngModel)]="observacion"
+        [disabled]="guardando"></textarea>
+    </label>
+
+    @if (error) {
+      <p class="error" role="alert">{{ error }}</p>
+    }
+
+    <div class="botones">
+      <button type="button" class="boton" [disabled]="guardando" (click)="cancelar.emit()">Cancelar</button>
+      <button
+        type="button"
+        class="boton boton--primario"
+        [disabled]="guardando"
+        [attr.aria-busy]="guardando"
+        (click)="alGuardar()">
+        {{ guardando ? 'Guardando…' : 'Guardar clasificación' }}
+      </button>
+    </div>
+  } @else {
+    <p class="aviso-validado">
+      El análisis está validado: la clasificación ya no se puede cambiar.
+    </p>
+    <div class="opcion opcion--elegida opcion--lectura">
+      <span class="opcion-titulo">{{ opcionElegida.titulo }}</span>
+      <span class="opcion-descripcion">{{ opcionElegida.descripcion }}</span>
+    </div>
+    <p class="observacion-lectura">
+      <span class="observacion-etiqueta">Observación:</span>
+      {{ observacion || 'Sin observación.' }}
+    </p>
+  }
+</section>

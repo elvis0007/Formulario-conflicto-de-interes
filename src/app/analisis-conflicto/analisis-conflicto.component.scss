@@ -36,8 +36,9 @@
 
 .acciones-encabezado {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
 }
 
 // Boton de aprobar: verde, segun el sistema de diseno.
@@ -187,4 +188,198 @@
   overflow: hidden;
   clip: rect(0 0 0 0);
   white-space: nowrap;
+}
+
+.acciones-botones {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.boton--validar:disabled {
+  border-color: var(--border);
+  background-color: var(--surface);
+  color: var(--text3);
+  filter: none;
+}
+
+.resumen-pendientes--listo {
+  color: var(--green-text);
+}
+
+// Boton con aspecto de enlace («Análisis anteriores»).
+.enlace {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent-700);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--accent-900);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+}
+
+// Texto de ayuda de un boton deshabilitado.
+.ayuda {
+  display: block;
+  margin-top: 4px;
+  color: var(--text3);
+  font-size: 12px;
+}
+
+.ayuda--encabezado {
+  margin: 0;
+  text-align: right;
+}
+
+.boton--tabla:disabled {
+  opacity: 0.6;
+}
+
+// Columna «Plan de acción».
+.celda-planes {
+  min-width: 190px;
+}
+
+.archivado {
+  color: var(--text3);
+  font-weight: 600;
+}
+
+.plan-actual {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.plan-actual-texto {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  min-width: 0;
+}
+
+.plan-actual-titulo {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.plan-actual-total {
+  color: var(--text3);
+  font-size: 12px;
+}
+
+// Lista desplegable de los planes de un conflicto.
+.planes-lista {
+  padding: 4px 4px 4px 12px;
+  border-left: 3px solid var(--accent-300);
+}
+
+.planes-lista-titulo {
+  margin: 0 0 8px;
+  font-family: var(--font-condensed);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.planes {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.plan {
+  display: grid;
+  grid-template-columns: minmax(220px, 2fr) auto minmax(120px, 1fr) minmax(170px, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  background-color: var(--paper);
+  font-size: 13px;
+}
+
+.plan--actual {
+  border-color: var(--accent);
+}
+
+.plan-nombre {
+  font-weight: 600;
+}
+
+.marca-actual {
+  color: var(--accent-700);
+  font-weight: 700;
+}
+
+.plan-dato {
+  color: var(--text2);
+}
+
+.plan-abrir {
+  color: var(--accent-700);
+  font-weight: 600;
+  white-space: nowrap;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+// Modales de confirmacion e historial.
+.confirmacion-texto {
+  margin: 0 0 16px;
+}
+
+.confirmacion-botones {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.historial-vacio {
+  margin: 0;
+  color: var(--text2);
+}
+
+.historial {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+
+  th {
+    padding: 8px 10px;
+    background-color: var(--surface);
+    color: var(--text2);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-align: left;
+    text-transform: uppercase;
+  }
+
+  td {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--hairline);
+  }
+
+  .numero {
+    text-align: right;
+  }
 }

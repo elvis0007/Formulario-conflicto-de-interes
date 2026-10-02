@@ -41,6 +41,14 @@ $duracion: 160ms;
   border-bottom: 1px solid var(--hairline);
 }
 
+.cabecera-texto {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
 .titulo {
   margin: 0;
   font-family: var(--font-condensed);

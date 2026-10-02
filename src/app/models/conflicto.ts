@@ -1,6 +1,6 @@
 import { Persona } from './persona';
 import { PlanAccion } from './plan-accion';
-import { Clasificacion, Relacion, Riesgo } from './tipos-conflicto';
+import { Clasificacion, GradoParentesco, Relacion, Riesgo } from './tipos-conflicto';
 
 /**
  * Relacion de parentesco detectada entre dos personas de la empresa que
@@ -22,10 +22,15 @@ export interface Conflicto {
    */
   etiquetaSimetrica?: string;
   relacion: Relacion;
-  /** Grado de parentesco (1 = padres/hijos ... 4 = primos). */
-  grado: 1 | 2 | 3 | 4;
+  /**
+   * Grado de parentesco (1 = padres/hijos ... 4 = primos). `null` cuando
+   * no hay grado: entre conyuges. La pantalla muestra «No aplica».
+   */
+  grado: GradoParentesco | null;
   riesgo: Riesgo;
   clasificacion: Clasificacion;
+  /** Observacion opcional que RRHH dejo al clasificar el caso. */
+  observacionClasificacion?: string;
   /** Explicacion de por que se asigno el nivel de `riesgo`. */
   motivoRiesgo: string;
   /** Datos que llevaron a detectar el conflicto (formularios, nombres...). */

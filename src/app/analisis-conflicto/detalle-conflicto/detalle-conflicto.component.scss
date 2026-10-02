@@ -1,0 +1,259 @@
+// Los tokens (--ink, --accent...) los hereda de la pantalla de Análisis,
+// que los define en su :host.
+@use '../../../styles/listados';
+
+@include listados.estilos;
+
+:host {
+  display: block;
+  font-family: var(--font-sans);
+}
+
+dl,
+dd {
+  margin: 0;
+}
+
+.franja {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 28px;
+  margin-bottom: 18px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  background-color: var(--accent-100);
+
+  dt {
+    color: var(--text3);
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  dd {
+    font-weight: 600;
+  }
+}
+
+.personas {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+@media (max-width: 720px) {
+  .personas {
+    grid-template-columns: 1fr;
+  }
+}
+
+.persona {
+  padding: 14px 16px;
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  background-color: var(--paper);
+}
+
+.persona-cabecera {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.persona-nombre {
+  margin: 0;
+  font-family: var(--font-condensed);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.persona-rol {
+  color: var(--text3);
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.persona-datos {
+  display: grid;
+  gap: 4px;
+}
+
+.persona-dato {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: 8px;
+  font-size: 13px;
+
+  dt {
+    color: var(--text3);
+  }
+}
+
+.bloque {
+  margin-bottom: 16px;
+}
+
+.bloque-titulo {
+  margin: 0 0 6px;
+  font-family: var(--font-condensed);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.motivo {
+  margin: 0;
+  color: var(--text2);
+}
+
+.evidencias {
+  margin: 0;
+  padding-left: 20px;
+  color: var(--text2);
+}
+
+.clasificacion {
+  margin-bottom: 0;
+  padding-top: 14px;
+  border-top: 1px solid var(--hairline);
+}
+
+.opciones {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0 0 12px;
+  padding: 0;
+  border: 0;
+}
+
+@media (max-width: 720px) {
+  .opciones {
+    grid-template-columns: 1fr;
+  }
+}
+
+// Tarjeta seleccionable: el radio real queda dentro, accesible con
+// teclado (flechas) y lector de pantalla.
+.opcion {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 14px 12px 38px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background-color: var(--paper);
+  cursor: pointer;
+
+  &:hover {
+    border-color: var(--accent);
+  }
+
+  &:focus-within {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+}
+
+.opcion--elegida {
+  border-color: var(--accent);
+  background-color: var(--accent-100);
+}
+
+.opcion--lectura {
+  padding-left: 14px;
+  cursor: default;
+}
+
+.opcion-radio {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  margin: 0;
+  accent-color: var(--accent-700);
+}
+
+.opcion-titulo {
+  font-weight: 700;
+}
+
+.opcion-descripcion {
+  color: var(--text2);
+  font-size: 12.5px;
+}
+
+.observacion {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.observacion-etiqueta {
+  color: var(--text2);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.opcional {
+  color: var(--text3);
+  font-weight: 400;
+}
+
+.observacion-campo {
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+  resize: vertical;
+
+  &:focus {
+    border-color: var(--accent);
+    outline: 2px solid var(--accent-300);
+    outline-offset: 0;
+  }
+}
+
+.aviso-validado {
+  margin: 0 0 10px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background-color: var(--green-fill);
+  color: var(--green-text);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.observacion-lectura {
+  margin: 10px 0 0;
+  color: var(--text2);
+}
+
+.error {
+  margin: 0 0 10px;
+  color: var(--red-text);
+  font-weight: 600;
+}
+
+.botones {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.solo-lectores {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

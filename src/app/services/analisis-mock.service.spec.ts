@@ -1,4 +1,5 @@
 import { TestBed, fakeAsync, tick } from '@angular/core/testing';
+import { Observable } from 'rxjs';
 import { AnalisisConflictos } from '../models';
 import { AnalisisMockService, LATENCIA_GENERACION_MS } from './analisis-mock.service';
 import { CONFLICTOS } from './mock-data/conflictos.data';
@@ -66,5 +67,118 @@ describe('AnalisisMockService', () => {
     primero?.conflictos.splice(0);
 
     expect(obtenerActual()?.conflictos.length).toBe(CONFLICTOS.length);
+  }));
+});
+
+describe('AnalisisMockService: clasificación, validación e historial', () => {
+  let servicio: AnalisisMockService;
+
+  /**
+   * Suscribe a un observable del servicio y espera su latencia.
+   *
+   * @param fuente Observable a esperar.
+   * @param ms Tiempo a esperar.
+   * @returns El valor emitido.
+   */
+  function esperar<T>(fuente: Observable<T>, ms = LATENCIA_SIMULADA_MS): T | undefined {
+    let valor: T | undefined;
+
+    fuente.subscribe((v) => valor = v);
+    tick(ms);
+    return valor;
+  }
+
+  /** Genera un análisis y espera. */
+  function generar(): AnalisisConflictos | undefined {
+    return esperar(servicio.generarAnalisis(), LATENCIA_GENERACION_MS);
+  }
+
+  /** Clasifica como confirmados todos los pendientes del análisis actual. */
+  function clasificarPendientes(): void {
+    const actual = esperar(servicio.obtenerAnalisisActual());
+
+    for (const caso of actual?.conflictos.filter((c) => c.clasificacion === 'pendiente') ?? []) {
+      esperar(servicio.actualizarClasificacion(caso.id, 'confirmado', ''));
+    }
+  }
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({});
+    servicio = TestBed.inject(AnalisisMockService);
+    spyOn(console, 'error');
+  });
+
+  it('cada análisis generado tiene su propio id', fakeAsync(() => {
+    expect(generar()?.id).toBe('AN-001');
+    expect(generar()?.id).toBe('AN-002');
+  }));
+
+  it('clasificar guarda la clasificación y la observación en memoria', fakeAsync(() => {
+    generar();
+
+    expect(esperar(servicio.actualizarClasificacion('C-005', 'confirmado', '  Revisado.  ')))
+      .toBeTrue();
+
+    const caso = esperar(servicio.obtenerAnalisisActual())?.conflictos.find((c) => c.id === 'C-005');
+    expect(caso?.clasificacion).toBe('confirmado');
+    expect(caso?.observacionClasificacion).toBe('Revisado.');
+  }));
+
+  it('clasificar un caso que no existe devuelve false', fakeAsync(() => {
+    generar();
+    expect(esperar(servicio.actualizarClasificacion('NO-EXISTE', 'confirmado', ''))).toBeFalse();
+  }));
+
+  it('no se puede validar con casos pendientes', fakeAsync(() => {
+    generar();
+
+    expect(esperar(servicio.validarAnalisis())).toBeFalse();
+    expect(esperar(servicio.obtenerAnalisisActual())?.estado).toBe('borrador');
+  }));
+
+  it('sin pendientes se valida y ya no se puede reclasificar', fakeAsync(() => {
+    generar();
+    clasificarPendientes();
+
+    expect(esperar(servicio.validarAnalisis())).toBeTrue();
+    expect(esperar(servicio.obtenerAnalisisActual())?.estado).toBe('validado');
+    expect(esperar(servicio.actualizarClasificacion('C-001', 'homonimo', ''))).toBeFalse();
+    expect(esperar(servicio.obtenerAnalisisActual())?.conflictos.find((c) => c.id === 'C-001')
+      ?.clasificacion).toBe('confirmado');
+  }));
+
+  it('sin análisis anteriores, el historial está vacío', fakeAsync(() => {
+    generar();
+    expect(esperar(servicio.obtenerHistorialAnalisis())).toEqual([]);
+  }));
+
+  it('generar sobre un Validado crea uno nuevo en Borrador y guarda el anterior intacto', fakeAsync(() => {
+    const primero = generar();
+    clasificarPendientes();
+    esperar(servicio.validarAnalisis());
+
+    const segundo = generar();
+    const historial = esperar(servicio.obtenerHistorialAnalisis());
+
+    expect(segundo?.estado).toBe('borrador');
+    expect(segundo?.id).not.toBe(primero?.id);
+    expect(historial).toEqual([{
+      id: primero?.id ?? '',
+      fechaGeneracion: primero?.fechaGeneracion ?? '',
+      estado: 'validado',
+      totalCasos: CONFLICTOS.length,
+      confirmados: CONFLICTOS.filter((c) => c.clasificacion !== 'homonimo').length
+    }]);
+  }));
+
+  it('generar sobre un Borrador también lo guarda en el historial', fakeAsync(() => {
+    generar();
+    generar();
+    generar();
+
+    const historial = esperar(servicio.obtenerHistorialAnalisis());
+    expect(historial?.map((h) => h.id)).withContext('del más reciente al más antiguo')
+      .toEqual(['AN-002', 'AN-001']);
+    expect(historial?.every((h) => h.estado === 'borrador')).toBeTrue();
   }));
 });

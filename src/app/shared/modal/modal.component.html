@@ -13,7 +13,10 @@
       tabindex="-1"
       (keydown)="alPresionarTecla($event)">
       <header class="cabecera">
-        <h2 class="titulo" [id]="idTitulo">{{ titulo }}</h2>
+        <div class="cabecera-texto">
+          <h2 class="titulo" [id]="idTitulo">{{ titulo }}</h2>
+          <ng-content select="[appModalCabecera]" />
+        </div>
         <button
           type="button"
           class="boton-cerrar"
