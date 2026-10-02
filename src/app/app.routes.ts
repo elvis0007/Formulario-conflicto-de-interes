@@ -4,9 +4,11 @@ import { ConflictFormComponent } from './conflict-form/conflict-form.component';
 import { LoginComponent } from './login/login.component';
 import { MisFormulariosComponent } from './mis-formularios/mis-formularios.component';
 import { authGuard } from './guards/auth.guard';
-// [PNIP-CI] Elvis Flores - 01/10/2026
-// Qué hace: guard de rol y paths de las pantallas de gestión de conflictos.
+// [PNIP-CI] Elvis Flores - 02/10/2026
+// Qué hace: guards (rol y cambios sin guardar) y paths de las pantallas de
+// gestión de conflictos.
 import { DATO_ROL_REQUERIDO, rolGuard } from './guards/rol.guard';
+import { cambiosSinGuardarGuard } from './guards/cambios-sin-guardar.guard';
 import { SEGMENTO_RESPONSABLE, SEGMENTO_RRHH, SEGMENTOS, esRutaDeGestion } from './app.paths';
 // [FIN PNIP-CI]
 
@@ -54,10 +56,11 @@ export const routes: Routes = [
     component: MisFormulariosComponent,
     canActivate: [authGuard]
   },
-  // [PNIP-CI] Elvis Flores - 01/10/2026
+  // [PNIP-CI] Elvis Flores - 02/10/2026
   // Qué hace: pantallas de RRHH (/rrhh/**). No usan authGuard: sesion y rol
   // los controla rolGuard, una vez para todo el grupo. Cada pantalla se
-  // carga de forma diferida.
+  // carga de forma diferida. Plan de Acción pide confirmación antes de
+  // salir con cambios sin guardar (cambiosSinGuardarGuard).
   {
     path: SEGMENTO_RRHH,
     canActivate: [rolGuard],
@@ -81,6 +84,7 @@ export const routes: Routes = [
       },
       {
         path: SEGMENTOS.rrhh.planAccion,
+        canDeactivate: [cambiosSinGuardarGuard],
         loadComponent: () => import('./plan-accion-detalle/plan-accion-detalle.component')
           .then((m) => m.PlanAccionDetalleComponent)
       },

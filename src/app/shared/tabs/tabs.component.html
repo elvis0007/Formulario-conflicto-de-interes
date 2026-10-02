@@ -12,6 +12,11 @@
       [attr.aria-controls]="idPanel(pestana.valor)"
       [attr.tabindex]="pestana.valor === seleccionada ? 0 : -1"
       (click)="elegir(pestana.valor)"
-      (keydown)="alPresionarTecla($event, i)">{{ texto(pestana) }}</button>
+      (keydown)="alPresionarTecla($event, i)">
+      {{ texto(pestana) }}
+      @if (pestana.insignia) {
+        <app-badge class="insignia" [tono]="pestana.insignia.tono" [texto]="pestana.insignia.texto" />
+      }
+    </button>
   }
 </div>

@@ -7,6 +7,8 @@ import {
   QueryList,
   ViewChildren
 } from '@angular/core';
+import { Tono } from '../../utils/tono.util';
+import { BadgeComponent } from '../badge/badge.component';
 
 /**
  * Pestana de `TabsComponent`.
@@ -20,6 +22,8 @@ export interface Pestana {
   contador?: number;
   /** Se ve atenuada (p. ej. un plan cerrado); sigue siendo elegible. */
   atenuada?: boolean;
+  /** Insignia junto al texto (p. ej. el estado de un plan). */
+  insignia?: { texto: string; tono: Tono };
 }
 
 /**
@@ -41,6 +45,7 @@ export interface Pestana {
  */
 @Component({
   selector: 'app-tabs',
+  imports: [BadgeComponent],
   templateUrl: './tabs.component.html',
   styleUrl: './tabs.component.scss'
 })

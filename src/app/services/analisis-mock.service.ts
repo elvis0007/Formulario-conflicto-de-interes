@@ -1,5 +1,5 @@
-import { Injectable } from '@angular/core';
-import { Observable, defer, throwError } from 'rxjs';
+import { Injectable, inject } from '@angular/core';
+import { Observable, defer, forkJoin, map, throwError } from 'rxjs';
 import {
   AnalisisConflictos,
   Clasificacion,
@@ -9,6 +9,7 @@ import { contarPendientes } from '../utils/analisis.util';
 import { manejarError } from '../utils/manejar-error';
 import { CONFLICTOS } from './mock-data/conflictos.data';
 import { simularRespuesta } from './mock-data/simular-respuesta';
+import { PlanesMockService } from './planes-mock.service';
 
 /**
  * Latencia de «Generar análisis», en ms. Es mayor que la de una consulta
@@ -48,6 +49,10 @@ const ANALISIS_VACIO: AnalisisConflictos = {
  * se vuelve, los cambios siguen ahi. Al iniciar la app no hay ningun
  * analisis generado.
  *
+ * Los planes de cada caso NO son parte del analisis: se piden a
+ * `PlanesMockService` al devolverlo, asi siempre son los vigentes (un plan
+ * creado o guardado en Plan de Acción aparece aqui).
+ *
  * @author Elvis Flores
  */
 @Injectable({
@@ -63,6 +68,8 @@ export class AnalisisMockService {
   /** Correlativo para los ids de los analisis (AN-001, AN-002...). */
   private correlativo = 0;
 
+  private readonly planesServicio = inject(PlanesMockService);
+
   /**
    * Obtiene el analisis vigente.
    *
@@ -70,7 +77,7 @@ export class AnalisisMockService {
    * genero o si la consulta falla.
    */
   obtenerAnalisisActual(): Observable<AnalisisConflictos> {
-    return simularRespuesta(this.analisis).pipe(
+    return this.conPlanesVigentes(simularRespuesta(this.analisis)).pipe(
       manejarError<AnalisisConflictos>(
         'AnalisisMockService.obtenerAnalisisActual',
         structuredClone(ANALISIS_VACIO)
@@ -98,7 +105,7 @@ export class AnalisisMockService {
       conflictos: structuredClone([...CONFLICTOS])
     };
 
-    return simularRespuesta(this.analisis, LATENCIA_GENERACION_MS).pipe(
+    return this.conPlanesVigentes(simularRespuesta(this.analisis, LATENCIA_GENERACION_MS)).pipe(
       manejarError<AnalisisConflictos>(
         'AnalisisMockService.generarAnalisis',
         structuredClone(ANALISIS_VACIO)
@@ -177,6 +184,27 @@ export class AnalisisMockService {
       return simularRespuesta(true);
     }).pipe(
       manejarError<boolean>('AnalisisMockService.validarAnalisis', false)
+    );
+  }
+
+  /**
+   * Reemplaza los planes de cada caso por los vigentes de
+   * `PlanesMockService`. Ambas consultas corren en paralelo.
+   *
+   * @param analisis$ Respuesta del analisis.
+   * @returns El analisis con los planes vigentes de cada caso.
+   */
+  private conPlanesVigentes(analisis$: Observable<AnalisisConflictos>): Observable<AnalisisConflictos> {
+    return forkJoin([analisis$, this.planesServicio.obtenerPlanes()]).pipe(
+      map(([analisis, planes]) => ({
+        ...analisis,
+        conflictos: analisis.conflictos.map((c) => ({
+          ...c,
+          planes: planes
+            .filter((p) => p.conflictoId === c.id)
+            .sort((a, b) => a.numero - b.numero)
+        }))
+      }))
     );
   }
 }

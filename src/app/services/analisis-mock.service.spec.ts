@@ -4,6 +4,7 @@ import { AnalisisConflictos } from '../models';
 import { AnalisisMockService, LATENCIA_GENERACION_MS } from './analisis-mock.service';
 import { CONFLICTOS } from './mock-data/conflictos.data';
 import { LATENCIA_SIMULADA_MS } from './mock-data/simular-respuesta';
+import { PlanesMockService } from './planes-mock.service';
 
 describe('AnalisisMockService', () => {
   let servicio: AnalisisMockService;
@@ -180,5 +181,32 @@ describe('AnalisisMockService: clasificación, validación e historial', () => {
     expect(historial?.map((h) => h.id)).withContext('del más reciente al más antiguo')
       .toEqual(['AN-002', 'AN-001']);
     expect(historial?.every((h) => h.estado === 'borrador')).toBeTrue();
+  }));
+});
+
+describe('AnalisisMockService: planes vigentes', () => {
+  it('cada caso trae los planes actuales de PlanesMockService', fakeAsync(() => {
+    TestBed.configureTestingModule({});
+    const servicio = TestBed.inject(AnalisisMockService);
+    const planes = TestBed.inject(PlanesMockService);
+    let analisis: AnalisisConflictos | undefined;
+
+    servicio.generarAnalisis().subscribe();
+    tick(LATENCIA_GENERACION_MS);
+    planes.guardarBorrador({
+      id: '',
+      numero: 0,
+      nombre: 'Plan nuevo',
+      conflictoId: 'C-005',
+      estado: 'borrador',
+      actividades: []
+    }).subscribe();
+    tick(LATENCIA_SIMULADA_MS);
+
+    servicio.obtenerAnalisisActual().subscribe((a) => analisis = a);
+    tick(LATENCIA_SIMULADA_MS);
+
+    expect(analisis?.conflictos.find((c) => c.id === 'C-005')?.planes.map((p) => p.nombre))
+      .toEqual(['Plan nuevo']);
   }));
 });

@@ -1,0 +1,290 @@
+<a class="volver" [routerLink]="rutaAnalisis">← Volver a Análisis de Conflictos</a>
+
+@switch (estado) {
+  @case ('cargando') {
+    <p class="cargando-texto" role="status">Cargando plan…</p>
+  }
+
+  @case ('no-encontrado') {
+    <section class="tarjeta">
+      <app-empty-state icono="buscar" texto="No se encontró el plan" />
+      <p class="tarjeta-pie"><a [routerLink]="rutaAnalisis">← Volver a Análisis de Conflictos</a></p>
+    </section>
+  }
+
+  @case ('bloqueado') {
+    <section class="aviso aviso--bloqueo" role="alert">
+      <h2 class="aviso-titulo">No se puede crear un plan nuevo para el conflicto #{{ conflicto?.id }}</h2>
+      <ul class="aviso-motivos">
+        @for (motivo of motivosBloqueo; track $index) {
+          <li>{{ motivo }}</li>
+        }
+      </ul>
+      <a class="boton" [routerLink]="rutaAnalisis">← Volver a Análisis de Conflictos</a>
+    </section>
+  }
+
+  @case ('listo') {
+    @if (plan && conflicto) {
+      <header class="encabezado">
+        <div class="encabezado-texto">
+          <span class="codigo">PNIP.CI.FR.02 · Conflicto #{{ conflicto.id }}</span>
+          <div class="titulo-linea">
+            <h2 class="titulo">{{ tituloPlan }}</h2>
+            <app-badge class="estado-plan" [tono]="tonoEstado" [texto]="textoEstado" />
+          </div>
+        </div>
+        <div class="acciones-encabezado">
+          <!-- Día 8: imprimir el formulario del plan. -->
+          <button type="button" class="boton" disabled>
+            <app-icono nombre="descargar" [tamano]="16" />
+            Imprimir formulario
+          </button>
+          @if (editable) {
+            <button
+              type="button"
+              class="boton"
+              [class.boton--hecho]="mensajeGuardado && !formulario.dirty"
+              [disabled]="guardando"
+              [attr.aria-busy]="guardando"
+              (click)="guardarBorrador()">
+              {{ guardando ? 'Guardando…' : 'Guardar borrador' }}
+            </button>
+          }
+          <!-- Día 8: requiere el documento firmado. -->
+          <button type="button" class="boton boton--primario" disabled>
+            <app-icono nombre="enviar" [tamano]="16" />
+            Enviar y notificar
+          </button>
+        </div>
+      </header>
+
+      @if (mensajeGuardado) {
+        <p class="mensaje mensaje--ok" role="status">Borrador guardado</p>
+      }
+      @if (errorGuardado) {
+        <p class="mensaje mensaje--error" role="alert">{{ errorGuardado }}</p>
+      }
+
+      <section class="planes-conflicto" aria-labelledby="titulo-planes">
+        <div class="planes-conflicto-cabecera">
+          <h3 id="titulo-planes" class="seccion-titulo">Planes de este conflicto</h3>
+          <div class="nuevo-plan">
+            <button
+              type="button"
+              class="boton"
+              [disabled]="!puedeCrearPlan"
+              [attr.aria-describedby]="hayPlanVigente ? 'ayuda-nuevo-plan' : null"
+              (click)="nuevoPlan()">+ Nuevo plan</button>
+            @if (hayPlanVigente) {
+              <p id="ayuda-nuevo-plan" class="ayuda">{{ mensajePlanVigente }}</p>
+            }
+          </div>
+        </div>
+        <app-tabs
+          #tabs
+          idBase="planes"
+          etiqueta="Planes de este conflicto"
+          [pestanas]="pestanas"
+          [seleccionada]="pestanaActiva"
+          (cambio)="irAPlan($event)" />
+      </section>
+
+      <div
+        class="panel-plan"
+        role="tabpanel"
+        [id]="tabs.idPanel(pestanaActiva)"
+        [attr.aria-labelledby]="tabs.idPestana(pestanaActiva)">
+
+        <section class="caso" aria-label="Caso">
+          <div class="caso-dato">
+            <span class="caso-etiqueta">Empleado</span>
+            <span class="caso-valor">{{ conflicto.personaA.nombres }}</span>
+          </div>
+          <div class="caso-dato">
+            <span class="caso-etiqueta">Familiar</span>
+            <span class="caso-valor">{{ conflicto.personaB.nombres }}</span>
+          </div>
+          <div class="caso-dato">
+            <span class="caso-etiqueta">Parentesco</span>
+            <span class="caso-valor">{{ parentesco }}</span>
+          </div>
+          <div class="caso-dato">
+            <span class="caso-etiqueta">Departamento</span>
+            <span class="caso-valor">{{ conflicto.personaA.departamento }} · {{ conflicto.personaB.departamento }}</span>
+          </div>
+          <div class="caso-dato">
+            <span class="caso-etiqueta">Riesgo</span>
+            <app-badge [tono]="tonoRiesgo" [texto]="textoRiesgo" />
+          </div>
+        </section>
+
+        <p class="banner-inicio" [class]="'banner-inicio banner-inicio--' + bannerInicio.tono">
+          <strong>Fecha de inicio del plan:</strong> {{ bannerInicio.texto }}
+        </p>
+
+        @if (editable) {
+          <form class="formulario" [formGroup]="formulario" (ngSubmit)="guardarBorrador()" novalidate>
+            <label class="campo campo--nombre">
+              <span class="campo-etiqueta">Nombre del plan</span>
+              <input
+                type="text"
+                class="control"
+                formControlName="nombre"
+                maxlength="150"
+                [class.control--error]="mostrarError(formulario.controls.nombre)"
+                [attr.aria-invalid]="mostrarError(formulario.controls.nombre)"
+                aria-describedby="error-nombre" />
+              @if (mostrarError(formulario.controls.nombre)) {
+                <span id="error-nombre" class="error">Escribe el nombre del plan.</span>
+              }
+            </label>
+
+            <h3 class="seccion-titulo">Actividades</h3>
+            <div class="tabla-marco">
+              <table class="tabla-actividades">
+                <thead>
+                  <tr>
+                    <th scope="col" class="col-actividad">Actividad</th>
+                    <th scope="col" class="col-responsable">Responsable</th>
+                    <th scope="col">Plazo</th>
+                    <th scope="col">Fecha límite</th>
+                    <th scope="col"><span class="solo-lectores">Quitar</span></th>
+                  </tr>
+                </thead>
+                <tbody formArrayName="actividades">
+                  @for (fila of actividades.controls; track fila; let i = $index) {
+                    <tr class="actividad" [class.actividad--error]="filaConErrores(fila)" [formGroupName]="i">
+                      <td>
+                        <input
+                          type="text"
+                          class="control"
+                          formControlName="descripcion"
+                          maxlength="500"
+                          [attr.aria-label]="'Actividad ' + (i + 1)"
+                          [class.control--error]="mostrarError(fila.controls.descripcion)"
+                          [attr.aria-invalid]="mostrarError(fila.controls.descripcion)" />
+                        @if (mostrarError(fila.controls.descripcion)) {
+                          <span class="error">Describe la actividad.</span>
+                        }
+                      </td>
+                      <td>
+                        <select
+                          class="control"
+                          formControlName="responsableId"
+                          [attr.aria-label]="'Responsable de la actividad ' + (i + 1)"
+                          [class.control--error]="mostrarError(fila.controls.responsableId)"
+                          [attr.aria-invalid]="mostrarError(fila.controls.responsableId)">
+                          <option value="">Elige un responsable</option>
+                          @for (persona of personas; track persona.id) {
+                            <option [value]="persona.id">{{ textoPersona(persona) }}</option>
+                          }
+                        </select>
+                        @if (mostrarError(fila.controls.responsableId)) {
+                          <span class="error">Elige un responsable.</span>
+                        }
+                      </td>
+                      <td>
+                        <div class="plazo">
+                          <input
+                            type="number"
+                            class="control control--numero"
+                            formControlName="plazoMeses"
+                            min="0"
+                            step="1"
+                            [attr.aria-label]="'Meses de plazo de la actividad ' + (i + 1)"
+                            [class.control--error]="mostrarError(fila.controls.plazoMeses) || mostrarPlazoCero(fila)"
+                            [attr.aria-invalid]="mostrarError(fila.controls.plazoMeses)" />
+                          <span>meses</span>
+                          <input
+                            type="number"
+                            class="control control--numero"
+                            formControlName="plazoDias"
+                            min="0"
+                            step="1"
+                            [attr.aria-label]="'Días de plazo de la actividad ' + (i + 1)"
+                            [class.control--error]="mostrarError(fila.controls.plazoDias) || mostrarPlazoCero(fila)"
+                            [attr.aria-invalid]="mostrarError(fila.controls.plazoDias)" />
+                          <span>días</span>
+                        </div>
+                        @if (mostrarError(fila.controls.plazoMeses) || mostrarError(fila.controls.plazoDias)) {
+                          <span class="error">Usa números enteros, 0 o más.</span>
+                        } @else if (mostrarPlazoCero(fila)) {
+                          <span class="error">El plazo no puede ser 0.</span>
+                        }
+                      </td>
+                      <td class="fecha-limite">
+                        <span>{{ fechaLimite(fila.controls.plazoMeses.value, fila.controls.plazoDias.value) }}</span>
+                        @if (plan.fechaInicio) {
+                          <span class="secundario">{{ { plazoMeses: fila.controls.plazoMeses.value ?? 0, plazoDias: fila.controls.plazoDias.value ?? 0 } | plazoTexto:true }}</span>
+                        }
+                      </td>
+                      <td class="centrado">
+                        <button
+                          type="button"
+                          class="boton-icono boton-icono--quitar"
+                          [attr.aria-label]="'Quitar la actividad ' + (i + 1)"
+                          (click)="quitarActividad(i)">✕</button>
+                      </td>
+                    </tr>
+                  } @empty {
+                    <tr>
+                      <td colspan="5" class="sin-actividades">
+                        Aún no hay actividades. Agrega la primera con «+ Agregar actividad».
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+            <button type="button" class="boton boton--agregar" (click)="agregarActividad()">+ Agregar actividad</button>
+          </form>
+        } @else {
+          <h3 class="seccion-titulo">Actividades</h3>
+          <div class="tabla-marco">
+            <table class="tabla-actividades tabla-actividades--lectura">
+              <thead>
+                <tr>
+                  <th scope="col">Actividad</th>
+                  <th scope="col">Responsable</th>
+                  <th scope="col">Plazo</th>
+                  <th scope="col">Fecha límite</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (actividad of plan.actividades; track actividad.id) {
+                  <tr class="actividad">
+                    <td>{{ actividad.descripcion }}</td>
+                    <td>{{ actividad.responsableNombre }}</td>
+                    <td class="no-partir">{{ actividad | plazoTexto }}</td>
+                    <td class="fecha-limite">
+                      <span>{{ fechaLimite(actividad.plazoMeses, actividad.plazoDias) }}</span>
+                      <span class="secundario">{{ actividad | plazoTexto:true }}</span>
+                    </td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td colspan="4" class="sin-actividades">El plan no tiene actividades.</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+    }
+  }
+}
+
+<app-modal
+  titulo="Cambios sin guardar"
+  [abierto]="confirmandoSalida"
+  (cerrar)="responderSalida(false)">
+  <p class="confirmacion-texto">
+    Tienes cambios sin guardar en este plan. Si sales ahora, se perderán.
+  </p>
+  <div class="confirmacion-botones">
+    <button type="button" class="boton" (click)="responderSalida(false)">Seguir editando</button>
+    <button type="button" class="boton boton--peligro" (click)="responderSalida(true)">Salir sin guardar</button>
+  </div>
+</app-modal>

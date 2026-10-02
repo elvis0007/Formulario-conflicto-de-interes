@@ -5,7 +5,7 @@ describe('TabsComponent', () => {
   const PESTANAS: Pestana[] = [
     { valor: 'a', etiqueta: 'Recibidos' },
     { valor: 'b', etiqueta: 'Pendientes', contador: 4 },
-    { valor: 'c', etiqueta: 'Cerrado', atenuada: true }
+    { valor: 'c', etiqueta: 'Cerrado', atenuada: true, insignia: { texto: 'Cerrado', tono: 'verde' } }
   ];
   let fixture: ComponentFixture<TabsComponent>;
   let emitidos: string[] = [];
@@ -56,6 +56,11 @@ describe('TabsComponent', () => {
   it('muestra el contador y atenúa la marcada', () => {
     expect(pestanas()[1].textContent?.trim()).toBe('Pendientes (4)');
     expect(pestanas()[2].classList).toContain('pestana--atenuada');
+  });
+
+  it('muestra la insignia de la pestaña que la tiene', () => {
+    expect(pestanas()[2].querySelector('app-badge')?.textContent?.trim()).toBe('Cerrado');
+    expect(pestanas()[0].querySelector('app-badge')).toBeNull();
   });
 
   it('emite al hacer clic en otra pestaña', () => {

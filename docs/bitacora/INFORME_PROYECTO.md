@@ -1272,3 +1272,98 @@ builds de development y producción compilan.
   entrada. El de «+ Crear plan de acción» aparece al confirmar C-005, C-007
   o C-009, que es el flujo real.
 - **«Descargar Excel»** sigue siendo solo una confirmación visual.
+
+## Día 7 — Plan de Acción: pestañas, caso, fecha de inicio y actividades (02/10/2026)
+
+Primera mitad de `/rrhh/conflictos/:conflictoId/planes/:planId`
+(`PlanAccionDetalleComponent`, especificación §6.6 y reglas 3 a 7). El
+documento firmado, «Enviar y notificar» e «Imprimir formulario» son del
+Día 8: hoy se ven deshabilitados.
+
+### Decisiones
+
+- **`PlanesMockService` es la única fuente de los planes.**
+  - Guarda su copia en memoria; los cambios duran toda la sesión.
+  - Nuevos `obtenerPlanesDeConflicto()` (renombre de
+    `obtenerPlanesPorConflicto`, que no se usaba) y `guardarBorrador()`.
+  - `guardarBorrador()` crea un plan nuevo (id `PL-008`…, siguiente número
+    dentro del conflicto) o actualiza uno existente. Solo acepta borradores
+    y no crea uno si el conflicto ya tiene un plan vigente: las reglas
+    también se cumplen en el servicio.
+  - `AnalisisMockService` pide los planes de cada caso a este servicio al
+    devolver el análisis (en paralelo, sin más latencia). Así, un plan
+    creado en Plan de Acción aparece en la columna de Análisis.
+- **De dónde sale el conflicto: del análisis actual**
+  (`AnalisisMockService`), porque ahí están su clasificación y si el
+  análisis está validado, que deciden si se puede crear un plan. Si el caso
+  no está en el análisis actual (o no se generó ninguno), se usa
+  `ConflictosMockService`, para poder mostrar igual los planes que ya
+  tiene. Los responsables salen de `PersonasMockService`.
+- **Entrada:**
+  - Con un plan real, lo carga; si no existe o es de otro conflicto,
+    «No se encontró el plan».
+  - Con `nuevo` (`PLAN_NUEVO`) prepara un borrador sin guardar. Si no se
+    cumple alguna condición, muestra cada motivo en una lista con el
+    enlace de vuelta, sin formulario. Las condiciones son: caso confirmado,
+    análisis validado y sin plan vigente.
+  - Al guardar por primera vez, la URL pasa al id real con `replaceUrl`:
+    «atrás» no vuelve a `/nuevo`.
+- **La pantalla se reutiliza al cambiar de pestaña** (cambia `:planId`):
+  vuelve a cargar con cada cambio de `paramMap`.
+- **Pestañas:**
+  - `TabsComponent` acepta ahora una insignia opcional por pestaña: el
+    estado de cada plan.
+  - Una pestaña por plan («Plan 01», «Plan 02»…), atenuada si está
+    cerrado; un plan nuevo sin guardar aparece como «Nuevo plan».
+- **«+ Nuevo plan»:** deshabilitado si hay un plan vigente (`borrador`,
+  `activo` o `activo_vencidas`, según `hayPlanActivo`), con el mensaje de
+  la especificación. También mientras se está creando uno.
+- **Formulario reactivo:**
+  - Nombre obligatorio.
+  - Por actividad: descripción, responsable y plazo en meses y días, cada
+    parte un entero ≥ 0 y el total distinto de 0. Los validadores están en
+    `utils/validadores-plan.ts`.
+  - «Guardar borrador» solo exige el nombre: las actividades pueden quedar
+    incompletas, pero al guardar se marcan las filas con errores.
+  - En borrador, la fecha límite dice «Se calcula al enviar y notificar».
+    Con fecha de inicio, se calcula con `calcularFechaLimite`, con
+    «Plazo: …» debajo.
+- **Solo lectura:** activo, activo con vencidas y cerrado se muestran como
+  texto, sin inputs, sin «+ Agregar actividad», sin quitar y sin
+  «Guardar borrador».
+- **Cambios sin guardar:**
+  - Guard funcional `cambiosSinGuardarGuard`
+    (`guards/cambios-sin-guardar.guard.ts`, interfaz
+    `ConCambiosSinGuardar`). La pantalla responde con un modal propio
+    («Seguir editando» / «Salir sin guardar»), no con `window.confirm`.
+  - Cubre volver, otra pestaña y el menú. Recargar o cerrar la pestaña del
+    navegador usa el aviso nativo (`beforeunload`).
+  - Se registra en `app.routes.ts` (archivo del host, bloque
+    `[PNIP-CI]` actualizado).
+
+### Verificación (sesión simulada como R, Edge headless)
+
+| Paso | Resultado |
+|---|---|
+| Plan cerrado (C-001 › Plan 01, desde Análisis) | Solo lectura; banner gris «03/11/2025 · cerrado el 20/03/2026»; pestañas «Plan 01 Cerrado» y «Plan 02 Activo · con vencidas». «+ Nuevo plan» deshabilitado con su mensaje. |
+| Plan activo (pestaña Plan 02) | La URL cambia a PL-002; banner verde «01/06/2026 · plan enviado y notificado»; fechas límite calculadas. |
+| Borrador (C-003 › Ver plan de acción) | Banner ámbar; formulario editable; «Imprimir» y «Enviar» deshabilitados. |
+| Editar y guardar | Plazo 0 → «El plazo no puede ser 0.»; -1 → «Usa números enteros, 0 o más.»; al guardar, «Borrador guardado» y el título actualizado. |
+| Salir con cambios | «Volver» y el menú (Historial) abren «Cambios sin guardar». «Seguir editando» se queda; «Salir sin guardar» sale y el borrador conserva lo guardado. |
+| `nuevo` bloqueado | C-001: análisis sin validar y plan vigente. C-005 antes de clasificar: sin confirmar y sin validar. |
+| Plan inexistente | «No se encontró el plan». |
+| Crear plan (C-005, tras validar) | «Nuevo plan» en borrador. Sin nombre → «Escribe el nombre del plan.». Al guardar: `PL-008`, Plan 01, URL reemplazada; en Análisis, C-005 pasa a «Ver plan de acción». |
+
+Pruebas: 286 pasan y fallan las 3 antiguas de `app.component.spec`. Los
+builds de development y producción compilan.
+
+### Pendiente / a tener en cuenta
+
+- **Confirmar con RRHH si un plan activo debe poder editarse.** Hoy no:
+  activo y cerrado son de solo lectura.
+- **Botón «atrás» del navegador con cambios sin guardar:** el guard
+  también actúa, pero la URL puede cambiar antes de la confirmación
+  (comportamiento del router de Angular con el historial). Revisarlo en
+  el día de pulido si molesta.
+- **«Imprimir formulario», «Enviar y notificar» y el documento firmado:**
+  Día 8. «Enviar y notificar» exigirá las actividades completas.
