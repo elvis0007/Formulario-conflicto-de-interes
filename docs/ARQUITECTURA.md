@@ -5,6 +5,11 @@ procedimiento de **conflictos de interés** (código PNIP.CI): los empleados
 declaran sus posibles conflictos y Recursos Humanos los gestiona hasta
 cerrarlos.
 
+Lo que debe hacer cada pantalla de la gestión de conflictos está en la
+[especificación del front](Especificacion_Front_PNIP-CI.md). Sus rutas
+sugeridas (sección 5) son anteriores a la integración: las vigentes son
+`/rrhh/**` y `/responsable/**` (ver `app.paths.ts`).
+
 ## Las dos partes de la app
 
 | Parte | Qué hace | Rutas | Datos |
@@ -74,6 +79,7 @@ declaración, que no tiene menú lateral: por eso tiene su propio ícono.
 ```
 docs/
 ├── ARQUITECTURA.md        este documento
+├── Especificacion_Front_PNIP-CI.md  qué debe hacer cada pantalla
 ├── CONVENCIONES.md        reglas de código del proyecto
 ├── DESARROLLO_LOCAL.md    correr la app sin intranet (sesión simulada)
 └── bitacora/              historial de decisiones (no se actualiza)
