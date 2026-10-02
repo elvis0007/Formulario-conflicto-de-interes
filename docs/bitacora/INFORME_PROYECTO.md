@@ -1099,3 +1099,82 @@ Problemas previos de la cabecera del host. No se tocan hasta ese día:
 - **Modo oscuro:** la regla `body.dark-mode .app-header` de
   `header.component.scss` no se aplica por el encapsulamiento de estilos de
   Angular, así que la cabecera sigue azul en modo oscuro.
+
+## Día 5 — Análisis de Conflictos: encabezado, filtros y tabla (02/10/2026)
+
+Primera mitad de `/rrhh/analisis-conflictos` (`AnalisisConflictoComponent`,
+especificación §6.5). El modal «Ver detalles», «Validar análisis» y la
+columna real de planes son del Día 6: sus botones están visibles, sin
+lógica.
+
+### Decisiones
+
+- **`AnalisisMockService` aparte, no una ampliación de
+  `ConflictosMockService`.** El análisis es otro recurso con estado propio
+  (Borrador / Validado, fecha de generación) y otros endpoints en la
+  especificación (`GET /analisis/actual`, `POST /analisis/generar`).
+  `ConflictosMockService` sigue sirviendo el detalle de un conflicto
+  (`GET /conflictos/:id`), que usarán el modal y el plan.
+  - `obtenerAnalisisActual()` y `generarAnalisis()`, ambos con
+    `manejarError`.
+  - Guarda el análisis en memoria. Al cargar la app no hay ninguno
+    generado (`estado: null`), así se ve el estado vacío.
+  - Generar tarda 1,2 s (`LATENCIA_GENERACION_MS`), más que una consulta,
+    para que se vea el estado de carga. `simularRespuesta` acepta ahora una
+    latencia opcional.
+  - Tras generar, la pantalla vuelve a pedir el análisis actual
+    (`switchMap`), como haría con el backend real: POST y luego GET.
+- **Modelos:** `AnalisisConflictos` (`models/analisis.ts`) y
+  `EstadoAnalisis = 'borrador' | 'validado'`.
+- **Datos de ejemplo:** se agregó C-009, «Cónyuges» (EMP-007 y EMP-011, que
+  ya figuraban como cónyuges en sus fichas). Con eso quedan cubiertos los 4
+  riesgos, las 2 relaciones, los grados 1 a 4, las 3 clasificaciones, roles
+  distintos (Tío/Sobrino, Padre/Hija…), simétricos (Hermanos, Primas,
+  Cuñados, Cónyuges) y conflictos con 0, 1 y 2 planes. Una prueba de
+  `mock-data.spec.ts` vigila esa cobertura.
+- **Utilidades** (`utils/analisis.util.ts`): textos de riesgo («medio» se
+  muestra «Moderado»), clasificación, estado y grado; conteo por riesgo,
+  filtro, pendientes y `rolesInvolucrados()` (etiqueta simétrica o un rol
+  bajo cada nombre). Pipe `gradoParentesco` («1er grado» a «4to grado»).
+  En `tono.util.ts`: clasificación (pendiente ámbar, confirmado azul,
+  homónimo gris) y estado del análisis (borrador ámbar, validado verde).
+- **Conteos de las píldoras:** siempre sobre todos los casos, no sobre los
+  filtrados.
+- **Tabla:** 5 registros por página (opciones 5, 10, 15), para que con los 9
+  casos de ejemplo se vea la paginación. Las filas de homónimos se atenúan
+  con una clase en cada celda: la fila `<tr>` la pinta `DataTableComponent`
+  y no hizo falta tocarlo.
+- **Encabezado sin análisis:** solo «Ver formularios»; «Generar análisis»
+  va en el estado vacío. «Descargar Excel» y «Validar análisis» aparecen
+  cuando ya hay un análisis.
+- **Clasificaciones con su nombre completo** de la especificación
+  («Pendiente de revisión», «Conflicto confirmado», «Homónimo»).
+- **El título de la pantalla es `<h2>`:** la cabecera del host ya tiene el
+  `<h1>`.
+
+### Verificación (sesión simulada como R, Edge headless)
+
+| Paso | Resultado |
+|---|---|
+| Entrar | Estado vacío «Aún no se ha generado un análisis» con «Generar análisis». |
+| Generar | El botón pasa a «Generando…»; luego insignia «Borrador», fecha de generación, «3 casos pendientes de clasificar» y la tabla (página 1 de 2). |
+| Volver a generar (encabezado) | «Generando…», deshabilitado y `aria-busy`; al terminar vuelve a «Generar análisis». |
+| Píldoras | Todos (9), Alto (2), Moderado (3), Bajo (3), Ninguno (1). Filtran la tabla y los conteos no cambian. |
+| Homónimo | Fila atenuada. |
+| Paginación | Página 2 de 2 con los 4 casos restantes. |
+| Descargar Excel | «Descargado ✓» unos 2 s; sin archivo. |
+| Ver formularios | Navega a `/admin`. |
+
+Pruebas: 215 pasan y fallan las 3 antiguas de `app.component.spec`. Los
+builds de development y producción compilan.
+
+### Pendiente / a tener en cuenta
+
+- **Grado de los cónyuges:** en el modelo el grado va de 1 a 4 y el vínculo
+  conyugal no tiene grado propio. C-009 usa 1 de forma provisional; hay que
+  confirmarlo.
+- **Validar análisis:** en el mock, volver a generar deja el análisis en
+  Borrador aunque estuviera Validado. Al implementar la validación (Día 6)
+  hay que decidir si regenerar un análisis validado está permitido.
+- **`docs/Especificacion_Front_PNIP-CI.md`** no está en git: se leyó como
+  referencia y no se incluyó en el commit.

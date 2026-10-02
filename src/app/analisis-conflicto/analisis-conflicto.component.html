@@ -1,0 +1,128 @@
+<header class="encabezado">
+  <div class="encabezado-texto">
+    <div class="titulo-linea">
+      <h2 class="titulo">Análisis de Conflictos</h2>
+      @if (hayAnalisis) {
+        <app-badge class="estado-analisis" [tono]="tonoEstado" [texto]="textoEstado" />
+      }
+    </div>
+    <span class="codigo">PNIP.CI.RG.02</span>
+    @if (hayAnalisis && analisis) {
+      <p class="resumen">
+        Generado el {{ analisis.fechaGeneracion | fechaLarga }}
+        <span class="resumen-separador" aria-hidden="true">·</span>
+        <strong class="resumen-pendientes">{{ textoPendientes }}</strong>
+      </p>
+    }
+  </div>
+
+  <div class="acciones-encabezado">
+    @if (hayAnalisis) {
+      <button
+        type="button"
+        class="boton boton--primario"
+        [disabled]="generando"
+        [attr.aria-busy]="generando"
+        (click)="generarAnalisis()">
+        @if (generando) {
+          <span class="cargando" aria-hidden="true"></span>
+          Generando…
+        } @else {
+          <app-icono nombre="analisis" [tamano]="16" />
+          Generar análisis
+        }
+      </button>
+    }
+    <button type="button" class="boton" (click)="verFormularios()">
+      <app-icono nombre="bandeja" [tamano]="16" />
+      Ver formularios
+    </button>
+    @if (hayAnalisis) {
+      <button
+        type="button"
+        class="boton"
+        [class.boton--hecho]="descargado.activa"
+        [attr.aria-disabled]="descargado.activa"
+        (click)="descargarExcel()">
+        <app-icono nombre="excel" [tamano]="16" />
+        {{ descargado.activa ? 'Descargado ✓' : 'Descargar Excel' }}
+      </button>
+      <!-- Día 6: validar el análisis (bloquea la clasificación). -->
+      <button type="button" class="boton boton--validar">
+        <app-icono nombre="check" [tamano]="16" />
+        Validar análisis
+      </button>
+    }
+  </div>
+</header>
+
+@if (analisis === null) {
+  <p class="cargando-texto" role="status">Cargando análisis…</p>
+} @else if (!hayAnalisis) {
+  <section class="tarjeta">
+    <app-empty-state
+      icono="analisis"
+      texto="Aún no se ha generado un análisis"
+      [textoAccion]="generando ? 'Generando…' : 'Generar análisis'"
+      (accion)="generarAnalisis()" />
+  </section>
+} @else {
+  <app-pills
+    class="filtros-riesgo"
+    etiquetaGrupo="Filtrar por riesgo"
+    [opciones]="opcionesRiesgo"
+    [seleccionado]="filtroRiesgo"
+    (cambio)="cambiarFiltro($event)" />
+
+  <app-data-table
+    etiqueta="Casos del análisis de conflictos"
+    [filas]="filasFiltradas"
+    [columnas]="columnas"
+    [claveFila]="claveFila"
+    [tamanoPagina]="tamanoPagina"
+    [tamanosPagina]="tamanosPagina">
+    <ng-template appFila [appFilaDe]="filasFiltradas" let-fila>
+      <td [class.archivada]="fila.archivado">
+        <div
+          class="involucrados"
+          [class.involucrados--simetrico]="fila.roles.tipo === 'simetrica'">
+          <span class="involucrado-nombre involucrado-nombre--a">{{ fila.conflicto.personaA.nombres }}</span>
+          <span class="involucrados-linea" aria-hidden="true"></span>
+          <span class="solo-lectores">y</span>
+          <span class="involucrado-nombre involucrado-nombre--b">{{ fila.conflicto.personaB.nombres }}</span>
+          @if (fila.roles.tipo === 'simetrica') {
+            <span class="rol rol--simetrico">{{ fila.roles.etiqueta }}</span>
+          } @else {
+            <span class="rol rol--a">{{ fila.roles.rolA }}</span>
+            <span class="rol rol--b">{{ fila.roles.rolB }}</span>
+          }
+        </div>
+      </td>
+      <td [class.archivada]="fila.archivado">{{ fila.conflicto.relacion }}</td>
+      <td class="no-partir" [class.archivada]="fila.archivado">{{ fila.conflicto.grado | gradoParentesco }}</td>
+      <td [class.archivada]="fila.archivado">
+        <span class="departamento">{{ fila.conflicto.personaA.departamento }}</span>
+        <span class="departamento">{{ fila.conflicto.personaB.departamento }}</span>
+      </td>
+      <td [class.archivada]="fila.archivado">
+        <app-badge [tono]="fila.tonoRiesgo" [texto]="fila.textoRiesgo" />
+      </td>
+      <td [class.archivada]="fila.archivado">
+        <app-badge [tono]="fila.tonoClasificacion" [texto]="fila.textoClasificacion" />
+      </td>
+      <td class="centrado" [class.archivada]="fila.archivado">
+        <!-- Día 6: abre el modal «Ver detalles». -->
+        <button type="button" class="boton boton--tabla">
+          <app-icono nombre="ojo" [tamano]="16" />
+          Ver detalles
+        </button>
+      </td>
+      <td class="no-partir planes-provisional" [class.archivada]="fila.archivado">
+        <!-- Día 6: columna real de planes (crear, ver, lista desplegable). -->
+        {{ fila.textoPlanes }}
+      </td>
+    </ng-template>
+
+    <p appVacio class="sin-resultados">No hay casos con ese nivel de riesgo.</p>
+  </app-data-table>
+}

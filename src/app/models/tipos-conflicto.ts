@@ -23,6 +23,14 @@ export type Relacion = 'Consanguinidad' | 'Afinidad';
 export type Clasificacion = 'pendiente' | 'confirmado' | 'homonimo';
 
 /**
+ * Estado del analisis de conflictos.
+ *
+ * - `borrador`: recien generado; RRHH puede clasificar los casos.
+ * - `validado`: RRHH lo valido; ya no se puede reclasificar.
+ */
+export type EstadoAnalisis = 'borrador' | 'validado';
+
+/**
  * Estado de un plan de accion.
  *
  * `activo_vencidas` es un plan en ejecucion que tiene al menos una

@@ -1,5 +1,190 @@
 @use '../../styles/pantalla';
+@use '../../styles/listados';
 
 :host {
   @include pantalla.raiz;
+}
+
+@include listados.estilos;
+
+.encabezado {
+  align-items: flex-start;
+}
+
+.titulo-linea {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.resumen {
+  margin: 6px 0 0;
+  color: var(--text2);
+  font-size: 14px;
+}
+
+.resumen-separador {
+  margin: 0 6px;
+  color: var(--text3);
+}
+
+.resumen-pendientes {
+  color: var(--amber-text);
+  font-weight: 600;
+}
+
+.acciones-encabezado {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+// Boton de aprobar: verde, segun el sistema de diseno.
+.boton--validar {
+  border-color: var(--green);
+  background-color: var(--green);
+  color: var(--paper);
+
+  &:hover {
+    filter: brightness(0.92);
+  }
+}
+
+// Indicador de carga dentro del boton «Generar análisis».
+.cargando {
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: girar 0.8s linear infinite;
+}
+
+@keyframes girar {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cargando {
+    animation-duration: 2.4s;
+  }
+}
+
+.cargando-texto {
+  color: var(--text2);
+}
+
+.tarjeta {
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+  background-color: var(--paper);
+}
+
+.filtros-riesgo {
+  display: block;
+  margin-bottom: 14px;
+}
+
+// Involucrados: dos nombres separados por una linea vertical y, debajo,
+// un rol bajo cada nombre o una sola etiqueta centrada si es simetrico.
+.involucrados {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 1px minmax(0, 1fr);
+  column-gap: 12px;
+  row-gap: 2px;
+  min-width: 260px;
+}
+
+.involucrado-nombre {
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.involucrado-nombre--a {
+  grid-column: 1;
+  grid-row: 1;
+  text-align: right;
+}
+
+.involucrado-nombre--b {
+  grid-column: 3;
+  grid-row: 1;
+}
+
+.involucrados-linea {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  background-color: var(--border);
+}
+
+.involucrados--simetrico .involucrados-linea {
+  grid-row: 1;
+}
+
+.rol {
+  color: var(--text3);
+  font-size: 12px;
+}
+
+.rol--a {
+  grid-column: 1;
+  grid-row: 2;
+  text-align: right;
+}
+
+.rol--b {
+  grid-column: 3;
+  grid-row: 2;
+}
+
+.rol--simetrico {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  text-align: center;
+}
+
+.departamento {
+  display: block;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.no-partir {
+  white-space: nowrap;
+}
+
+.centrado {
+  text-align: center;
+}
+
+.boton--tabla {
+  padding: 6px 10px;
+  font-size: 12.5px;
+}
+
+.planes-provisional {
+  color: var(--text2);
+  font-size: 13px;
+}
+
+// Homonimo: archivado, la fila se ve atenuada.
+.archivada {
+  opacity: 0.55;
+}
+
+.sin-resultados {
+  margin: 0;
+  color: var(--text2);
+}
+
+.solo-lectores {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }

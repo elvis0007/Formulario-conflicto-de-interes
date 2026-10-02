@@ -4,6 +4,7 @@
  * @author Elvis Flores
  */
 export * from './actividad';
+export * from './analisis';
 export * from './archivo';
 export * from './conflicto';
 export * from './empleado-sin-formulario';

@@ -18,6 +18,14 @@ type ConflictoSinPlanes = Omit<Conflicto, 'planes'>;
  * | C-006 | Hermanos       | Consanguinidad | 2     | ninguno | homonimo   | 0      |
  * | C-007 | Padre/Hija     | Consanguinidad | 1     | bajo    | pendiente  | 0      |
  * | C-008 | Suegro/Nuera   | Afinidad       | 1     | medio   | confirmado | 2      |
+ * | C-009 | Cónyuges       | Afinidad       | 1     | bajo    | pendiente  | 0      |
+ *
+ * Vinculos simetricos (una sola etiqueta): Hermanos, Primas, Cuñados y
+ * Cónyuges. Con roles distintos: Tío/Sobrino, Suegro/Yerno, Padre/Hija y
+ * Suegro/Nuera.
+ *
+ * PROVISIONAL: el grado de los conyuges (aqui 1) esta por confirmar; en el
+ * modelo el grado va de 1 a 4 y el vinculo conyugal no tiene grado propio.
  */
 const CONFLICTOS_SIN_PLANES: readonly ConflictoSinPlanes[] = [
   {
@@ -162,6 +170,24 @@ const CONFLICTOS_SIN_PLANES: readonly ConflictoSinPlanes[] = [
       'Declarado en el formulario de EMP-008.'
     ],
     fechaDeteccion: '2025-12-15'
+  },
+  {
+    id: 'C-009',
+    personaA: buscarPersona('EMP-007'),
+    rolA: 'Esposo',
+    personaB: buscarPersona('EMP-011'),
+    rolB: 'Esposa',
+    etiquetaSimetrica: 'Cónyuges',
+    relacion: 'Afinidad',
+    grado: 1,
+    riesgo: 'bajo',
+    clasificacion: 'pendiente',
+    motivoRiesgo: 'Departamentos distintos (Financiero y Comercialización) '
+      + 'y sin relación jerárquica entre ellos.',
+    evidenciasDeteccion: [
+      'El cónyuge registrado de EMP-007 es EMP-011, y viceversa.'
+    ],
+    fechaDeteccion: '2026-09-29'
   }
 ];
 

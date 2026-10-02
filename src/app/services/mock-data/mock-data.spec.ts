@@ -77,3 +77,52 @@ describe('datos de ejemplo de gestión de conflictos', () => {
     }
   });
 });
+
+describe('cobertura de los conflictos de ejemplo (Análisis de Conflictos)', () => {
+  /**
+   * @param valores Valores encontrados.
+   * @returns Los valores distintos, ordenados.
+   */
+  function distintos<T>(valores: T[]): T[] {
+    return [...new Set(valores)].sort();
+  }
+
+  it('cubren los 4 riesgos, las 2 relaciones y los grados 1 a 4', () => {
+    expect(distintos(CONFLICTOS.map((c) => c.riesgo)))
+      .toEqual(['alto', 'bajo', 'medio', 'ninguno']);
+    expect(distintos(CONFLICTOS.map((c) => c.relacion)))
+      .toEqual(['Afinidad', 'Consanguinidad']);
+    expect(distintos(CONFLICTOS.map((c) => c.grado))).toEqual([1, 2, 3, 4]);
+  });
+
+  it('cubren las 3 clasificaciones', () => {
+    expect(distintos(CONFLICTOS.map((c) => c.clasificacion)))
+      .toEqual(['confirmado', 'homonimo', 'pendiente']);
+  });
+
+  it('tienen vínculos simétricos y con roles distintos', () => {
+    const simetricas = CONFLICTOS.map((c) => c.etiquetaSimetrica).filter((e) => e);
+
+    expect(simetricas).toContain('Hermanos');
+    expect(simetricas).toContain('Cónyuges');
+    expect(simetricas.some((e) => e?.startsWith('Prim'))).toBeTrue();
+    expect(CONFLICTOS.some((c) => !c.etiquetaSimetrica && c.rolA === 'Tío' && c.rolB === 'Sobrino'))
+      .toBeTrue();
+    expect(CONFLICTOS.some((c) => !c.etiquetaSimetrica
+      && [c.rolA, c.rolB].includes('Hija') && [c.rolA, c.rolB].includes('Padre'))).toBeTrue();
+  });
+
+  it('hay conflictos con 0, 1 y varios planes', () => {
+    const cantidades = CONFLICTOS.map((c) => c.planes.length);
+
+    expect(cantidades).toContain(0);
+    expect(cantidades).toContain(1);
+    expect(cantidades.some((n) => n > 1)).toBeTrue();
+  });
+
+  it('los homónimos no tienen planes', () => {
+    for (const c of CONFLICTOS.filter((x) => x.clasificacion === 'homonimo')) {
+      expect(c.planes.length).withContext(c.id).toBe(0);
+    }
+  });
+});

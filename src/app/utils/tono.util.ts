@@ -1,5 +1,7 @@
 import {
+  Clasificacion,
   EstadoActividad,
+  EstadoAnalisis,
   EstadoPlan,
   Notificacion,
   Riesgo
@@ -118,4 +120,35 @@ export function mapearEstadoActividadATono(
  */
 export function mapearTipoNotificacionATono(tipo: Notificacion['tipo']): Tono {
   return TONO_NOTIFICACION[tipo];
+}
+
+/** Tono de cada clasificacion de un caso del analisis. */
+const TONO_CLASIFICACION: Readonly<Record<Clasificacion, Tono>> = {
+  pendiente: 'ambar',
+  confirmado: 'azul',
+  homonimo: 'gris'
+};
+
+/** Tono de cada estado del analisis. */
+const TONO_ESTADO_ANALISIS: Readonly<Record<EstadoAnalisis, Tono>> = {
+  borrador: 'ambar',
+  validado: 'verde'
+};
+
+/**
+ * @param clasificacion Clasificacion de un caso del analisis.
+ * @returns `pendiente` → ambar, `confirmado` → azul, `homonimo` → gris.
+ * @author Elvis Flores
+ */
+export function mapearClasificacionATono(clasificacion: Clasificacion): Tono {
+  return TONO_CLASIFICACION[clasificacion];
+}
+
+/**
+ * @param estado Estado del analisis de conflictos.
+ * @returns `borrador` → ambar, `validado` → verde.
+ * @author Elvis Flores
+ */
+export function mapearEstadoAnalisisATono(estado: EstadoAnalisis): Tono {
+  return TONO_ESTADO_ANALISIS[estado];
 }

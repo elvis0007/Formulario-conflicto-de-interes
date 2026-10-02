@@ -1,4 +1,5 @@
 import { FechaLargaPipe } from './fecha-larga.pipe';
+import { GradoParentescoPipe } from './grado-parentesco.pipe';
 import { PlazoTextoPipe } from './plazo-texto.pipe';
 
 describe('FechaLargaPipe', () => {
@@ -56,5 +57,16 @@ describe('PlazoTextoPipe', () => {
 
   it('devuelve vacío sin plazo', () => {
     expect(pipe.transform(undefined)).toBe('');
+  });
+});
+
+describe('GradoParentescoPipe', () => {
+  const pipe = new GradoParentescoPipe();
+
+  it('muestra 1er a 4to grado', () => {
+    expect(pipe.transform(1)).toBe('1er grado');
+    expect(pipe.transform(2)).toBe('2do grado');
+    expect(pipe.transform(3)).toBe('3er grado');
+    expect(pipe.transform(4)).toBe('4to grado');
   });
 });

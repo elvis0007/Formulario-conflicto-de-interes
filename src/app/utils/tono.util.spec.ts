@@ -1,5 +1,7 @@
 import {
+  mapearClasificacionATono,
   mapearEstadoActividadATono,
+  mapearEstadoAnalisisATono,
   mapearEstadoPlanATono,
   mapearRiesgoATono,
   mapearTipoNotificacionATono
@@ -12,6 +14,17 @@ describe('tono.util', () => {
     expect(mapearRiesgoATono('medio')).toBe('ambar');
     expect(mapearRiesgoATono('bajo')).toBe('verde');
     expect(mapearRiesgoATono('ninguno')).toBe('gris');
+  });
+
+  it('mapearClasificacionATono', () => {
+    expect(mapearClasificacionATono('pendiente')).toBe('ambar');
+    expect(mapearClasificacionATono('confirmado')).toBe('azul');
+    expect(mapearClasificacionATono('homonimo')).toBe('gris');
+  });
+
+  it('mapearEstadoAnalisisATono', () => {
+    expect(mapearEstadoAnalisisATono('borrador')).toBe('ambar');
+    expect(mapearEstadoAnalisisATono('validado')).toBe('verde');
   });
 
   it('mapearEstadoPlanATono', () => {
