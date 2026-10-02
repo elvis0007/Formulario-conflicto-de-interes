@@ -175,7 +175,7 @@ y termina con `// [FIN PNIP-CI DEV]`. Hoy son:
 Para retirarlo, borra esos bloques completos, marcadores incluidos: nada
 más en el proyecto depende de ellos.
 
-## Verificación hecha (Edge headless, 30/09/2026 y 01/10/2026)
+## Verificación hecha (Edge headless, 30/09/2026 a 02/10/2026)
 
 Las peticiones al backend real se interceptaron en el navegador de prueba:
 quedó registrado el intento, pero no salieron a la red.
@@ -193,7 +193,9 @@ quedó registrado el intento, pero no salieron a la red.
 | Desarrollo: sesión simulada activa, se pasa por `/login` y luego se escribe `#/rrhh/...` sin recargar | **Antes:** `/login`. **Ahora:** entra al dashboard. |
 | Desarrollo sin bandera: en `/login` se escribe `#/rrhh/...` sin recargar | `/login`, igual que antes (el listener no actúa sin bandera). |
 | **Producción**, los mismos casos anteriores | Siempre `/login`: la bandera y el listener se ignoran. |
-| Roles en gestión de conflictos (sesión simulada) | `R` y `A` entran a RRHH. `E` queda bloqueado en RRHH y en Responsable, y va a `/`, aunque tenga guardada la clave antigua `PNIP-CI-ROL-SIMULADO=rrhh`. `I` entra solo a Responsable. |
-| URLs nuevas (01/10/2026), con recarga y sin ella | `R` y `A` entran a las 7 pantallas de `/rrhh/**` y a las 3 de `/responsable/**`. `I` entra a `/responsable/**` y desde `/rrhh/**` va a `/responsable/dashboard`. `E` va a `/` desde ambas. `/rrhh` y `/responsable` llevan al dashboard de su grupo. Sin sesión, todas van a `/login`. |
+| URLs nuevas (01/10/2026), con recarga y sin ella | `R` y `A` entran a las 7 pantallas de `/rrhh/**`. `/rrhh` y `/responsable` llevan al dashboard de su grupo. Sin sesión, todas van a `/login`. (Lo que ve cada rol en `/responsable/**` cambió el 02/10 con el rol `P`: ver abajo.) |
 | URL vieja `/pnip/rrhh/dashboard` (01/10/2026) | Ya no abre ninguna pantalla de gestión: cae en `**` y la app la lleva a `/admin` (`R`/`A`) o a `/` (`I`/`E`), igual que cualquier URL desconocida. |
 | `/`, `/login`, `/admin`, `/mis-formularios` (01/10/2026) | Igual que antes para los 4 roles: `R`/`A` van a `/admin`; `I`/`E` a `/`; `/mis-formularios` abre para todos. |
+| Roles con `P` (02/10/2026) | `A`/`R`: `/rrhh/**` entra; `/responsable/**` → `/rrhh/dashboard`. `P`: entra al formulario `/`; `/responsable/**` entra con su menú de 2 opciones; `/rrhh/**` → `/responsable/dashboard`; `/admin` → `/`. `R,P`: entra a ambos, con «Mis actividades» en el menú. `I`: `/rrhh/**` y `/responsable/**` → `/`. `E`: igual que antes, y sigue bloqueado aunque tenga guardada la clave antigua `PNIP-CI-ROL-SIMULADO=rrhh`. |
+| Cabecera (02/10/2026) | Nombre y rol del usuario. Campana solo con `A`, `R` o `P`. «Generar código» con `A`/`R` y «Gestionar Jefes de RRHH» solo con `A`, también en `/rrhh/**`. «Mis actividades» solo con `P`. |
+| Selector de rol (02/10/2026) | Aparece solo con la bandera. `R+P` y `P` recargan con el rol nuevo; «Salir» borra las claves y lleva a `/login`. |

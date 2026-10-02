@@ -1003,3 +1003,90 @@ su SCSS no cambian.
 - **Sin campana de notificaciones:** se retiró con la barra superior propia
   y la cabecera del host no tiene una (ver `INFORME_MENU_REAL.md`, punto 5).
   `NotificacionesMockService` y `TiempoRelativoPipe` se conservan.
+
+## Integración a la estructura del proyecto (01/10/2026)
+
+- `src/app/pnip-ci/` se repartió en la estructura del proyecto con `git mv`
+  (115 renombres detectados por git): `models/`, `services/`, `guards/`,
+  `utils/`, `pipes/`, `shared/`, una carpeta por pantalla y `src/styles/`.
+- Las URLs perdieron el prefijo `/pnip`: ahora son `/rrhh/**` y
+  `/responsable/**`. Las rutas están en `app.routes.ts` y sus paths, en un
+  solo lugar: `app.paths.ts`.
+- `AppComponent` acepta esas rutas con `esRutaPermitida()` (las de
+  `RUTAS_PERMITIDAS` más los prefijos de gestión), en lugar de salidas
+  tempranas.
+- Claves de desarrollo renombradas a `SISCI-DEV-*`.
+- Commits: `refactor: integra el módulo…` (movimientos y renombres con la
+  indentación original) y `style: …` (solo el cambio a 2 espacios).
+
+## Rol P, cabecera, campana y selector de rol (01–02/10/2026)
+
+### Información confirmada
+
+- Roles: `A` (Administrador), `R` (Jefe de RRHH) y el nuevo `P`
+  (Responsable), que el backend asignará a quien reciba actividades en un
+  plan de acción. `A` tiene todo lo de `R` y además gestiona roles.
+- Un usuario puede tener varios roles a la vez (por ejemplo `R` y `P`).
+- Se pueden editar archivos del host sin cambiar su lógica ni su diseño,
+  marcando cada cambio.
+- Para probar como `A`/`R`/`P` se usa siempre la sesión simulada: el login
+  real de RRHH/Admin redirige a la intranet y no vuelve a `localhost`
+  (limitación conocida del SSO).
+
+### Decisiones
+
+- **Marcadores** (`CONVENCIONES.md`, «Cambios en archivos del host»):
+  `[PNIP-CI] Elvis Flores - fecha` / `Qué hace:` / `[FIN PNIP-CI]`, y
+  `[PNIP-CI DEV] … ELIMINAR ANTES DE PRODUCCIÓN` para lo que solo existe en
+  desarrollo. Se uniformaron todos los marcadores anteriores.
+- **Rol P:** `RolGestion = 'rrhh' | 'responsable'`. `/responsable/**` exige
+  `P`; desaparece la regla anterior «cualquier empleado no externo puede
+  ser responsable» (y `esEmpleado()`). Pantalla de inicio: `R`/`A` →
+  `/rrhh/dashboard`; solo `P` → `/responsable/dashboard`; ninguno → `/`.
+  Etiqueta del rol: el de mayor nivel (A > R > P).
+- **Menú lateral:** `R`/`A` → menú de RRHH; solo `P` → Dashboard y Bandeja
+  de Tareas; `R`/`A` + `P` → menú de RRHH más «Mis actividades»
+  (`obtenerMenu()` en `menu-items.ts`).
+- **Cabecera:** nombre y rol del usuario (se ocultan bajo 1280 px para que
+  el título no pase a dos líneas); «Generar código» y «Gestionar Jefes de
+  RRHH» también en `/rrhh/**` y `/responsable/**`. Fuera de `/admin`,
+  «Generar código» exige `A` o `R`: antes su única condición era estar en
+  `/admin`, a donde solo llegan `A`/`R`, así que la regla de rol efectiva no
+  cambia. Ícono «Mis actividades de conflicto de interés» para `P`.
+- **Campana:** se recuperó del historial el componente del shell retirado y
+  se adaptó al estilo de la cabecera (`shared/notification-bell`). Visible
+  para `A`, `R` y `P`. Resuelve el pendiente «Sin campana de
+  notificaciones» de la sección del 30/09.
+- **Acceso del Responsable:** el ícono de la cabecera resuelve el pendiente
+  «Un empleado sin R/A no tiene cómo llegar a responsable» del 30/09 (ahora
+  es el rol `P`).
+- **Selector de rol de desarrollo:** panel flotante con A, R, P, R+P y
+  «Salir de la simulación» (`src/app/dev/`, todo `[PNIP-CI DEV]`).
+
+### Verificación (02/10/2026, sesión simulada, Edge headless)
+
+| Caso | Resultado |
+|---|---|
+| `A` | Menú RRHH; cabecera con nombre, «Administrador», campana y 5 íconos (generar código, gestionar roles, mis declaraciones, modo oscuro, cerrar sesión), también en `/rrhh/**`. `/responsable/**` → `/rrhh/dashboard`. |
+| `R` | Igual que `A` sin «Gestionar Jefes de RRHH»; rol «Jefe de RRHH». |
+| `P` | Entra al formulario (`/`), con el ícono «Mis actividades» y la campana. En `/responsable/**` ve su menú de 2 opciones. `/rrhh/**` → `/responsable/dashboard`; `/admin` → `/`. |
+| `R,P` | Menú RRHH con «Mis actividades»; entra a `/rrhh/**` y a `/responsable/**`. |
+| `I` (sin roles) | Sin campana ni ícono; `/rrhh/**` y `/responsable/**` → `/`. |
+| `E` | Igual que antes: formulario y «Mis declaraciones»; sin campana ni menú. |
+| Campana | Panel de 410 px, 8 notificaciones de los últimos 7 días, contador 5; se cierra con Esc y con clic afuera; se ve bien en modo oscuro. |
+| Selector de rol | Cambiar a `R+P` y a `P` recarga con el rol nuevo; «Salir» borra las claves y lleva a `/login`. |
+
+### Pendiente / a tener en cuenta
+
+- **Pendiente con backend:** quién asigna el rol `P` y si el modal
+  «Gestión de Roles» debe gestionarlo. No se le agregó una sección.
+- **`obtenerValidacionUsuario`** (corrección del 30/09 en `auth.service.ts`,
+  commit `fix(auth)` aparte) no lleva marcadores `[PNIP-CI]`: no es parte de
+  la gestión de conflictos. Hay que decidir si se marca.
+- **Cabecera en móvil:** ya se desbordaba antes de estos cambios (título
+  largo más íconos); la campana suma un ícono más. No se tocó el diseño
+  del host.
+- **Modo oscuro de la cabecera:** la regla preexistente
+  `body.dark-mode .app-header` no se aplica por el encapsulamiento de
+  estilos de Angular, así que la cabecera sigue azul en modo oscuro.
+  Preexistente; no se tocó.
