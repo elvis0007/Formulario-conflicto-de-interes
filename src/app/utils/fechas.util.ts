@@ -206,3 +206,17 @@ export function calcularDiasRestantes(
     dias
   };
 }
+
+/**
+ * Da formato ISO de solo fecha (`aaaa-mm-dd`, hora local) a una fecha.
+ *
+ * @param fecha Fecha a formatear.
+ * @returns Texto `aaaa-mm-dd`.
+ * @author Elvis Flores
+ */
+export function formatearFechaIso(fecha: Date): string {
+  const mes = String(fecha.getMonth() + 1).padStart(2, '0');
+  const dia = String(fecha.getDate()).padStart(2, '0');
+
+  return fecha.getFullYear() + '-' + mes + '-' + dia;
+}

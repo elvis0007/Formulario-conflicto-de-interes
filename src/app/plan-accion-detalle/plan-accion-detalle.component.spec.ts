@@ -4,6 +4,7 @@ import { BehaviorSubject, Observable, isObservable } from 'rxjs';
 import { AnalisisMockService, LATENCIA_GENERACION_MS } from '../services/analisis-mock.service';
 import { LATENCIA_SIMULADA_MS } from '../services/mock-data/simular-respuesta';
 import { PlanesMockService } from '../services/planes-mock.service';
+import { RELOJ } from '../utils/reloj';
 import {
   MENSAJE_PLAN_VIGENTE,
   PlanAccionDetalleComponent,
@@ -97,7 +98,8 @@ describe('PlanAccionDetalleComponent', () => {
       imports: [PlanAccionDetalleComponent],
       providers: [
         provideRouter([]),
-        { provide: ActivatedRoute, useValue: { paramMap: parametros } }
+        { provide: ActivatedRoute, useValue: { paramMap: parametros } },
+        { provide: RELOJ, useValue: () => new Date(2026, 9, 2, 10, 0) }
       ]
     });
     analisis = TestBed.inject(AnalisisMockService);
@@ -235,8 +237,9 @@ describe('PlanAccionDetalleComponent', () => {
         expect(boton('button', '+ Agregar actividad')).toBeUndefined();
         expect(raiz.querySelector('.boton-icono--quitar')).toBeNull();
         expect(raiz.querySelectorAll('.tabla-actividades tbody tr.actividad').length).toBeGreaterThan(0);
-        expect(boton('.acciones-encabezado button', 'Imprimir formulario').disabled).toBeTrue();
-        expect(boton('.acciones-encabezado button', 'Enviar y notificar').disabled).toBeTrue();
+        expect(boton('.acciones-encabezado button', 'Imprimir formulario').disabled)
+          .withContext('activos y cerrados se pueden imprimir').toBeFalse();
+        expect(boton('.acciones-encabezado button', 'Enviar y notificar')).toBeUndefined();
       }));
     }
 
@@ -358,6 +361,210 @@ describe('PlanAccionDetalleComponent', () => {
 
     it('en un plan de solo lectura nunca hay cambios pendientes', fakeAsync(() => {
       abrir('C-001', 'PL-001');
+      expect(fixture.componentInstance.puedeSalir()).toBeTrue();
+    }));
+  });
+
+  describe('Día 8: imprimir', () => {
+    it('se puede imprimir un borrador guardado con una actividad completa; no con cambios', fakeAsync(() => {
+      abrir('C-003', 'PL-004');
+      const imprimir = spyOn(window, 'print');
+
+      expect(boton('.acciones-botones button', 'Imprimir formulario').disabled).toBeFalse();
+      escribir('input[formcontrolname=nombre]', 'Cambio sin guardar');
+      expect(boton('.acciones-botones button', 'Imprimir formulario').disabled).toBeTrue();
+
+      escribir('input[formcontrolname=nombre]', 'Control cruzado de pagos');
+      fixture.componentInstance.formulario.markAsPristine();
+      fixture.detectChanges();
+      boton('.acciones-botones button', 'Imprimir formulario').click();
+      expect(imprimir).toHaveBeenCalled();
+    }));
+
+    it('un plan nuevo sin guardar no se puede imprimir', fakeAsync(() => {
+      analisisValidadoConC005Confirmado();
+      abrir('C-005', 'nuevo');
+      expect(boton('.acciones-botones button', 'Imprimir formulario').disabled).toBeTrue();
+    }));
+
+    it('la versión impresa tiene encabezado, caso, actividades y una firma por responsable', fakeAsync(() => {
+      abrir('C-003', 'PL-004');
+      spyOn(window, 'print');
+      boton('.acciones-botones button', 'Imprimir formulario').click();
+
+      expect(texto('.impresion-codigo')).toBe('PNIP.CI.FR.02');
+      expect(texto('.impresion-fecha')).toBe('Fecha de impresión: 02/10/2026');
+      expect(texto('.impresion-empresa')).toBe('Empresa Eléctrica Ambato Regional Centro Norte S.A.');
+      expect(raiz.querySelectorAll('.impresion-tabla tbody tr').length).withContext('5 datos + 2 actividades').toBe(7);
+      expect(Array.from(raiz.querySelectorAll('.firma .firma-nombre')).map((f) => limpio(f.textContent))).toEqual([
+        'Nombre: ______________________________',
+        'Patricio Eduardo Barona Silva',
+        'Diana Carolina Pérez López'
+      ]);
+    }));
+
+    it('mientras la pantalla está abierta, <body> tiene la clase de impresión', fakeAsync(() => {
+      abrir('C-003', 'PL-004');
+      expect(document.body.classList).toContain('con-plan-imprimible');
+      fixture.destroy();
+      expect(document.body.classList).not.toContain('con-plan-imprimible');
+    }));
+  });
+
+  describe('Día 8: documento del plan', () => {
+    /**
+     * Elige un archivo en el input oculto (como el selector del sistema).
+     *
+     * @param nombre Nombre del archivo.
+     * @param tipo Tipo MIME.
+     * @param bytes Tamano.
+     */
+    function elegir(nombre: string, tipo = 'application/pdf', bytes = 100): void {
+      const input = raiz.querySelector('.documento input[type=file]') as HTMLInputElement;
+      const dt = new DataTransfer();
+
+      dt.items.add(new File([new Uint8Array(bytes)], nombre, { type: tipo }));
+      input.files = dt.files;
+      input.dispatchEvent(new Event('change'));
+      fixture.detectChanges();
+      tick(LATENCIA_SIMULADA_MS);
+      fixture.detectChanges();
+    }
+
+    beforeEach(() => {
+      let n = 0;
+      spyOn(URL, 'createObjectURL').and.callFake(() => 'blob:prueba-' + (++n));
+      spyOn(URL, 'revokeObjectURL');
+    });
+
+    it('sin documento: botón para subirlo y el aviso para habilitar el envío', fakeAsync(() => {
+      abrir('C-003', 'PL-004');
+
+      expect(boton('.documento button', 'Subir documento firmado (PDF)')).toBeDefined();
+      expect(texto('.aviso-documento')).toBe('Sube el documento firmado para habilitar «Enviar y notificar».');
+      expect(raiz.querySelector('.documento input[type=file]')?.getAttribute('accept')).toBe('.pdf,application/pdf');
+    }));
+
+    it('muestra el error si no es PDF o supera 10 MB', fakeAsync(() => {
+      abrir('C-003', 'PL-004');
+
+      elegir('foto.png', 'image/png');
+      expect(texto('.error--documento')).toBe('El documento firmado debe ser un archivo PDF.');
+
+      elegir('grande.pdf', 'application/pdf', 10 * 1024 * 1024 + 1);
+      expect(texto('.error--documento')).toBe('El documento firmado no puede superar los 10 MB.');
+      expect(raiz.querySelector('.documento-nombre')).toBeNull();
+    }));
+
+    it('sube, reemplaza y quita el PDF', fakeAsync(() => {
+      abrir('C-003', 'PL-004');
+
+      elegir('plan.pdf');
+      expect(texto('.documento-nombre')).toBe('plan.pdf — subido el 02/10/2026');
+      expect(raiz.querySelector('.documento a')?.getAttribute('href')).toBe('blob:prueba-1');
+      expect(raiz.querySelector('.documento a')?.getAttribute('target')).toBe('_blank');
+
+      elegir('plan-v2.pdf');
+      expect(texto('.documento-nombre')).toBe('plan-v2.pdf — subido el 02/10/2026');
+
+      boton('.documento button', 'Quitar').click();
+      tick(LATENCIA_SIMULADA_MS);
+      fixture.detectChanges();
+      expect(raiz.querySelector('.documento-nombre')).toBeNull();
+      expect(boton('.documento button', 'Subir documento firmado (PDF)')).toBeDefined();
+    }));
+
+    it('en un plan activo, el documento es de solo lectura', fakeAsync(() => {
+      abrir('C-002', 'PL-003');
+
+      expect(texto('.documento-nombre')).toBe('PL-003-plan-firmado.pdf — subido el 14/08/2026');
+      expect(limpio(raiz.querySelector('.documento a')?.textContent)).toBe('Ver documento');
+      expect(raiz.querySelector('.documento input[type=file]')).toBeNull();
+      expect(boton('.documento button', 'Reemplazar')).toBeUndefined();
+      expect(boton('.documento button', 'Quitar')).toBeUndefined();
+    }));
+  });
+
+  describe('Día 8: enviar y notificar', () => {
+    /** @returns Lo que dice que falta para enviar. */
+    function faltas(): string[] {
+      return Array.from(raiz.querySelectorAll('.faltas-envio li')).map((l) => limpio(l.textContent));
+    }
+
+    /** @returns El boton «Enviar y notificar». */
+    function enviar(): HTMLButtonElement {
+      return boton('.acciones-botones button', 'Enviar y notificar');
+    }
+
+    it('sin documento: deshabilitado con «Sube el documento firmado»', fakeAsync(() => {
+      abrir('C-003', 'PL-004');
+      expect(enviar().disabled).toBeTrue();
+      expect(faltas()).toEqual(['Sube el documento firmado']);
+    }));
+
+    it('con cambios sin guardar: «Guarda los cambios»', fakeAsync(() => {
+      abrir('C-008', 'PL-007');
+      expect(faltas()).withContext('PL-007 ya tiene documento y está completo').toEqual([]);
+
+      escribir('input[formcontrolname=nombre]', 'Otro nombre');
+      expect(enviar().disabled).toBeTrue();
+      expect(faltas()).toEqual(['Guarda los cambios']);
+    }));
+
+    it('con actividades incompletas guardadas: cuántas faltan', fakeAsync(() => {
+      abrir('C-008', 'PL-007');
+      spyOn(TestBed.inject(Router), 'navigateByUrl').and.resolveTo(true);
+
+      boton('button', '+ Agregar actividad').click();
+      boton('button', '+ Agregar actividad').click();
+      fixture.detectChanges();
+      boton('.acciones-botones button', 'Guardar borrador').click();
+      tick(LATENCIA_SIMULADA_MS);
+      fixture.detectChanges();
+      expect(faltas()).toEqual(['Completa las 2 actividades con datos faltantes']);
+
+      fixture.componentInstance.quitarActividad(2);
+      boton('.acciones-botones button', 'Guardar borrador').click();
+      tick(LATENCIA_SIMULADA_MS);
+      fixture.detectChanges();
+      expect(faltas()).toEqual(['Completa la actividad con datos faltantes']);
+      tick(3000);
+    }));
+
+    it('sin actividades: «Agrega al menos una actividad»', fakeAsync(() => {
+      abrir('C-008', 'PL-007');
+      fixture.componentInstance.quitarActividad(0);
+      boton('.acciones-botones button', 'Guardar borrador').click();
+      tick(LATENCIA_SIMULADA_MS);
+      fixture.detectChanges();
+
+      expect(faltas()).toEqual(['Agrega al menos una actividad']);
+      tick(3000);
+    }));
+
+    it('pide confirmación y deja el plan activo, en solo lectura, con fechas límite', fakeAsync(() => {
+      abrir('C-008', 'PL-007');
+
+      expect(enviar().disabled).toBeFalse();
+      enviar().click();
+      fixture.detectChanges();
+      expect(texto('app-modal .confirmacion-texto')).toBe(
+        'Se registrará hoy (02/10/2026) como fecha de inicio del plan y se notificará a 1 responsable. '
+        + 'Después ya no podrás editar el plan.');
+
+      boton('app-modal button', 'Enviar y notificar').click();
+      fixture.detectChanges();
+      tick(LATENCIA_SIMULADA_MS * 2);
+      fixture.detectChanges();
+
+      expect(texto('.estado-plan')).toBe('Activo');
+      expect(texto('.banner-inicio')).toBe('Fecha de inicio del plan: 02/10/2026 · plan enviado y notificado');
+      expect(Array.from(raiz.querySelectorAll('.tabla-actividades .fecha-limite span')).map((s) => limpio(s.textContent)))
+        .toEqual(['02/10/2027', 'Plazo: 12 meses']);
+      expect(raiz.querySelectorAll('input, select, textarea').length).toBe(0);
+      expect(enviar()).toBeUndefined();
+      expect(texto('.mensaje--ok')).toBe('Notificación enviada a la bandeja de tareas de cada responsable');
+      expect(texto('app-tabs [aria-selected=true]')).toBe('Plan 02 Activo');
       expect(fixture.componentInstance.puedeSalir()).toBeTrue();
     }));
   });

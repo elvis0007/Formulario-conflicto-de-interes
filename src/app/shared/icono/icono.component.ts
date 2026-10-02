@@ -12,7 +12,10 @@ export type NombreIcono =
   | 'check'
   | 'bandeja'
   | 'buscar'
-  | 'analisis';
+  | 'analisis'
+  | 'documento'
+  | 'subir'
+  | 'imprimir';
 
 /**
  * Trazos SVG (viewBox 24x24, trazo de 2 px) de cada icono. Son los de la
@@ -33,7 +36,12 @@ const TRAZOS: Readonly<Record<NombreIcono, string>> = {
     + 'a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0'
     + '-1.79 1.11z',
   buscar: 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14z M21 21l-4.35-4.35',
-  analisis: 'M3 3v18h18 M7 14l4-4 4 4 5-6'
+  analisis: 'M3 3v18h18 M7 14l4-4 4 4 5-6',
+  documento: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z '
+    + 'M14 2v6h6 M9 13h6 M9 17h6',
+  subir: 'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4 M17 8l-5-5-5 5 M12 3v12',
+  imprimir: 'M6 9V2h12v7 M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5'
+    + 'a2 2 0 0 1-2 2h-2 M6 14h12v8H6z'
 };
 
 /**

@@ -1367,3 +1367,103 @@ builds de development y producción compilan.
   el día de pulido si molesta.
 - **«Imprimir formulario», «Enviar y notificar» y el documento firmado:**
   Día 8. «Enviar y notificar» exigirá las actividades completas.
+
+## Día 8 — Plan de Acción: impresión, documento firmado y envío con notificación (02/10/2026)
+
+Segunda mitad de Plan de Acción (especificación §6.6 y reglas 4, 6 y 7).
+No hay firma electrónica. El flujo es: armar el plan, imprimirlo,
+firmarlo a mano, escanearlo, subir el PDF y «Enviar y notificar».
+
+### Decisiones
+
+- **Reloj inyectable (`utils/reloj.ts`, token `RELOJ`).** Lo usan la fecha
+  de inicio, la fecha de subida, la de las notificaciones, la impresión y
+  la confirmación del envío. Así las pruebas usan una fecha fija
+  (02/10/2026).
+- **`PlanesMockService`:**
+  - `subirDocumentoFirmado(planId, archivo)`:
+    - valida con `validarDocumentoFirmado` (`utils/documento.util.ts`): el
+      nombre termina en `.pdf`, el tipo es `application/pdf` (o vacío,
+      como en algunos sistemas), no supera 10 MB y no está vacío;
+    - guarda nombre, tipo, fecha de subida y una URL local
+      (`URL.createObjectURL`); al reemplazar o quitar libera la anterior;
+    - devuelve `{ plan, error }`, así la pantalla puede mostrar el motivo.
+  - `quitarDocumentoFirmado(planId)`.
+  - `guardarBorrador` ya no puede pisar el documento: solo cambia con sus
+    propios métodos.
+  - `enviarYNotificar(planId)`:
+    - exige borrador, documento y al menos una actividad, todas completas
+      (`actividadCompleta`);
+    - fija la fecha de inicio en hoy. En el backend real la fijará el
+      servidor; está anotado en el TSDoc;
+    - calcula cada fecha límite con `calcularFechaLimite` (se guarda como
+      `aaaa-mm-dd`, igual que en los datos), deja las actividades en
+      `pendiente` y el plan en `activo`.
+  - Todas las reglas se aplican también en el servicio, no solo en la
+    pantalla.
+- **Notificaciones:**
+  - Al enviar se crea una por cada responsable distinto («Nuevo plan de
+    acción asignado», «Conflicto #id · Plan 0n · nombre. n actividades a
+    tu cargo.»), con su `destinatarioId`.
+  - `NotificacionesMockService.agregarNotificaciones()` las crea y avisa
+    por `cambios`; la campana escucha ese aviso y se actualiza sola, sin
+    recargar.
+  - **PENDIENTE (backend):** la campana aún no filtra por usuario. Hoy RRHH
+    ve también las de los responsables, por eso aparecen varias iguales
+    tras un envío.
+- **Modelos:** `Archivo.fechaSubida` (opcional; los PDF firmados de ejemplo
+  tienen una fecha anterior al inicio del plan) y
+  `Notificacion.destinatarioId`.
+- **Imprimir formulario (PNIP.CI.FR.02):**
+  - Se resuelve con `@media print`, sin abrir otra ventana. La pantalla
+    tiene una versión `.impresion` (oculta en pantalla) con encabezado
+    (código, nombre del formulario, empresa, fecha de impresión), datos del
+    caso, nombre del plan, actividades y firmas: RRHH (nombre en blanco) y
+    una por cada responsable distinto.
+  - Para ocultar la cabecera, el menú, el pie y el selector de rol, que
+    están fuera de la pantalla, se agregó a `src/styles.scss` (archivo del
+    host) un bloque `[PNIP-CI]` que solo actúa al imprimir y solo con la
+    clase `con-plan-imprimible` en `<body>`. La pantalla pone esa clase al
+    abrirse y la quita al cerrarse. Comprobado: imprimiendo desde Análisis,
+    la cabecera y el menú siguen visibles.
+  - Se habilita en un borrador guardado, sin cambios pendientes y con al
+    menos una actividad completa; en activos y cerrados, siempre.
+- **«Enviar y notificar»:**
+  - Solo existe en borradores.
+  - Si está deshabilitado, debajo dice qué falta, en este orden: «Guarda
+    los cambios», «Agrega al menos una actividad», «Completa la actividad /
+    las n actividades con datos faltantes» y «Sube el documento firmado».
+  - Se evalúa sobre el plan guardado.
+- **Análisis:** la columna «Plan de acción» con un solo plan muestra ahora
+  también su estado. Antes solo tenía el botón, así que un envío no se
+  notaba.
+- **Íconos nuevos** en `IconoComponent`: `documento`, `subir` e `imprimir`.
+
+### Verificación (sesión simulada como R, Edge headless)
+
+| Paso | Resultado |
+|---|---|
+| Borrador C-003 › PL-004 | «Enviar y notificar» deshabilitado: «Sube el documento firmado». |
+| Agregar una actividad | Sin guardar: «Guarda los cambios»; «Imprimir» deshabilitado. Al completarla y guardar, vuelve a faltar solo el documento. |
+| Imprimir (emulación print) | `window.print` llamado. En impresión: cabecera, menú, pie y selector de rol ocultos; solo el formulario: encabezado, caso, 3 actividades y 4 firmas (RRHH + 3 responsables). |
+| Archivo que no es PDF | «El documento firmado debe ser un archivo PDF.» |
+| Subir y reemplazar PDF | «plan-firmado.pdf — subido el 02/10/2026», con «Ver documento» (URL `blob:`, pestaña nueva), «Reemplazar» y «Quitar»; luego `plan-firmado-v2.pdf`. |
+| Enviar y notificar | Confirmación «Se registrará hoy (02/10/2026)… a 3 responsables…». Después: plan Activo, banner verde, fechas límite calculadas, solo lectura, documento sin «Reemplazar» ni «Quitar», aviso «Notificación enviada a la bandeja de tareas de cada responsable», pestaña «Plan 01 Activo». |
+| Análisis | C-003: «Ver plan de acción · Activo». |
+| Campana | De 5 a 8 sin leer; las 3 nuevas arriba. |
+| Imprimir desde Análisis | La app se imprime como siempre (el bloque de impresión no actúa). |
+
+Pruebas: 319 pasan y fallan las 3 antiguas de `app.component.spec`. Los
+builds de development y producción compilan. Para el recorrido, los
+archivos se crean dentro de la página (`File` + `DataTransfer`) y pasan
+por el mismo evento `change` que el selector del sistema: en Edge headless
+los archivos elegidos con `DOM.setFileInputFiles` no se pueden leer.
+
+### Pendiente / a tener en cuenta
+
+- **Filtrar la campana por usuario** (`destinatarioId`) cuando exista el
+  backend.
+- **El documento subido vive en una URL local** (`blob:`) mientras dure la
+  sesión; al recargar se pierde. Con el backend será `GET /archivos/:id`.
+- **Cierre automático del plan** cuando todas las actividades estén
+  aprobadas: Día 9 (Revisión de Evidencias).

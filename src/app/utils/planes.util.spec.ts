@@ -1,9 +1,11 @@
 import { Actividad, EstadoActividad, EstadoPlan, PlanAccion } from '../models';
 import {
+  actividadCompleta,
   calcularAvance,
   derivarEstadoPlan,
   hayPlanActivo,
   obtenerPlanActual,
+  responsablesDelPlan,
   textoEstadoPlan
 } from './planes.util';
 
@@ -156,5 +158,37 @@ describe('planes.util: textos y plan actual', () => {
     const todosCerrados = planesDe('cerrado', 'cerrado', 'cerrado').reverse();
 
     expect(obtenerPlanActual(todosCerrados)?.id).toBe('PL-3');
+  });
+});
+
+describe('planes.util: actividades completas y responsables', () => {
+  const COMPLETA = {
+    descripcion: 'Firmar la declaración',
+    responsableId: 'EMP-001',
+    plazoMeses: 0,
+    plazoDias: 15
+  };
+
+  it('actividadCompleta exige descripción, responsable y plazo válido', () => {
+    expect(actividadCompleta(COMPLETA)).toBeTrue();
+    expect(actividadCompleta({ ...COMPLETA, descripcion: '   ' })).toBeFalse();
+    expect(actividadCompleta({ ...COMPLETA, responsableId: '' })).toBeFalse();
+    expect(actividadCompleta({ ...COMPLETA, plazoDias: 0 })).withContext('plazo 0').toBeFalse();
+    expect(actividadCompleta({ ...COMPLETA, plazoMeses: -1 })).toBeFalse();
+    expect(actividadCompleta({ ...COMPLETA, plazoDias: 1.5 })).toBeFalse();
+  });
+
+  it('responsablesDelPlan: distintos, en orden, con su número de actividades', () => {
+    const actividades: Actividad[] = [
+      { id: 'A-1', descripcion: 'a', responsableId: 'EMP-001', responsableNombre: 'Carlos', plazoMeses: 1, plazoDias: 0, estado: 'pendiente' },
+      { id: 'A-2', descripcion: 'b', responsableId: 'EMP-003', responsableNombre: 'Diana', plazoMeses: 1, plazoDias: 0, estado: 'pendiente' },
+      { id: 'A-3', descripcion: 'c', responsableId: 'EMP-001', responsableNombre: 'Carlos', plazoMeses: 1, plazoDias: 0, estado: 'pendiente' },
+      { id: 'A-4', descripcion: 'd', responsableId: '', responsableNombre: '', plazoMeses: 1, plazoDias: 0, estado: 'pendiente' }
+    ];
+
+    expect(responsablesDelPlan(actividades)).toEqual([
+      { id: 'EMP-001', nombre: 'Carlos', actividades: 2 },
+      { id: 'EMP-003', nombre: 'Diana', actividades: 1 }
+    ]);
   });
 });

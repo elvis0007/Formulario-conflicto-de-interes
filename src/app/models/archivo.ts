@@ -10,4 +10,6 @@ export interface Archivo {
   url: string;
   /** Formato del archivo; solo se admiten PDF e imagenes. */
   tipo: 'pdf' | 'png' | 'jpg';
+  /** Fecha y hora en que se subio (ISO 8601), si se conoce. */
+  fechaSubida?: string;
 }

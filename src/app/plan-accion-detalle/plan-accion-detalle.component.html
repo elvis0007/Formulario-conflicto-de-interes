@@ -35,9 +35,14 @@
           </div>
         </div>
         <div class="acciones-encabezado">
-          <!-- Día 8: imprimir el formulario del plan. -->
-          <button type="button" class="boton" disabled>
-            <app-icono nombre="descargar" [tamano]="16" />
+          <div class="acciones-botones">
+          <button
+            type="button"
+            class="boton"
+            [disabled]="!puedeImprimir"
+            [attr.title]="puedeImprimir ? null : 'Guarda el plan con al menos una actividad completa para imprimirlo'"
+            (click)="imprimir()">
+            <app-icono nombre="imprimir" [tamano]="16" />
             Imprimir formulario
           </button>
           @if (editable) {
@@ -51,13 +56,34 @@
               {{ guardando ? 'Guardando…' : 'Guardar borrador' }}
             </button>
           }
-          <!-- Día 8: requiere el documento firmado. -->
-          <button type="button" class="boton boton--primario" disabled>
-            <app-icono nombre="enviar" [tamano]="16" />
-            Enviar y notificar
-          </button>
+          @if (editable) {
+            <button
+              type="button"
+              class="boton boton--primario"
+              [disabled]="!puedeEnviar"
+              [attr.aria-describedby]="faltasParaEnviar.length > 0 ? 'faltas-envio' : null"
+              (click)="pedirEnvio()">
+              <app-icono nombre="enviar" [tamano]="16" />
+              Enviar y notificar
+            </button>
+          }
+          </div>
+          @if (editable && faltasParaEnviar.length > 0) {
+            <ul id="faltas-envio" class="faltas-envio" aria-label="Para enviar y notificar falta">
+              @for (falta of faltasParaEnviar; track falta) {
+                <li>{{ falta }}</li>
+              }
+            </ul>
+          }
         </div>
       </header>
+
+      @if (enviado) {
+        <p class="mensaje mensaje--ok" role="status">{{ avisoEnviado }}</p>
+      }
+      @if (errorEnvio) {
+        <p class="mensaje mensaje--error" role="alert">{{ errorEnvio }}</p>
+      }
 
       @if (mensajeGuardado) {
         <p class="mensaje mensaje--ok" role="status">Borrador guardado</p>
@@ -271,10 +297,159 @@
             </table>
           </div>
         }
+
+        <section class="documento" aria-labelledby="titulo-documento">
+          <h3 id="titulo-documento" class="seccion-titulo">Documento del plan</h3>
+          @if (editable) {
+            <!-- Selector de archivo oculto: lo abren «Subir…» y «Reemplazar». -->
+            <input
+              #selectorDocumento
+              type="file"
+              class="solo-lectores"
+              accept=".pdf,application/pdf"
+              tabindex="-1"
+              aria-hidden="true"
+              (change)="alElegirDocumento($event)" />
+            @if (plan.documentoFirmado; as doc) {
+              <div class="documento-fila">
+                <span class="documento-nombre">
+                  <app-icono nombre="documento" [tamano]="18" />
+                  {{ textoDocumento }}
+                </span>
+                <a class="boton boton--tabla" [href]="doc.url" target="_blank" rel="noopener">Ver documento</a>
+                <button
+                  type="button"
+                  class="boton boton--tabla"
+                  [disabled]="procesandoDocumento"
+                  (click)="selectorDocumento.click()">Reemplazar</button>
+                <button
+                  type="button"
+                  class="boton boton--tabla boton--quitar"
+                  [disabled]="procesandoDocumento"
+                  (click)="quitarDocumento()">Quitar</button>
+              </div>
+            } @else {
+              <div class="documento-fila">
+                <button
+                  type="button"
+                  class="boton"
+                  [disabled]="procesandoDocumento || esNuevo"
+                  (click)="selectorDocumento.click()">
+                  <app-icono nombre="subir" [tamano]="16" />
+                  {{ procesandoDocumento ? 'Subiendo…' : 'Subir documento firmado (PDF)' }}
+                </button>
+              </div>
+              <p class="aviso-documento">
+                @if (esNuevo) {
+                  Guarda el borrador para poder subir el documento firmado.
+                } @else {
+                  Sube el documento firmado para habilitar «Enviar y notificar».
+                }
+              </p>
+            }
+            @if (errorDocumento) {
+              <p class="error error--documento" role="alert">{{ errorDocumento }}</p>
+            }
+          } @else {
+            @if (plan.documentoFirmado; as doc) {
+              <div class="documento-fila">
+                <span class="documento-nombre">
+                  <app-icono nombre="documento" [tamano]="18" />
+                  {{ textoDocumento }}
+                </span>
+                <a class="boton boton--tabla" [href]="doc.url" target="_blank" rel="noopener">Ver documento</a>
+              </div>
+            } @else {
+              <p class="sin-documento">El plan no tiene documento firmado.</p>
+            }
+          }
+        </section>
       </div>
+
+      <!-- Versión para imprimir y firmar (solo se ve al imprimir). -->
+      <section class="impresion" aria-hidden="true">
+        <header class="impresion-cabecera">
+          <div>
+            <p class="impresion-codigo">PNIP.CI.FR.02</p>
+            <h1 class="impresion-titulo">Plan de acción para la gestión de conflictos de interés</h1>
+            <p class="impresion-empresa">Empresa Eléctrica Ambato Regional Centro Norte S.A.</p>
+          </div>
+          <p class="impresion-fecha">Fecha de impresión: {{ fechaImpresion }}</p>
+        </header>
+
+        <h2 class="impresion-seccion">Datos del caso · Conflicto #{{ conflicto.id }}</h2>
+        <table class="impresion-tabla impresion-tabla--datos">
+          <tbody>
+            <tr><th scope="row">Empleado</th><td>{{ conflicto.personaA.nombres }}</td></tr>
+            <tr><th scope="row">Familiar</th><td>{{ conflicto.personaB.nombres }}</td></tr>
+            <tr><th scope="row">Parentesco</th><td>{{ parentesco }}</td></tr>
+            <tr>
+              <th scope="row">Departamentos</th>
+              <td>{{ conflicto.personaA.departamento }} · {{ conflicto.personaB.departamento }}</td>
+            </tr>
+            <tr><th scope="row">Riesgo</th><td>{{ textoRiesgo }}</td></tr>
+          </tbody>
+        </table>
+
+        <h2 class="impresion-seccion">Plan {{ ('0' + plan.numero).slice(-2) }} · {{ plan.nombre }}</h2>
+        <table class="impresion-tabla">
+          <thead>
+            <tr>
+              <th scope="col">N.º</th>
+              <th scope="col">Actividad</th>
+              <th scope="col">Responsable</th>
+              <th scope="col">Plazo</th>
+              <th scope="col">Fecha límite</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (actividad of plan.actividades; track actividad.id; let i = $index) {
+              <tr>
+                <td>{{ i + 1 }}</td>
+                <td>{{ actividad.descripcion }}</td>
+                <td>{{ actividad.responsableNombre }}</td>
+                <td>{{ actividad | plazoTexto }}</td>
+                <td>{{ plan.fechaInicio ? fechaLimite(actividad.plazoMeses, actividad.plazoDias) : '—' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+
+        <h2 class="impresion-seccion">Firmas</h2>
+        <div class="impresion-firmas">
+          <div class="firma">
+            <div class="firma-linea"></div>
+            <p class="firma-nombre">Nombre: ______________________________</p>
+            <p class="firma-cargo">Talento Humano (RRHH)</p>
+          </div>
+          @for (responsable of responsables; track responsable.id) {
+            <div class="firma">
+              <div class="firma-linea"></div>
+              <p class="firma-nombre">{{ responsable.nombre }}</p>
+              <p class="firma-cargo">Responsable</p>
+            </div>
+          }
+        </div>
+      </section>
     }
   }
 }
+
+<app-modal
+  titulo="Enviar y notificar"
+  [abierto]="confirmandoEnvio"
+  (cerrar)="confirmandoEnvio = false">
+  <p class="confirmacion-texto">{{ textoConfirmacionEnvio }}</p>
+  <div class="confirmacion-botones">
+    <button type="button" class="boton" [disabled]="enviando" (click)="confirmandoEnvio = false">Cancelar</button>
+    <button
+      type="button"
+      class="boton boton--primario"
+      [disabled]="enviando"
+      [attr.aria-busy]="enviando"
+      (click)="confirmarEnvio()">{{ enviando ? 'Enviando…' : 'Enviar y notificar' }}</button>
+  </div>
+</app-modal>
 
 <app-modal
   titulo="Cambios sin guardar"

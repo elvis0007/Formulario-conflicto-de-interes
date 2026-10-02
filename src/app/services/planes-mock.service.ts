@@ -1,10 +1,25 @@
-import { Injectable } from '@angular/core';
-import { Observable, defer, throwError } from 'rxjs';
+import { Injectable, inject } from '@angular/core';
+import { Observable, defer, map, switchMap, throwError } from 'rxjs';
 import { PlanAccion } from '../models';
+import { validarDocumentoFirmado } from '../utils/documento.util';
+import { calcularFechaLimite, formatearFechaIso, parsearFecha } from '../utils/fechas.util';
 import { manejarError } from '../utils/manejar-error';
-import { hayPlanActivo } from '../utils/planes.util';
+import { actividadCompleta, hayPlanActivo, responsablesDelPlan } from '../utils/planes.util';
+import { RELOJ } from '../utils/reloj';
 import { PLANES } from './mock-data/planes.data';
 import { simularRespuesta } from './mock-data/simular-respuesta';
+import { NotificacionesMockService } from './notificaciones-mock.service';
+
+/** Resultado de subir el documento firmado. */
+export interface ResultadoDocumento {
+  /** Plan actualizado, o `null` si no se subio. */
+  plan: PlanAccion | null;
+  /** Motivo por el que no se subio, o `null` si se subio. */
+  error: string | null;
+}
+
+/** Mensaje si la subida falla por otra razon. */
+const ERROR_SUBIDA = 'No se pudo subir el documento. Inténtalo de nuevo.';
 
 /**
  * Planes de accion con datos simulados. Se sustituira por un servicio HTTP
@@ -26,6 +41,9 @@ export class PlanesMockService {
 
   /** Ultimo numero de actividad asignado (varias en un mismo guardado). */
   private ultimoIdActividad = 0;
+
+  private readonly reloj = inject(RELOJ);
+  private readonly notificaciones = inject(NotificacionesMockService);
 
   /**
    * Obtiene todos los planes.
@@ -135,6 +153,8 @@ export class PlanesMockService {
           return throwError(() => new Error('El plan ' + guardado.id + ' ya no es un borrador.'));
         }
         guardado.numero = this.planes[indice].numero;
+        // El documento solo cambia con subir/quitarDocumentoFirmado.
+        guardado.documentoFirmado = this.planes[indice].documentoFirmado;
       }
 
       guardado.actividades = guardado.actividades.map((actividad) => ({
@@ -151,6 +171,124 @@ export class PlanesMockService {
       return simularRespuesta(guardado);
     }).pipe(
       manejarError<PlanAccion | null>('PlanesMockService.guardarBorrador', null)
+    );
+  }
+
+  /**
+   * Sube (o reemplaza) el documento firmado de un plan en borrador. Valida
+   * que sea PDF y que no supere 10 MB (`validarDocumentoFirmado`).
+   * Guarda nombre, tipo, fecha de subida y una URL local
+   * (`URL.createObjectURL`) para poder verlo; si habia uno, libera su URL.
+   *
+   * @param planId Id del plan.
+   * @param archivo PDF escaneado del plan firmado.
+   * @returns El plan actualizado, o el motivo por el que no se subio.
+   */
+  subirDocumentoFirmado(planId: string, archivo: File): Observable<ResultadoDocumento> {
+    return defer(() => {
+      const plan = this.planes.find((p) => p.id === planId);
+      const error = validarDocumentoFirmado(archivo);
+
+      if (plan === undefined) {
+        return throwError(() => new Error('No existe el plan ' + planId + '.'));
+      }
+      if (plan.estado !== 'borrador') {
+        return simularRespuesta<ResultadoDocumento>({
+          plan: null,
+          error: 'Solo se puede subir el documento a un plan en borrador.'
+        });
+      }
+      if (error !== null) {
+        return simularRespuesta<ResultadoDocumento>({ plan: null, error });
+      }
+
+      this.liberarDocumento(plan);
+      plan.documentoFirmado = {
+        nombre: archivo.name,
+        url: URL.createObjectURL(archivo),
+        tipo: 'pdf',
+        fechaSubida: this.reloj().toISOString()
+      };
+      return simularRespuesta<ResultadoDocumento>({ plan, error: null });
+    }).pipe(
+      manejarError<ResultadoDocumento>('PlanesMockService.subirDocumentoFirmado', {
+        plan: null,
+        error: ERROR_SUBIDA
+      })
+    );
+  }
+
+  /**
+   * Quita el documento firmado de un plan en borrador (y libera su URL).
+   *
+   * @param planId Id del plan.
+   * @returns El plan sin documento, o `null` si no existe o no esta en
+   * borrador.
+   */
+  quitarDocumentoFirmado(planId: string): Observable<PlanAccion | null> {
+    return defer(() => {
+      const plan = this.planes.find((p) => p.id === planId);
+
+      if (plan === undefined || plan.estado !== 'borrador') {
+        return throwError(() => new Error('El plan ' + planId + ' no existe o no está en borrador.'));
+      }
+
+      this.liberarDocumento(plan);
+      delete plan.documentoFirmado;
+      return simularRespuesta(plan);
+    }).pipe(
+      manejarError<PlanAccion | null>('PlanesMockService.quitarDocumentoFirmado', null)
+    );
+  }
+
+  /**
+   * «Enviar y notificar»: activa un plan en borrador y avisa a sus
+   * responsables.
+   *
+   * Exige que el plan este en borrador, tenga documento firmado y al menos
+   * una actividad, todas completas (`actividadCompleta`). Entonces:
+   * - fija la fecha de inicio en HOY. En el backend real la fijara el
+   *   servidor al recibir el envio; aqui se toma del reloj de la app
+   *   (`RELOJ`);
+   * - calcula la fecha limite de cada actividad (`calcularFechaLimite`) y
+   *   las deja en `pendiente`;
+   * - deja el plan en `activo`;
+   * - agrega una notificacion por cada responsable distinto, con su id.
+   *
+   * @param planId Id del plan.
+   * @returns El plan activo, o `null` si no se pudo enviar.
+   */
+  enviarYNotificar(planId: string): Observable<PlanAccion | null> {
+    return defer(() => {
+      const plan = this.planes.find((p) => p.id === planId);
+      let fechaInicio = '';
+
+      if (plan === undefined || plan.estado !== 'borrador') {
+        return throwError(() => new Error('El plan ' + planId + ' no existe o no está en borrador.'));
+      }
+      if (!plan.documentoFirmado) {
+        return throwError(() => new Error('Falta el documento firmado.'));
+      }
+      if (plan.actividades.length === 0 || !plan.actividades.every((a) => actividadCompleta(a))) {
+        return throwError(() => new Error('Hay actividades incompletas.'));
+      }
+
+      fechaInicio = formatearFechaIso(this.reloj());
+      plan.fechaInicio = fechaInicio;
+      plan.estado = 'activo';
+      plan.actividades = plan.actividades.map((actividad) => ({
+        ...actividad,
+        estado: 'pendiente',
+        fechaLimite: formatearFechaIso(parsearFecha(
+          calcularFechaLimite(fechaInicio, actividad.plazoMeses, actividad.plazoDias)
+        ))
+      }));
+
+      return this.notificarResponsables(plan).pipe(
+        switchMap(() => simularRespuesta(plan))
+      );
+    }).pipe(
+      manejarError<PlanAccion | null>('PlanesMockService.enviarYNotificar', null)
     );
   }
 
@@ -181,5 +319,38 @@ export class PlanesMockService {
 
       return Number.isFinite(numero) ? Math.max(max, numero) : max;
     }, 0);
+  }
+
+  /**
+   * Agrega una notificacion por cada responsable distinto del plan.
+   *
+   * @param plan Plan recien enviado.
+   * @returns Observable que completa cuando se agregaron.
+   */
+  private notificarResponsables(plan: PlanAccion): Observable<void> {
+    const numero = String(plan.numero).padStart(2, '0');
+
+    return this.notificaciones.agregarNotificaciones(
+      responsablesDelPlan(plan.actividades).map((r) => ({
+        titulo: 'Nuevo plan de acción asignado',
+        texto: 'Conflicto #' + plan.conflictoId + ' · Plan ' + numero + ' · ' + plan.nombre + '. '
+          + (r.actividades === 1 ? '1 actividad a tu cargo.' : r.actividades + ' actividades a tu cargo.'),
+        tipo: 'info' as const,
+        destinatarioId: r.id
+      }))
+    ).pipe(map(() => undefined));
+  }
+
+  /**
+   * Libera la URL local del documento firmado de un plan, si la tiene.
+   *
+   * @param plan Plan.
+   */
+  private liberarDocumento(plan: PlanAccion): void {
+    const url = plan.documentoFirmado?.url;
+
+    if (url?.startsWith('blob:')) {
+      URL.revokeObjectURL(url);
+    }
   }
 }

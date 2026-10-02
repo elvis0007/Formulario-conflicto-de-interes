@@ -1,4 +1,6 @@
+import { DOCUMENT } from '@angular/common';
 import {
+  ChangeDetectorRef,
   Component,
   DestroyRef,
   HostListener,
@@ -24,6 +26,8 @@ import { AnalisisMockService } from '../services/analisis-mock.service';
 import { ConflictosMockService } from '../services/conflictos-mock.service';
 import { PersonasMockService } from '../services/personas-mock.service';
 import { PlanesMockService } from '../services/planes-mock.service';
+import { validarDocumentoFirmado } from '../utils/documento.util';
+import { RELOJ } from '../utils/reloj';
 import { BadgeComponent } from '../shared/badge/badge.component';
 import { EmptyStateComponent } from '../shared/empty-state/empty-state.component';
 import { IconoComponent } from '../shared/icono/icono.component';
@@ -31,7 +35,13 @@ import { ModalComponent } from '../shared/modal/modal.component';
 import { Pestana, TabsComponent } from '../shared/tabs/tabs.component';
 import { rolesInvolucrados, textoClasificacion, textoRiesgo } from '../utils/analisis.util';
 import { calcularFechaLimite, formatearFecha, parsearFecha } from '../utils/fechas.util';
-import { hayPlanActivo, textoEstadoPlan } from '../utils/planes.util';
+import {
+  ResponsablePlan,
+  actividadCompleta,
+  hayPlanActivo,
+  responsablesDelPlan,
+  textoEstadoPlan
+} from '../utils/planes.util';
 import { Tono, mapearEstadoPlanATono, mapearRiesgoATono } from '../utils/tono.util';
 import {
   ERROR_PLAZO_CERO,
@@ -49,6 +59,15 @@ export const MENSAJE_PLAN_VIGENTE =
 
 /** Texto de la fecha limite mientras el plan no tiene fecha de inicio. */
 export const TEXTO_SIN_FECHA_LIMITE = 'Se calcula al enviar y notificar';
+
+/**
+ * Clase que la pantalla pone en <body> mientras esta abierta: activa las
+ * reglas de impresion de styles.scss que ocultan cabecera, menu y pie.
+ */
+export const CLASE_BODY_IMPRIMIBLE = 'con-plan-imprimible';
+
+/** Aviso tras «Enviar y notificar». */
+export const AVISO_ENVIADO = 'Notificación enviada a la bandeja de tareas de cada responsable';
 
 /** Estado de la pantalla. */
 type EstadoPantalla = 'cargando' | 'no-encontrado' | 'bloqueado' | 'listo';
@@ -83,7 +102,7 @@ interface DatosPlan {
 }
 
 /**
- * Plan de Acción (PNIP.CI.FR.02), primera mitad (Dia 7).
+ * Plan de Acción (PNIP.CI.FR.02).
  *
  * Ruta: `/rrhh/conflictos/:conflictoId/planes/:planId`. Con
  * `planId = nuevo` prepara un plan en borrador sin guardar, solo si el
@@ -96,8 +115,9 @@ interface DatosPlan {
  * caso no esta en el analisis actual (o no se ha generado ninguno), se usa
  * `ConflictosMockService` para poder mostrar igual sus planes existentes.
  *
- * Quedan para el Dia 8, con su boton visible y deshabilitado: documento
- * firmado, «Enviar y notificar» e «Imprimir formulario».
+ * Flujo (sin firma electronica): armar el plan, imprimirlo
+ * («Imprimir formulario», con estilos @media print), firmarlo a mano,
+ * escanearlo, subir el PDF («Documento del plan») y «Enviar y notificar».
  *
  * @author Elvis Flores
  */
@@ -153,6 +173,29 @@ export class PlanAccionDetalleComponent implements OnInit, OnDestroy, ConCambios
   /** Modal «Cambios sin guardar» abierto. */
   confirmandoSalida = false;
 
+  /** Error del ultimo documento elegido (tipo o tamano). */
+  errorDocumento: string | null = null;
+
+  /** Subida o retiro del documento en curso. */
+  procesandoDocumento = false;
+
+  /** Modal de confirmacion de «Enviar y notificar» abierto. */
+  confirmandoEnvio = false;
+
+  /** Envio en curso. */
+  enviando = false;
+
+  /** Error del ultimo envio. */
+  errorEnvio: string | null = null;
+
+  /** Se acaba de enviar el plan: muestra el aviso de notificacion. */
+  enviado = false;
+
+  /** Fecha que sale en el formulario impreso (dd/mm/aaaa). */
+  fechaImpresion = '';
+
+  readonly avisoEnviado = AVISO_ENVIADO;
+
   readonly rutaAnalisis = RUTAS.rrhh.analisisConflictos;
   readonly mensajePlanVigente = MENSAJE_PLAN_VIGENTE;
   readonly textoSinFechaLimite = TEXTO_SIN_FECHA_LIMITE;
@@ -178,6 +221,9 @@ export class PlanAccionDetalleComponent implements OnInit, OnDestroy, ConCambios
   private readonly conflictosServicio = inject(ConflictosMockService);
   private readonly planesServicio = inject(PlanesMockService);
   private readonly personasServicio = inject(PersonasMockService);
+  private readonly reloj = inject(RELOJ);
+  private readonly documento = inject(DOCUMENT);
+  private readonly cdr = inject(ChangeDetectorRef);
 
   /** @returns Filas de actividades del formulario. */
   get actividades(): FormArray<FormGroup<FormActividad>> {
@@ -277,10 +323,93 @@ export class PlanAccionDetalleComponent implements OnInit, OnDestroy, ConCambios
   }
 
   /**
+   * «Imprimir formulario»: en borrador, guardado, sin cambios pendientes y
+   * con al menos una actividad completa; activos y cerrados, siempre.
+   *
+   * @returns `true` si se puede imprimir.
+   */
+  get puedeImprimir(): boolean {
+    const plan = this.plan;
+
+    if (plan === null) {
+      return false;
+    }
+    if (!this.editable) {
+      return true;
+    }
+
+    return !this.esNuevo && !this.formulario.dirty && plan.actividades.some((a) => actividadCompleta(a));
+  }
+
+  /**
+   * Lo que falta para «Enviar y notificar» (se evalua sobre el plan
+   * guardado). Vacio si se puede enviar.
+   *
+   * @returns Mensajes, en el orden en que conviene resolverlos.
+   */
+  get faltasParaEnviar(): string[] {
+    const plan = this.plan;
+    const faltas: string[] = [];
+    let incompletas = 0;
+
+    if (plan === null || !this.editable) {
+      return faltas;
+    }
+    if (this.esNuevo || this.formulario.dirty) {
+      faltas.push('Guarda los cambios');
+    }
+
+    incompletas = plan.actividades.filter((a) => !actividadCompleta(a)).length;
+    if (plan.actividades.length === 0) {
+      faltas.push('Agrega al menos una actividad');
+    } else if (incompletas === 1) {
+      faltas.push('Completa la actividad con datos faltantes');
+    } else if (incompletas > 1) {
+      faltas.push('Completa las ' + incompletas + ' actividades con datos faltantes');
+    }
+    if (!plan.documentoFirmado) {
+      faltas.push('Sube el documento firmado');
+    }
+
+    return faltas;
+  }
+
+  /** @returns `true` si «Enviar y notificar» esta habilitado. */
+  get puedeEnviar(): boolean {
+    return this.editable && !this.enviando && this.faltasParaEnviar.length === 0;
+  }
+
+  /** @returns Responsables distintos del plan guardado. */
+  get responsables(): ResponsablePlan[] {
+    return this.plan ? responsablesDelPlan(this.plan.actividades) : [];
+  }
+
+  /** @returns Texto de la confirmacion de «Enviar y notificar». */
+  get textoConfirmacionEnvio(): string {
+    const n = this.responsables.length;
+
+    return 'Se registrará hoy (' + formatearFecha(this.reloj()) + ') como fecha de inicio del plan y '
+      + 'se notificará a ' + n + (n === 1 ? ' responsable' : ' responsables')
+      + '. Después ya no podrás editar el plan.';
+  }
+
+  /** @returns «archivo.pdf — subido el dd/mm/aaaa». */
+  get textoDocumento(): string {
+    const doc = this.plan?.documentoFirmado;
+
+    if (!doc) {
+      return '';
+    }
+
+    return doc.fechaSubida ? doc.nombre + ' — subido el ' + this.fecha(doc.fechaSubida) : doc.nombre;
+  }
+
+  /**
    * Carga el conflicto, sus planes y los empleados cada vez que cambia la
    * URL (la pantalla se reutiliza al cambiar de pestana).
    */
   ngOnInit(): void {
+    this.documento.body.classList.add(CLASE_BODY_IMPRIMIBLE);
     this.ruta.paramMap
       .pipe(
         switchMap((parametros) => {
@@ -306,6 +435,7 @@ export class PlanAccionDetalleComponent implements OnInit, OnDestroy, ConCambios
    * seguia abierto.
    */
   ngOnDestroy(): void {
+    this.documento.body.classList.remove(CLASE_BODY_IMPRIMIBLE);
     this.limpiarMensaje();
     this.responderSalida(false);
   }
@@ -480,6 +610,139 @@ export class PlanAccionDetalleComponent implements OnInit, OnDestroy, ConCambios
   }
 
   /**
+   * «Imprimir formulario»: abre la impresion del navegador. Los estilos
+   * @media print dejan solo la version para firmar (`.impresion`).
+   */
+  imprimir(): void {
+    if (!this.puedeImprimir) {
+      return;
+    }
+    this.fechaImpresion = formatearFecha(this.reloj());
+    this.cdr.detectChanges();
+    window.print();
+  }
+
+  /**
+   * El usuario eligio un archivo: lo valida y, si es valido, lo sube.
+   *
+   * @param evento `change` del input de archivo.
+   */
+  alElegirDocumento(evento: Event): void {
+    const input = evento.target as HTMLInputElement;
+    const archivo = input.files?.[0] ?? null;
+    const plan = this.plan;
+
+    input.value = '';
+    if (archivo === null || plan === null || !this.editable || this.esNuevo) {
+      return;
+    }
+
+    this.errorDocumento = validarDocumentoFirmado(archivo);
+    if (this.errorDocumento !== null) {
+      return;
+    }
+
+    this.procesandoDocumento = true;
+    this.planesServicio.subirDocumentoFirmado(plan.id, archivo)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (resultado) => {
+          this.procesandoDocumento = false;
+          this.errorDocumento = resultado.error;
+          if (resultado.plan && this.plan) {
+            this.plan = { ...this.plan, documentoFirmado: resultado.plan.documentoFirmado };
+          }
+        },
+        error: (err: unknown) => {
+          this.procesandoDocumento = false;
+          this.errorDocumento = 'No se pudo subir el documento. Inténtalo de nuevo.';
+          console.error('[PlanAccionDetalleComponent.alElegirDocumento]', err);
+        }
+      });
+  }
+
+  /**
+   * «Quitar» el documento firmado (solo en borrador).
+   */
+  quitarDocumento(): void {
+    const plan = this.plan;
+
+    if (plan === null || !this.editable || this.procesandoDocumento) {
+      return;
+    }
+
+    this.procesandoDocumento = true;
+    this.errorDocumento = null;
+    this.planesServicio.quitarDocumentoFirmado(plan.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (actualizado) => {
+          this.procesandoDocumento = false;
+          if (actualizado === null) {
+            this.errorDocumento = 'No se pudo quitar el documento. Inténtalo de nuevo.';
+            return;
+          }
+          if (this.plan) {
+            const { documentoFirmado: _quitado, ...sinDocumento } = this.plan;
+            this.plan = sinDocumento;
+          }
+        },
+        error: (err: unknown) => {
+          this.procesandoDocumento = false;
+          this.errorDocumento = 'No se pudo quitar el documento. Inténtalo de nuevo.';
+          console.error('[PlanAccionDetalleComponent.quitarDocumento]', err);
+        }
+      });
+  }
+
+  /**
+   * «Enviar y notificar»: pide confirmacion (si se puede enviar).
+   */
+  pedirEnvio(): void {
+    if (this.puedeEnviar) {
+      this.errorEnvio = null;
+      this.confirmandoEnvio = true;
+    }
+  }
+
+  /**
+   * Confirma el envio: el plan pasa a activo, queda en solo lectura y se
+   * avisa a los responsables.
+   */
+  confirmarEnvio(): void {
+    const plan = this.plan;
+
+    if (plan === null || !this.puedeEnviar) {
+      return;
+    }
+
+    this.enviando = true;
+    this.planesServicio.enviarYNotificar(plan.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (activo) => {
+          this.enviando = false;
+          this.confirmandoEnvio = false;
+          if (activo === null) {
+            this.errorEnvio = 'No se pudo enviar el plan. Revisa que esté completo e inténtalo de nuevo.';
+            return;
+          }
+          this.plan = activo;
+          this.planes = this.planes.map((p) => p.id === activo.id ? activo : p);
+          this.pestanas = this.crearPestanas();
+          this.cargarFormulario(activo);
+          this.enviado = true;
+        },
+        error: (err: unknown) => {
+          this.enviando = false;
+          this.confirmandoEnvio = false;
+          this.errorEnvio = 'No se pudo enviar el plan. Inténtalo de nuevo.';
+          console.error('[PlanAccionDetalleComponent.confirmarEnvio]', err);
+        }
+      });
+  }
+
+  /**
    * @param persona Empleado.
    * @returns Texto de la opcion del select de responsables.
    */
@@ -544,6 +807,9 @@ export class PlanAccionDetalleComponent implements OnInit, OnDestroy, ConCambios
     this.motivosBloqueo = [];
     this.intentoGuardar = false;
     this.errorGuardado = null;
+    this.errorDocumento = null;
+    this.errorEnvio = null;
+    this.enviado = false;
     this.plan = null;
 
     if (this.conflicto === null) {

@@ -8,6 +8,7 @@ import { LATENCIA_SIMULADA_MS } from '../../services/mock-data/simular-respuesta
 import { NOTIFICACIONES } from '../../services/mock-data/notificaciones.data';
 import { esDeUltimosDias } from '../../utils/fechas.util';
 import { NotificationBellComponent } from './notification-bell.component';
+import { NotificacionesMockService } from '../../services/notificaciones-mock.service';
 
 describe('NotificationBellComponent', () => {
   const RECIENTES = NOTIFICACIONES.filter((n) => esDeUltimosDias(n.fecha, 7));
@@ -89,6 +90,17 @@ describe('NotificationBellComponent', () => {
     expect(buscar('.contador')).toBeNull();
     expect(f().nativeElement.querySelectorAll('.no-leida').length).toBe(0);
     expect((buscar('.marcar') as HTMLButtonElement).disabled).toBeTrue();
+  }));
+
+  it('se actualiza sola cuando llegan notificaciones nuevas', fakeAsync(() => {
+    crear();
+    TestBed.inject(NotificacionesMockService).agregarNotificaciones([
+      { titulo: 'Nuevo plan de acción asignado', texto: 'Plan 01', tipo: 'info', destinatarioId: 'EMP-001' }
+    ]).subscribe();
+    tick(LATENCIA_SIMULADA_MS * 2);
+    f().detectChanges();
+
+    expect(buscar('.contador')?.textContent?.trim()).toBe(String(NO_LEIDAS + 1));
   }));
 
   it('se cierra con clic fuera, no con clic dentro', fakeAsync(() => {

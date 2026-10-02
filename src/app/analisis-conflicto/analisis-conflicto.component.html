@@ -160,7 +160,10 @@
             }
           }
           @case ('uno') {
-            <a class="boton boton--tabla" [routerLink]="fila.planes[0].ruta">Ver plan de acción</a>
+            <div class="plan-uno">
+              <a class="boton boton--tabla" [routerLink]="fila.planes[0].ruta">Ver plan de acción</a>
+              <app-badge [tono]="fila.planes[0].tonoEstado" [texto]="fila.planes[0].textoEstado" />
+            </div>
           }
           @case ('varios') {
             @if (fila.planActual; as actual) {

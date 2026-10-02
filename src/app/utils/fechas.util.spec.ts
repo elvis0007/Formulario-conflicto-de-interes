@@ -2,6 +2,7 @@ import {
   calcularDiasRestantes,
   calcularFechaLimite,
   formatearFecha,
+  formatearFechaIso,
   parsearFecha
 } from './fechas.util';
 
@@ -107,5 +108,12 @@ describe('fechas.util', () => {
       expect(parsearFecha('2026-09-25T09:14:00'))
         .toEqual(new Date(2026, 8, 25));
     });
+  });
+});
+
+describe('fechas.util: formatearFechaIso', () => {
+  it('da aaaa-mm-dd con la fecha local', () => {
+    expect(formatearFechaIso(new Date(2026, 9, 2, 23, 59))).toBe('2026-10-02');
+    expect(formatearFechaIso(new Date(2027, 0, 5))).toBe('2027-01-05');
   });
 });

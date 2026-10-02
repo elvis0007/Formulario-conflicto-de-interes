@@ -142,3 +142,62 @@ export function obtenerPlanActual(planes: readonly PlanAccion[]): PlanAccion | n
     null
   );
 }
+
+/**
+ * Una actividad esta completa si tiene descripcion, responsable y un
+ * plazo valido: meses y dias enteros >= 0 y no ambos en 0. Es lo que
+ * exige «Enviar y notificar».
+ *
+ * @param actividad Actividad del plan.
+ * @returns `true` si esta completa.
+ * @author Elvis Flores
+ */
+export function actividadCompleta(
+  actividad: Pick<Actividad, 'descripcion' | 'responsableId' | 'plazoMeses' | 'plazoDias'>
+): boolean {
+  const { plazoMeses, plazoDias } = actividad;
+  const plazoValido = Number.isInteger(plazoMeses) && Number.isInteger(plazoDias)
+    && plazoMeses >= 0 && plazoDias >= 0 && plazoMeses + plazoDias > 0;
+
+  return actividad.descripcion.trim() !== '' && actividad.responsableId.trim() !== '' && plazoValido;
+}
+
+/** Un responsable de un plan y cuantas actividades tiene. */
+export interface ResponsablePlan {
+  id: string;
+  nombre: string;
+  actividades: number;
+}
+
+/**
+ * Responsables distintos de un plan, en el orden en que aparecen, con
+ * cuantas actividades tiene cada uno. Omite las actividades sin
+ * responsable.
+ *
+ * @param actividades Actividades del plan.
+ * @returns Un elemento por responsable.
+ * @author Elvis Flores
+ */
+export function responsablesDelPlan(actividades: readonly Actividad[]): ResponsablePlan[] {
+  const porId = new Map<string, ResponsablePlan>();
+
+  for (const actividad of actividades) {
+    if (!actividad.responsableId) {
+      continue;
+    }
+
+    const existente = porId.get(actividad.responsableId);
+
+    if (existente) {
+      existente.actividades++;
+    } else {
+      porId.set(actividad.responsableId, {
+        id: actividad.responsableId,
+        nombre: actividad.responsableNombre,
+        actividades: 1
+      });
+    }
+  }
+
+  return [...porId.values()];
+}

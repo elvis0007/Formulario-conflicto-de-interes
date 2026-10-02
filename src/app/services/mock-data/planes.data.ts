@@ -4,10 +4,14 @@ import { Archivo, PlanAccion } from '../../models';
  * Crea la referencia a un PDF de ejemplo (la URL no existe todavia).
  *
  * @param nombre Nombre del archivo.
+ * @param fechaSubida Fecha en que se subio (ISO 8601); los documentos
+ * firmados la tienen, las evidencias la llevan en `Evidencia`.
  * @returns Archivo PDF simulado.
  */
-function pdfSimulado(nombre: string): Archivo {
-  return { nombre, url: '/mock/archivos/' + nombre, tipo: 'pdf' };
+function pdfSimulado(nombre: string, fechaSubida?: string): Archivo {
+  return fechaSubida
+    ? { nombre, url: '/mock/archivos/' + nombre, tipo: 'pdf', fechaSubida }
+    : { nombre, url: '/mock/archivos/' + nombre, tipo: 'pdf' };
 }
 
 /**
@@ -39,7 +43,7 @@ export const PLANES: readonly PlanAccion[] = [
     estado: 'cerrado',
     fechaInicio: '2025-11-03',
     fechaCierre: '2026-03-20',
-    documentoFirmado: pdfSimulado('PL-001-plan-firmado.pdf'),
+    documentoFirmado: pdfSimulado('PL-001-plan-firmado.pdf', '2025-10-30'),
     actividades: [
       {
         id: 'A-001',
@@ -88,7 +92,7 @@ export const PLANES: readonly PlanAccion[] = [
     conflictoId: 'C-001',
     estado: 'activo_vencidas',
     fechaInicio: '2026-06-01',
-    documentoFirmado: pdfSimulado('PL-002-plan-firmado.pdf'),
+    documentoFirmado: pdfSimulado('PL-002-plan-firmado.pdf', '2026-05-28'),
     actividades: [
       {
         id: 'A-003',
@@ -146,7 +150,7 @@ export const PLANES: readonly PlanAccion[] = [
     conflictoId: 'C-002',
     estado: 'activo',
     fechaInicio: '2026-08-17',
-    documentoFirmado: pdfSimulado('PL-003-plan-firmado.pdf'),
+    documentoFirmado: pdfSimulado('PL-003-plan-firmado.pdf', '2026-08-14'),
     actividades: [
       {
         id: 'A-006',
@@ -234,7 +238,7 @@ export const PLANES: readonly PlanAccion[] = [
     estado: 'cerrado',
     fechaInicio: '2025-05-12',
     fechaCierre: '2025-07-30',
-    documentoFirmado: pdfSimulado('PL-005-plan-firmado.pdf'),
+    documentoFirmado: pdfSimulado('PL-005-plan-firmado.pdf', '2025-05-08'),
     actividades: [
       {
         id: 'A-011',
@@ -263,7 +267,7 @@ export const PLANES: readonly PlanAccion[] = [
     estado: 'cerrado',
     fechaInicio: '2026-01-12',
     fechaCierre: '2026-04-15',
-    documentoFirmado: pdfSimulado('PL-006-plan-firmado.pdf'),
+    documentoFirmado: pdfSimulado('PL-006-plan-firmado.pdf', '2026-01-09'),
     actividades: [
       {
         id: 'A-012',
@@ -311,7 +315,7 @@ export const PLANES: readonly PlanAccion[] = [
     nombre: 'Seguimiento anual',
     conflictoId: 'C-008',
     estado: 'borrador',
-    documentoFirmado: pdfSimulado('PL-007-plan-firmado.pdf'),
+    documentoFirmado: pdfSimulado('PL-007-plan-firmado.pdf', '2026-09-25'),
     actividades: [
       {
         id: 'A-014',

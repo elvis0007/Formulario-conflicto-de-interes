@@ -21,3 +21,28 @@ body.dark-mode {
 html, body {
   height: 100%;
 }
+
+// [PNIP-CI] Elvis Flores - 02/10/2026
+// Qué hace: al imprimir desde Plan de Acción (y solo ahí: la pantalla pone
+// la clase con-plan-imprimible en <body> mientras está abierta) oculta la
+// cabecera, el menú lateral, el pie y el selector de rol de desarrollo, para
+// que salga solo el formulario PNIP.CI.FR.02. En el resto de pantallas la
+// impresión no cambia.
+@media print {
+  body.con-plan-imprimible {
+    background: #ffffff;
+
+    app-header,
+    app-sidebar-menu,
+    app-footer,
+    app-selector-rol-dev {
+      display: none !important;
+    }
+
+    .app-main,
+    .app-main--gestion {
+      display: block !important;
+    }
+  }
+}
+// [FIN PNIP-CI]

@@ -324,3 +324,178 @@
   clip: rect(0 0 0 0);
   white-space: nowrap;
 }
+
+.acciones-encabezado {
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.acciones-botones {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+// Lo que falta para «Enviar y notificar».
+.faltas-envio {
+  margin: 0;
+  padding: 0;
+  color: var(--text3);
+  font-size: 12px;
+  list-style: none;
+  text-align: right;
+}
+
+// «Documento del plan».
+.documento {
+  padding-top: 4px;
+}
+
+.documento-fila {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.documento-nombre {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 6px;
+  font-weight: 600;
+}
+
+.boton--tabla {
+  padding: 6px 10px;
+  font-size: 12.5px;
+}
+
+.boton--quitar {
+  color: var(--red-text);
+}
+
+.aviso-documento {
+  margin: 8px 0 0;
+  color: var(--amber-text);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.sin-documento {
+  margin: 0;
+  color: var(--text2);
+}
+
+.error--documento {
+  margin-top: 8px;
+}
+
+// Version para imprimir: oculta en pantalla.
+.impresion {
+  display: none;
+}
+
+@media print {
+  :host {
+    padding: 0;
+    color: #000000;
+  }
+
+  :host > *:not(.impresion),
+  app-modal {
+    display: none !important;
+  }
+
+  .impresion {
+    display: block;
+    font-family: var(--font-sans);
+    font-size: 11pt;
+    line-height: 1.35;
+  }
+
+  .impresion-cabecera {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #000000;
+  }
+
+  .impresion-codigo {
+    margin: 0;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+  }
+
+  .impresion-titulo {
+    margin: 2px 0;
+    font-family: var(--font-condensed);
+    font-size: 17pt;
+  }
+
+  .impresion-empresa,
+  .impresion-fecha {
+    margin: 0;
+  }
+
+  .impresion-fecha {
+    white-space: nowrap;
+  }
+
+  .impresion-seccion {
+    margin: 16px 0 6px;
+    font-family: var(--font-condensed);
+    font-size: 13pt;
+  }
+
+  .impresion-tabla {
+    width: 100%;
+    border-collapse: collapse;
+    page-break-inside: auto;
+
+    th,
+    td {
+      padding: 5px 7px;
+      border: 1px solid #000000;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    thead th {
+      background: #e9e9ea;
+    }
+
+    tr {
+      page-break-inside: avoid;
+    }
+  }
+
+  .impresion-tabla--datos th {
+    width: 28%;
+  }
+
+  .impresion-firmas {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 36px 40px;
+    margin-top: 30px;
+    page-break-inside: avoid;
+  }
+
+  .firma-linea {
+    height: 48px;
+    border-bottom: 1px solid #000000;
+  }
+
+  .firma-nombre,
+  .firma-cargo {
+    margin: 4px 0 0;
+  }
+
+  .firma-cargo {
+    font-size: 9.5pt;
+  }
+}

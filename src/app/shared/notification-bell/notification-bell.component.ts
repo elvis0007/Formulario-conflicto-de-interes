@@ -58,10 +58,17 @@ export class NotificationBellComponent implements OnInit {
   @ViewChild('boton') private boton?: ElementRef<HTMLButtonElement>;
 
   /**
-   * Carga las notificaciones.
+   * Carga las notificaciones y las vuelve a cargar cada vez que cambian
+   * (p. ej. al enviar un plan de accion).
    */
   ngOnInit(): void {
     this.cargar();
+    this.servicio.cambios
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => this.cargar(),
+        error: (err: unknown) => console.error('[NotificationBellComponent.cambios]', err)
+      });
   }
 
   /**
