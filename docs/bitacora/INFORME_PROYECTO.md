@@ -1078,15 +1078,24 @@ su SCSS no cambian.
 
 ### Pendiente / a tener en cuenta
 
-- **Pendiente con backend:** quién asigna el rol `P` y si el modal
-  «Gestión de Roles» debe gestionarlo. No se le agregó una sección.
+- **Pendiente con backend (lo confirma Elvis):** quién asigna el rol `P` y
+  si el modal «Gestión de Roles» debe gestionarlo. Mientras tanto no se le
+  agregó una sección.
 - **`obtenerValidacionUsuario`** (corrección del 30/09 en `auth.service.ts`,
-  commit `fix(auth)` aparte) no lleva marcadores `[PNIP-CI]`: no es parte de
-  la gestión de conflictos. Hay que decidir si se marca.
-- **Cabecera en móvil:** ya se desbordaba antes de estos cambios (título
-  largo más íconos); la campana suma un ícono más. No se tocó el diseño
-  del host.
-- **Modo oscuro de la cabecera:** la regla preexistente
-  `body.dark-mode .app-header` no se aplica por el encapsulamiento de
-  estilos de Angular, así que la cabecera sigue azul en modo oscuro.
-  Preexistente; no se tocó.
+  commit `fix(auth)`): decidido el 02/10, se marca con `[PNIP-CI]` como
+  cualquier otro cambio en un archivo del host, junto con el import de
+  `tap`. Solo se agregaron comentarios.
+- Aprobado el 02/10: «Generar código de acceso» exige `A` o `R` fuera de
+  `/admin`; el bloque de usuario se oculta por debajo de 1280 px; el menú
+  queda vacío para quien no tiene `A`, `R` ni `P`.
+
+### Para el día de pulido
+
+Problemas previos de la cabecera del host. No se tocan hasta ese día:
+
+- **Desborde en móvil:** el título largo y los íconos no caben; los
+  últimos íconos quedan fuera de la pantalla. Ya pasaba antes de estos
+  cambios; la campana suma un ícono más.
+- **Modo oscuro:** la regla `body.dark-mode .app-header` de
+  `header.component.scss` no se aplica por el encapsulamiento de estilos de
+  Angular, así que la cabecera sigue azul en modo oscuro.

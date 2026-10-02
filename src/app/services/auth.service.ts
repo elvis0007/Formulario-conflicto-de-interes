@@ -1,7 +1,10 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable, signal } from '@angular/core';
 import FingerprintJS from '@fingerprintjs/fingerprintjs';
+// [PNIP-CI] Elvis Flores - 30/09/2026
+// Qué hace: agrega tap al import de rxjs (lo usa obtenerValidacionUsuario).
 import { catchError, map, Observable, of, tap } from 'rxjs';
+// [FIN PNIP-CI]
 import { IRespuestaLogin } from '../models/respuesta-login';
 import { IUsuario } from '../models/usuario';
 import { environment } from '../../environments/environment';
@@ -61,6 +64,11 @@ export class AuthService {
     return null;
   }
 
+  // [PNIP-CI] Elvis Flores - 30/09/2026
+  // Qué hace: corrige obtenerValidacionUsuario para que compile contra las
+  // clases reales del proyecto: codifica en Base64 con btoa + TextEncoder
+  // (js-base64 no está instalado), usa _tokenIntranet y tipa el Observable
+  // como arreglo de {respuesta, token}.
   obtenerValidacionUsuario(
     username: any,
     password: any
@@ -89,6 +97,7 @@ export class AuthService {
         })
       );
   }
+  // [FIN PNIP-CI]
   private actualizarRolesDesdeUsuario(usuario: IUsuario | null): void {
     if (!usuario) {
       this._roles.set([]);
