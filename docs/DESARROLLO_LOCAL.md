@@ -27,6 +27,21 @@ uno o **varios roles separados por coma** (`'R,P'`, `'A,P'`): la sesión
 simulada los carga todos con el mismo mecanismo que el login real
 (`actualizarRolesDesdeUsuario`).
 
+### Selector de rol (panel flotante)
+
+Con la sesión simulada activa aparece, abajo a la derecha, un panel
+«Rol simulado DEV» con los botones `A`, `R`, `P`, `R+P` y «Salir de la
+simulación»:
+
+- Un rol guarda `SISCI-DEV-ROL` (`R+P` guarda `'R,P'`) y recarga la página.
+  El botón del rol actual se ve resaltado.
+- «Salir de la simulación» borra `SISCI-DEV-SESION-SIMULADA`,
+  `SISCI-DEV-ROL` y `SISCI-DEV-EMPLEADO` y recarga: la app vuelve a su
+  comportamiento real (sin token, va a `/login`).
+
+El panel solo existe si `environment.production` es `false` **y**
+`SISCI-DEV-SESION-SIMULADA` vale `'true'`. En producción no se pinta nunca.
+
 ### Por qué no se prueba con el login real
 
 Para probar como `A`, `R` o `P` **siempre se usa la sesión simulada**. El
@@ -153,6 +168,9 @@ y termina con `// [FIN PNIP-CI DEV]`. Hoy son:
 | 1 | `src/app/services/auth.service.ts` | Clase `AuthService`, al final, después de `logout()` | Método `activarSesionSimuladaDev(rol)` |
 | 2 | `src/app/app.config.ts` | Dentro del callback de `provideAppInitializer`, justo después de `const router = inject(Router);` | El listener `reactivarSesionSimuladaDev` (cambios de URL sin recarga) y el `if` que activa la simulación al cargar y devuelve `true` |
 | 2b | `src/app/app.config.ts` | Imports del principio | `import { environment } …`, que solo usa el bloque 2. Se borra junto con él |
+| 3 | `src/app/dev/selector-rol-dev/` | Carpeta completa (componente, plantilla, estilos y prueba) | El selector de rol. Se borra la carpeta entera |
+| 4 | `src/app/app.component.ts` | Import de `SelectorRolDevComponent` y su entrada en `imports: [...]` del decorador | Lo que conecta el selector. Se borran ambos bloques |
+| 4b | `src/app/app.component.html` | Al final, después de `<app-footer>` | `<app-selector-rol-dev>` |
 
 Para retirarlo, borra esos bloques completos, marcadores incluidos: nada
 más en el proyecto depende de ellos.

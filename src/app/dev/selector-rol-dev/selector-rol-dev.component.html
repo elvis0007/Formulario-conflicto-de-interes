@@ -1,0 +1,20 @@
+<!-- [PNIP-CI DEV] Elvis Flores - 02/10/2026 - ELIMINAR ANTES DE PRODUCCIÓN
+     Qué hace: panel flotante para cambiar el rol de la sesión simulada. -->
+@if (activo) {
+  <aside class="selector" aria-label="Selector de rol de desarrollo">
+    <p class="selector-titulo">Rol simulado <span class="selector-etiqueta">DEV</span></p>
+    <div class="selector-roles" role="group" aria-label="Rol simulado">
+      @for (opcion of opciones; track opcion.valor) {
+        <button
+          type="button"
+          class="selector-rol"
+          [class.selector-rol--actual]="esActual(opcion)"
+          [attr.aria-pressed]="esActual(opcion)"
+          [title]="opcion.descripcion"
+          (click)="elegir(opcion)">{{ opcion.etiqueta }}</button>
+      }
+    </div>
+    <button type="button" class="selector-salir" (click)="salir()">Salir de la simulación</button>
+  </aside>
+}
+<!-- [FIN PNIP-CI DEV] -->

@@ -13,12 +13,21 @@ import { esRutaPermitida } from './app.routes';
 import { esRutaDeGestion } from './app.paths';
 import { SidebarMenuComponent } from './sidebar-menu/sidebar-menu.component';
 // [FIN PNIP-CI]
+// [PNIP-CI DEV] Elvis Flores - 02/10/2026 - ELIMINAR ANTES DE PRODUCCIÓN
+// Qué hace: selector de rol de la sesión simulada de desarrollo.
+import { SelectorRolDevComponent } from './dev/selector-rol-dev/selector-rol-dev.component';
+// [FIN PNIP-CI DEV]
 
 @Component({
   selector: 'app-root',
   // [PNIP-CI] Elvis Flores - 30/09/2026
   // Qué hace: agrega SidebarMenuComponent a los imports.
-  imports: [CommonModule, RouterOutlet, HeaderComponent, FooterComponent, SidebarMenuComponent],
+  imports: [CommonModule, RouterOutlet, HeaderComponent, FooterComponent, SidebarMenuComponent,
+    // [PNIP-CI DEV] Elvis Flores - 02/10/2026 - ELIMINAR ANTES DE PRODUCCIÓN
+    // Qué hace: agrega el selector de rol de desarrollo a los imports.
+    SelectorRolDevComponent
+    // [FIN PNIP-CI DEV]
+  ],
   // [FIN PNIP-CI]
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss'

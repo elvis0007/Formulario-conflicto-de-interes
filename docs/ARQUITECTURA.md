@@ -119,6 +119,9 @@ src/
     ├── utils/             funciones puras (fechas, planes, tonos...)
     ├── models/            interfaces y tipos (barrel: models/index.ts)
     ├── guards/            authGuard y rolGuard
+    ├── dev/               solo desarrollo: selector de rol de la sesión
+    │                      simulada ([PNIP-CI DEV], se elimina antes de
+    │                      producción)
     ├── interceptors/      token en cada petición HTTP
     └── services/
         ├── auth.service.ts, backend.service.ts...   reales

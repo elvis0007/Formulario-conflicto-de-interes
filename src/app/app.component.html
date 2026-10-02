@@ -14,4 +14,9 @@
     <router-outlet />
   </main>
   <app-footer *ngIf="!esLoginRoute"></app-footer>
+  <!-- [PNIP-CI DEV] Elvis Flores - 02/10/2026 - ELIMINAR ANTES DE PRODUCCIÓN
+       Qué hace: selector de rol de la sesión simulada. Solo se pinta en
+       desarrollo y con SISCI-DEV-SESION-SIMULADA = true. -->
+  <app-selector-rol-dev></app-selector-rol-dev>
+  <!-- [FIN PNIP-CI DEV] -->
 </div>
