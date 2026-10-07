@@ -1,0 +1,63 @@
+<header class="encabezado">
+  <div>
+    <h2 class="titulo">Hola, {{ nombre }}</h2>
+    <span class="codigo">Tus actividades en los planes de acción</span>
+  </div>
+  <a class="boton boton--primario" [routerLink]="rutaBandeja">Ir a mi bandeja</a>
+</header>
+
+@if (cargando) {
+  <p class="cargando" role="status">Cargando tus actividades…</p>
+} @else if (totalActividades === 0) {
+  <section class="tarjeta-vacia">
+    <app-empty-state icono="check" texto="No tienes actividades asignadas en planes de acción." />
+  </section>
+} @else {
+  @if (conteo.vencida > 0) {
+    <div class="alerta" role="alert">
+      <span>
+        Tienes {{ conteo.vencida }} {{ conteo.vencida === 1 ? 'actividad vencida' : 'actividades vencidas' }}.
+        Sube la evidencia lo antes posible.
+      </span>
+      <button type="button" class="boton boton--alerta" (click)="irABandeja('vencida')">Ver vencidas</button>
+    </div>
+  }
+
+  <div class="indicadores">
+    @for (i of indicadores; track i.filtro) {
+      <app-kpi-card
+        [titulo]="i.titulo"
+        [valor]="i.valor"
+        [tono]="i.tono"
+        [clicable]="true"
+        (seleccionado)="irABandeja(i.filtro)" />
+    }
+  </div>
+
+  <section class="proximas" aria-labelledby="titulo-proximas">
+    <h3 id="titulo-proximas" class="seccion-titulo">Próximas a vencer</h3>
+    @if (proximas.length === 0) {
+      <p class="sin-proximas">No tienes actividades pendientes ni rechazadas.</p>
+    } @else {
+      <ul class="lista-proximas">
+        @for (p of proximas; track p.actividad.id) {
+          <li class="proxima">
+            <span class="fecha-caja" [class.fecha-caja--vencida]="p.dias.vencida" aria-hidden="true">
+              <span class="fecha-dia">{{ diaYMes(p).dia }}</span>
+              <span class="fecha-mes">{{ diaYMes(p).mes }}</span>
+            </span>
+            <span class="proxima-texto">
+              <span class="proxima-descripcion">{{ p.actividad.descripcion }}</span>
+              <span class="proxima-plan">Conflicto #{{ p.plan.conflictoId }} · {{ tituloPlan(p.plan) }}</span>
+            </span>
+            <span class="proxima-estado">
+              <app-badge [tono]="tonoEstado(p)" [texto]="textoEstado(p)" />
+              <span class="dias" [class.dias--vencida]="p.dias.vencida">{{ p.dias.texto }}</span>
+            </span>
+            <a class="ver-plan" [routerLink]="rutaPlan(p.plan.id)">Ver plan →</a>
+          </li>
+        }
+      </ul>
+    }
+  </section>
+}

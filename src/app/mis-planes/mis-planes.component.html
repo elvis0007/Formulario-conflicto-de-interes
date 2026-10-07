@@ -1,0 +1,55 @@
+<header class="encabezado">
+  <div>
+    <h2 class="titulo">Bandeja de Tareas</h2>
+    <span class="codigo">Planes de acción en los que tienes actividades</span>
+  </div>
+</header>
+
+@if (cargando) {
+  <p class="cargando" role="status">Cargando tus planes…</p>
+} @else if (totalPlanes === 0) {
+  <section class="tarjeta-vacia">
+    <app-empty-state icono="bandeja" texto="No tienes planes de acción asignados." />
+  </section>
+} @else {
+  <app-pills
+    class="filtro"
+    etiquetaGrupo="Filtrar por estado de tus actividades"
+    [opciones]="opciones"
+    [seleccionado]="filtro"
+    (cambio)="elegirFiltro($event)" />
+
+  @if (visibles.length === 0) {
+    <section class="tarjeta-vacia">
+      <app-empty-state
+        icono="buscar"
+        [texto]="'Ningún plan tiene actividades tuyas en «' + etiquetaFiltro + '».'"
+        textoAccion="Ver todas"
+        (accion)="elegirFiltro('todas')" />
+    </section>
+  } @else {
+    <div class="cuadricula">
+      @for (t of visibles; track t.planId) {
+        <article class="tarjeta">
+          <div class="tarjeta-cabecera">
+            <span class="tarjeta-conflicto">Conflicto #{{ t.conflictoId }}</span>
+            <app-badge [tono]="t.tonoEstado" [texto]="t.textoEstado" />
+          </div>
+          <h3 class="tarjeta-plan">{{ t.tituloPlan }}</h3>
+          @if (t.fechaInicio) {
+            <span class="tarjeta-dato">Inicio: {{ t.fechaInicio }}</span>
+          }
+          <div class="chips">
+            @for (c of t.chips; track c.texto) {
+              <app-badge [tono]="c.tono" [texto]="c.texto" />
+            }
+          </div>
+          <div class="tarjeta-pie">
+            <span class="tarjeta-avance">{{ t.avance }}</span>
+            <a class="ver-plan" [routerLink]="t.ruta">Ver plan →</a>
+          </div>
+        </article>
+      }
+    </div>
+  }
+}

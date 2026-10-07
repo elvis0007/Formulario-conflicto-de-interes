@@ -1574,3 +1574,125 @@ servicios mock.
   lo imita.
 - Las fechas de revisión usan la hora del navegador; con el backend
   deberían venir del servidor.
+
+## Día 10 — Pantallas del Responsable: dashboard, bandeja, detalle y subida de evidencias (07/10/2026)
+
+Las tres pantallas del rol `P`, que eran placeholders del Día 1:
+`/responsable/dashboard`, `/responsable/planes` y
+`/responsable/planes/:planId`. Todo contra los servicios mock.
+
+### Decisiones
+
+- **Solo sus actividades:** las de `responsableId` igual a
+  `PerfilUsuarioService.obtenerEmpleadoActualId()`. Un plan aparece si
+  tiene al menos una actividad suya y no está en borrador.
+  - La regla vive en el servicio: `obtenerPlanesDeResponsable` y
+    `obtenerPlanDeResponsable` devuelven `PlanDeResponsable` (modelo
+    nuevo): el plan con SOLO sus actividades y el total del plan, para el
+    aviso «Solo ves las actividades que te corresponden (4 de 7)» (regla
+    9). El estado del plan se sigue calculando con todas.
+  - Con el backend lo filtrará el servidor (`GET /responsable/planes`).
+  - Se quitó `obtenerPlanesPorResponsable` (Día 1), que nadie usaba y
+    devolvía también borradores y actividades ajenas.
+- **`subirEvidencia(planId, actividadId, archivo)`:**
+  - Solo el responsable de la actividad, con el plan activo y la
+    actividad pendiente, rechazada o vencida.
+  - En revisión o aprobada no admite otra.
+  - PDF, PNG o JPG de hasta 10 MB: `documento.util` suma
+    `validarEvidencia` y `tipoDeEvidencia` (extensión y tipo MIME deben
+    coincidir; `.jpeg` cuenta como JPG).
+  - Una sola evidencia por actividad: reemplaza la rechazada (borra
+    motivo, revisor y fecha de revisión, y libera su URL local).
+  - La actividad pasa a «en revisión» y el estado del plan se recalcula
+    (si era la última vencida, deja de estar «con vencidas»).
+  - Aviso para RRHH: «Nueva evidencia por revisar» · «Conflicto #id ·
+    Plan 0n · «actividad» — subida por …». N-001 usa ahora el mismo
+    título.
+- **Datos:** el empleado por defecto (`EMP-010`) suma A-017 (pendiente) y
+  A-018 (vencida) en PL-002. Así tiene actividades en todos los estados,
+  en PL-002, PL-003 y PL-006 (cerrado). PL-003 sigue cerrándose al aprobar
+  A-008 (Día 9). PL-002 pasa de 5 a 7 actividades; se ajustaron las
+  pruebas de Análisis y Revisión que lo contaban.
+- **Dashboard:**
+  - Saludo «Hola, {nombre}» y «Ir a mi bandeja».
+  - Alerta roja si hay vencidas, con «Ver vencidas».
+  - Cinco `KpiCardComponent` (pendientes, en revisión, rechazadas a
+    corregir, vencidas, aprobadas); cada uno abre la Bandeja con
+    `?estado=`.
+  - «Próximas a vencer»: pendientes y rechazadas por fecha límite, con
+    cajita de día y mes, días restantes y «Ver plan →». Las vencidas no
+    entran (tienen su indicador y la alerta), como pide el prompt.
+- **Bandeja de Tareas:**
+  - Tarjetas con conflicto, plan, estado, inicio, chips por estado y
+    «x de y de tus actividades aprobadas».
+  - Filtro `PillsComponent` con conteos. El filtro vive en la URL
+    (`?estado=`), así funcionan los clics del dashboard y el botón atrás.
+    Un valor desconocido se trata como «Todas».
+  - Orden: rechazadas, vencidas, pendientes, otros activos y cerrados al
+    final.
+  - Dos estados vacíos: sin planes, o ninguno con el filtro (con «Ver
+    todas»).
+- **Detalle del plan:**
+  - Sin datos del caso (personas ni parentesco), solo lo necesario para
+    ejecutar las actividades.
+  - Tarjetas con plazo, fecha límite y días restantes (en rojo si venció)
+    y los textos de estado del Responsable.
+  - La evidencia según el estado: subir, volver a subir con el motivo en
+    naranja, en revisión o aprobada con quién y cuándo.
+  - Un solo `input` de archivo oculto para todas las actividades; los
+    errores de archivo se ven bajo la actividad.
+  - «Ver documento del plan» y «Ver evidencia» abren el visor del Día 9 en
+    un modal.
+  - Plan cerrado en solo lectura.
+  - Plan ajeno, en borrador o inexistente: «No se encontró el plan».
+- **Rutas:** `rutaPlanResponsable(planId)` y `PARAMETRO_ESTADO` en
+  `app.paths.ts`.
+
+### Verificación
+
+- `ng test`: 393 OK; fallan solo las 3 antiguas de `app.component.spec`.
+  Nuevas:
+  - Filtro por empleado y borradores excluidos.
+  - Plan ajeno, borrador o inexistente no accesible (servicio y pantalla).
+  - Subida en pendiente, vencida y rechazada (reemplazo y URL liberada);
+    rechazo en revisión, aprobada, ajena, plan cerrado y borrador.
+  - Aviso a RRHH sin destinatario.
+  - Validación de tipo, tamaño y vacío.
+  - Conteos del dashboard, próximas y navegación con filtro.
+  - Bandeja: orden, conteos, filtro por URL y por píldora, estados vacíos.
+  - Detalle: privacidad, textos, solo lectura, errores visibles.
+  - Todas con `RELOJ` fijo (02/10/2026).
+- Builds de desarrollo y producción correctos (los avisos de presupuesto
+  son de archivos del host).
+- Recorrido en Edge headless como `P` con el empleado por defecto, sin
+  `SISCI-DEV-EMPLEADO`:
+  - Dashboard: 1/1/1/1/3, alerta de 1 vencida y dos próximas.
+  - Clic en «Rechazadas» → `/responsable/planes?estado=rechazada` con la
+    píldora elegida.
+  - Bandeja con 3 planes (PL-006 cerrado al final).
+  - Detalle de PL-002: 4 de 7 actividades y sin nombres del caso.
+  - Subir un PDF a la pendiente: «En revisión de RRHH», y el PDF se ve en
+    el visor.
+  - Volver a subir la rechazada (PNG).
+  - Un TXT muestra «La evidencia debe ser un archivo PDF, PNG o JPG.».
+  - PL-001 (ajeno) y PL-007 (borrador) por URL: «No se encontró el plan».
+- Después, sin recargar, como `R` (`EMP-008`) en Revisión de Evidencias:
+  - El resumen pasa de 3 a «5 por revisar».
+  - C-001 muestra las dos evidencias subidas «En revisión» con «Aprobar» y
+    «Rechazar».
+  - La campana suma dos «Nueva evidencia por revisar».
+- A 760 px, sin scroll horizontal. Sin errores de consola.
+
+### Pendiente / a tener en cuenta
+
+- **Confirmar con RRHH** si el Responsable debe ver los datos del caso en
+  el detalle del plan. La especificación (§6.12) pide Involucrados,
+  Parentesco, Riesgo y «Asignado por»; por privacidad hoy no se muestran.
+- El saludo usa el nombre de la sesión; en la sesión simulada es «Usuario
+  Desarrollo» aunque se elija otro empleado.
+- Las evidencias subidas viven en una URL local (`blob:`) hasta recargar.
+  Con el backend: `POST /actividades/:id/evidencia` y `GET /archivos/:id`.
+- La especificación propone en el dashboard «Mis actividades abiertas»,
+  «Avance general» y «Avance por conflicto», y en la Bandeja separar
+  activos y cerrados. Hoy se hizo lo pedido en el prompt; quedan para el
+  día de pulido si RRHH los quiere.

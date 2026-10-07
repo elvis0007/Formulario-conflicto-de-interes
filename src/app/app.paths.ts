@@ -75,6 +75,23 @@ export function rutaPlanAccion(conflictoId: string, planId: string): string {
 }
 
 /**
+ * URL del detalle de un plan en la vista del Responsable.
+ *
+ * @param planId Id del plan.
+ * @returns `/responsable/planes/:planId`.
+ * @author Elvis Flores
+ */
+export function rutaPlanResponsable(planId: string): string {
+  return RUTAS.responsable.planes + '/' + encodeURIComponent(planId);
+}
+
+/**
+ * Parametro de la Bandeja de Tareas con el filtro por estado
+ * (`/responsable/planes?estado=rechazada`).
+ */
+export const PARAMETRO_ESTADO = 'estado';
+
+/**
  * Prefijos de las rutas de gestion de conflictos. Su acceso lo controla
  * `rolGuard`, no `authGuard`.
  */

@@ -1,7 +1,14 @@
 import { Injectable, Injector, inject } from '@angular/core';
 import { Observable, defer, forkJoin, map, of, switchMap, throwError } from 'rxjs';
-import { Actividad, Notificacion, PlanAccion } from '../models';
-import { validarDocumentoFirmado } from '../utils/documento.util';
+import {
+  Actividad,
+  Archivo,
+  EstadoActividad,
+  Notificacion,
+  PlanAccion,
+  PlanDeResponsable
+} from '../models';
+import { tipoDeEvidencia, validarDocumentoFirmado, validarEvidencia } from '../utils/documento.util';
 import { calcularFechaLimite, formatearFechaIso, parsearFecha } from '../utils/fechas.util';
 import { manejarError } from '../utils/manejar-error';
 import {
@@ -11,6 +18,7 @@ import {
   responsablesDelPlan
 } from '../utils/planes.util';
 import { RELOJ } from '../utils/reloj';
+import { esPlanActivo } from '../utils/revision.util';
 import { PLANES } from './mock-data/planes.data';
 import { simularRespuesta } from './mock-data/simular-respuesta';
 import { NotificacionesMockService } from './notificaciones-mock.service';
@@ -26,6 +34,30 @@ export interface ResultadoDocumento {
 
 /** Mensaje si la subida falla por otra razon. */
 const ERROR_SUBIDA = 'No se pudo subir el documento. Inténtalo de nuevo.';
+
+/** Resultado de subir una evidencia. */
+export interface ResultadoEvidencia {
+  /** Plan actualizado (vista del responsable), o `null` si no se subio. */
+  plan: PlanDeResponsable | null;
+  /** Motivo por el que no se subio, o `null` si se subio. */
+  error: string | null;
+}
+
+/** Estados de actividad que admiten subir (o volver a subir) evidencia. */
+export const ESTADOS_CON_SUBIDA: readonly EstadoActividad[] = ['pendiente', 'rechazada', 'vencida'];
+
+/** Error: la actividad no es del usuario actual (o no existe). */
+export const ERROR_ACTIVIDAD_AJENA = 'Solo puedes subir evidencias de tus actividades.';
+
+/** Error: el plan no esta activo. */
+export const ERROR_PLAN_NO_ACTIVO = 'El plan no está activo: no admite evidencias.';
+
+/** Error: la actividad ya esta en revision o aprobada. */
+export const ERROR_ACTIVIDAD_SIN_SUBIDA =
+  'Esta actividad ya tiene una evidencia en revisión o aprobada.';
+
+/** Mensaje si la subida de una evidencia falla por otra razon. */
+const ERROR_SUBIDA_EVIDENCIA = 'No se pudo subir la evidencia. Inténtalo de nuevo.';
 
 /**
  * Planes de accion con datos simulados. Se sustituira por un servicio HTTP
@@ -105,23 +137,45 @@ export class PlanesMockService {
   }
 
   /**
-   * Obtiene los planes en los que un empleado es responsable de al menos
-   * una actividad (vista de responsable). Incluye planes en cualquier
-   * estado: la pantalla decide cuales mostrar.
+   * Planes de un responsable (Bandeja de Tareas): los que tienen al menos
+   * una actividad suya y no estan en borrador (un borrador aun no se le
+   * notifico). Cada plan trae SOLO sus actividades.
+   *
+   * Con el backend, `GET /responsable/planes` lo filtrara segun la sesion.
    *
    * @param empleadoId Id del empleado (`Actividad.responsableId`).
-   * @returns Planes del responsable; vacia si no tiene o si falla.
+   * @returns Sus planes, por conflicto y numero; vacia si no tiene o si
+   * falla.
+   * @author Elvis Flores
    */
-  obtenerPlanesPorResponsable(empleadoId: string): Observable<PlanAccion[]> {
-    const planes = this.planes.filter((plan) => plan.actividades.some(
-      (actividad) => actividad.responsableId === empleadoId
-    ));
+  obtenerPlanesDeResponsable(empleadoId: string): Observable<PlanDeResponsable[]> {
+    const planes = this.planes
+      .filter((plan) => this.esVisibleParaResponsable(plan, empleadoId))
+      .sort((a, b) => a.conflictoId.localeCompare(b.conflictoId) || a.numero - b.numero)
+      .map((plan) => this.vistaDeResponsable(plan, empleadoId));
 
     return simularRespuesta(planes).pipe(
-      manejarError<PlanAccion[]>(
-        'PlanesMockService.obtenerPlanesPorResponsable',
-        []
-      )
+      manejarError<PlanDeResponsable[]>('PlanesMockService.obtenerPlanesDeResponsable', [])
+    );
+  }
+
+  /**
+   * Un plan visto por uno de sus responsables, con solo sus actividades.
+   *
+   * @param planId Id del plan.
+   * @param empleadoId Id del empleado.
+   * @returns El plan, o `null` si no existe, esta en borrador o no tiene
+   * actividades de ese empleado (asi no se ven planes ajenos por URL).
+   * @author Elvis Flores
+   */
+  obtenerPlanDeResponsable(planId: string, empleadoId: string): Observable<PlanDeResponsable | null> {
+    const plan = this.planes.find((p) => p.id === planId);
+    const vista = plan !== undefined && this.esVisibleParaResponsable(plan, empleadoId)
+      ? this.vistaDeResponsable(plan, empleadoId)
+      : null;
+
+    return simularRespuesta(vista).pipe(
+      manejarError<PlanDeResponsable | null>('PlanesMockService.obtenerPlanDeResponsable', null)
     );
   }
 
@@ -421,6 +475,75 @@ export class PlanesMockService {
   /**
    * @returns Siguiente id libre de plan (`PL-008`, `PL-009`...).
    */
+  /**
+   * El responsable sube la evidencia de una de sus actividades.
+   *
+   * - Solo el responsable de la actividad (usuario actual), con el plan
+   *   activo y la actividad pendiente, rechazada o vencida. En revision o
+   *   aprobada no admite otra.
+   * - PDF, PNG o JPG de hasta 10 MB (`validarEvidencia`).
+   * - Una sola evidencia por actividad: reemplaza la rechazada (y libera
+   *   su URL local). La actividad pasa a «en revisión» y el estado del plan
+   *   se recalcula (una vencida deja de contar).
+   * - Avisa a RRHH: «Nueva evidencia por revisar».
+   *
+   * Simulado: el archivo vive en una URL local (`blob:`) mientras dure la
+   * sesion. Con el backend sera `POST /actividades/:id/evidencia`.
+   *
+   * @param planId Id del plan.
+   * @param actividadId Id de la actividad.
+   * @param archivo Archivo elegido.
+   * @returns El plan actualizado (vista del responsable) o el motivo por el
+   * que no se subio.
+   * @author Elvis Flores
+   */
+  subirEvidencia(planId: string, actividadId: string, archivo: File): Observable<ResultadoEvidencia> {
+    return defer(() => {
+      const empleadoId = this.empleadoActualId();
+      const plan = this.planes.find((p) => p.id === planId);
+      const actividad = plan?.actividades.find((a) => a.id === actividadId);
+      const errorArchivo = validarEvidencia(archivo);
+      const tipo = tipoDeEvidencia(archivo);
+
+      if (plan === undefined || actividad === undefined || empleadoId === null
+        || actividad.responsableId !== empleadoId) {
+        return simularRespuesta<ResultadoEvidencia>({ plan: null, error: ERROR_ACTIVIDAD_AJENA });
+      }
+      if (!esPlanActivo(plan)) {
+        return simularRespuesta<ResultadoEvidencia>({ plan: null, error: ERROR_PLAN_NO_ACTIVO });
+      }
+      if (!ESTADOS_CON_SUBIDA.includes(actividad.estado)) {
+        return simularRespuesta<ResultadoEvidencia>({ plan: null, error: ERROR_ACTIVIDAD_SIN_SUBIDA });
+      }
+      if (errorArchivo !== null || tipo === null) {
+        return simularRespuesta<ResultadoEvidencia>({ plan: null, error: errorArchivo });
+      }
+
+      const ahora = this.reloj().toISOString();
+      const nuevo: Archivo = {
+        nombre: archivo.name,
+        url: URL.createObjectURL(archivo),
+        tipo,
+        fechaSubida: ahora
+      };
+
+      this.liberarUrl(actividad.evidencia?.archivo.url);
+      actividad.evidencia = { archivo: nuevo, fechaSubida: ahora, estado: 'pendiente' };
+      actividad.estado = 'en_revision';
+      this.recalcularEstado(plan);
+
+      return forkJoin([
+        this.notificaciones.agregarNotificaciones([this.avisoNuevaEvidencia(plan, actividad)]),
+        simularRespuesta(this.vistaDeResponsable(plan, empleadoId))
+      ]).pipe(map(([, vista]): ResultadoEvidencia => ({ plan: vista, error: null })));
+    }).pipe(
+      manejarError<ResultadoEvidencia>('PlanesMockService.subirEvidencia', {
+        plan: null,
+        error: ERROR_SUBIDA_EVIDENCIA
+      })
+    );
+  }
+
   private siguienteIdPlan(): string {
     return 'PL-' + String(this.mayorNumero(this.planes.map((p) => p.id)) + 1).padStart(3, '0');
   }
@@ -528,6 +651,62 @@ export class PlanesMockService {
   /**
    * @returns Nombre de quien revisa (usuario actual).
    */
+  /**
+   * @param plan Plan.
+   * @param empleadoId Id del empleado.
+   * @returns `true` si el responsable puede verlo: no es borrador y tiene
+   * al menos una actividad suya.
+   */
+  private esVisibleParaResponsable(plan: PlanAccion, empleadoId: string): boolean {
+    return plan.estado !== 'borrador'
+      && plan.actividades.some((a) => a.responsableId === empleadoId);
+  }
+
+  /**
+   * @param plan Plan completo.
+   * @param empleadoId Id del empleado.
+   * @returns El plan con solo las actividades del empleado y el total.
+   */
+  private vistaDeResponsable(plan: PlanAccion, empleadoId: string): PlanDeResponsable {
+    return {
+      plan: { ...plan, actividades: plan.actividades.filter((a) => a.responsableId === empleadoId) },
+      totalActividades: plan.actividades.length
+    };
+  }
+
+  /** @returns Id del empleado que usa la app (`PerfilUsuarioService`). */
+  private empleadoActualId(): string | null {
+    return this.injector.get(PerfilUsuarioService).obtenerEmpleadoActualId();
+  }
+
+  /**
+   * Libera una URL local (`blob:`) que ya no se usa.
+   *
+   * @param url URL del archivo anterior.
+   */
+  private liberarUrl(url: string | undefined): void {
+    if (url?.startsWith('blob:')) {
+      URL.revokeObjectURL(url);
+    }
+  }
+
+  /**
+   * @param plan Plan.
+   * @param actividad Actividad con la evidencia nueva.
+   * @returns Aviso para RRHH (sin destinatario).
+   */
+  private avisoNuevaEvidencia(
+    plan: PlanAccion,
+    actividad: Actividad
+  ): Pick<Notificacion, 'titulo' | 'texto' | 'tipo' | 'destinatarioId'> {
+    return {
+      titulo: 'Nueva evidencia por revisar',
+      texto: this.referenciaPlan(plan) + ' · «' + actividad.descripcion + '» — subida por '
+        + actividad.responsableNombre + '.',
+      tipo: 'info'
+    };
+  }
+
   private nombreRevisor(): string {
     return this.injector.get(PerfilUsuarioService).obtenerNombreUsuario();
   }

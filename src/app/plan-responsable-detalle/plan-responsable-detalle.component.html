@@ -1,0 +1,150 @@
+<a class="volver" [routerLink]="rutaBandeja">← Volver a Bandeja de Tareas</a>
+
+@if (cargando) {
+  <p class="cargando" role="status">Cargando el plan…</p>
+} @else if (errorCarga) {
+  <p class="aviso aviso--error" role="alert">{{ errorCarga }}</p>
+} @else if (!datos || !plan) {
+  <section class="no-encontrado">
+    <h2 class="titulo">No se encontró el plan</h2>
+    <p>El plan no existe o no tiene actividades a tu cargo.</p>
+    <a class="boton" [routerLink]="rutaBandeja">← Volver a Bandeja de Tareas</a>
+  </section>
+} @else {
+  <header class="encabezado">
+    <div class="cabecera-texto">
+      <span class="codigo">PNIP.CI.FR.02 · Conflicto #{{ plan.conflictoId }}</span>
+      <h2 class="titulo">
+        {{ tituloPlan }}
+        <app-badge [tono]="tonoEstado" [texto]="textoEstado" />
+      </h2>
+      @if (plan.fechaInicio) {
+        <span class="dato">Inicio del plan: {{ fecha(plan.fechaInicio) }}</span>
+      }
+    </div>
+    @if (plan.documentoFirmado) {
+      <button type="button" class="boton" (click)="verDocumentoPlan()">
+        <app-icono nombre="documento" [tamano]="16" />
+        Ver documento del plan
+      </button>
+    }
+  </header>
+
+  <p class="aviso aviso--info">
+    Solo ves las actividades que te corresponden ({{ plan.actividades.length }} de {{ datos.totalActividades }}).
+  </p>
+  @if (soloLectura) {
+    <p class="aviso aviso--cerrado" role="status">Plan cerrado: todas las actividades fueron aprobadas. Solo lectura.</p>
+  }
+
+  <input
+    #selectorArchivo
+    type="file"
+    class="oculto"
+    tabindex="-1"
+    aria-hidden="true"
+    [accept]="acceptEvidencia"
+    (change)="alElegirArchivo($event)" />
+
+  <ul class="actividades">
+    @for (v of actividades; track v.actividad.id) {
+      <li class="actividad" [attr.aria-label]="'Actividad: ' + v.actividad.descripcion">
+        <div class="actividad-cabecera">
+          <h3 class="actividad-descripcion">{{ v.actividad.descripcion }}</h3>
+          <app-badge [tono]="v.tonoEstado" [texto]="v.textoEstado" />
+        </div>
+
+        <dl class="datos">
+          <div>
+            <dt>Plazo</dt>
+            <dd>{{ v.plazo }}</dd>
+          </div>
+          <div>
+            <dt>Fecha límite</dt>
+            <dd class="fecha-limite" [class.fecha-limite--vencida]="v.vencida">
+              {{ v.fechaLimite || '—' }}{{ v.dias ? ' · ' + v.dias.texto : '' }}
+            </dd>
+          </div>
+        </dl>
+
+        @switch (v.actividad.estado) {
+          @case ('en_revision') {
+            @if (v.actividad.evidencia; as evidencia) {
+              <div class="evidencia">
+                <span class="archivo">
+                  <app-icono nombre="documento" [tamano]="14" />
+                  {{ evidencia.archivo.nombre }} — subida el {{ evidencia.fechaSubida | fechaLarga }}
+                </span>
+                <span class="en-revision">En revisión de RRHH</span>
+                <button type="button" class="boton boton--chico" (click)="verEvidencia(v.actividad)">
+                  <app-icono nombre="ojo" [tamano]="14" />
+                  Ver evidencia
+                </button>
+              </div>
+            }
+          }
+          @case ('aprobada') {
+            @if (v.actividad.evidencia; as evidencia) {
+              <div class="evidencia">
+                <span class="archivo">
+                  <app-icono nombre="documento" [tamano]="14" />
+                  {{ evidencia.archivo.nombre }}
+                </span>
+                <span class="aprobada">
+                  Aprobada{{ evidencia.revisadoPor ? ' por ' + evidencia.revisadoPor : '' }}{{ evidencia.fechaRevision ? ' el ' + fecha(evidencia.fechaRevision) : '' }}
+                </span>
+                <button type="button" class="boton boton--chico" (click)="verEvidencia(v.actividad)">
+                  <app-icono nombre="ojo" [tamano]="14" />
+                  Ver evidencia
+                </button>
+              </div>
+            }
+          }
+          @case ('rechazada') {
+            @if (v.actividad.evidencia?.motivoRechazo; as motivo) {
+              <p class="motivo">
+                <strong>Motivo del rechazo:</strong> {{ motivo }}
+              </p>
+            }
+          }
+        }
+
+        @if (v.puedeSubir) {
+          <div class="acciones">
+            <button
+              type="button"
+              class="boton boton--primario boton--chico"
+              [disabled]="subiendoId !== null"
+              (click)="elegirArchivo(v.actividad)">
+              <app-icono nombre="subir" [tamano]="14" />
+              @if (subiendoId === v.actividad.id) {
+                Subiendo…
+              } @else {
+                {{ v.actividad.estado === 'rechazada' ? 'Volver a subir' : 'Subir evidencia' }}
+              }
+            </button>
+            <span class="ayuda">PDF, PNG o JPG · máximo 10 MB</span>
+          </div>
+        }
+
+        @if (errores[v.actividad.id]) {
+          <p class="error" role="alert">{{ errores[v.actividad.id] }}</p>
+        }
+      </li>
+    }
+  </ul>
+
+  <app-modal
+    [titulo]="documento?.titulo ?? ''"
+    ancho="ancho"
+    [abierto]="documento !== null"
+    (cerrar)="documento = null">
+    @if (documento) {
+      <app-document-viewer
+        [archivo]="documento.archivo"
+        [subidoPor]="documento.subidoPor"
+        [fechaSubida]="documento.fechaSubida"
+        (cerrar)="documento = null" />
+    }
+  </app-modal>
+}

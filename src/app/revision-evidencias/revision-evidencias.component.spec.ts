@@ -116,7 +116,7 @@ describe('RevisionEvidenciasComponent', () => {
       limpio(t.querySelector('.tarjeta-revisar')?.textContent),
       limpio(t.querySelector('.tarjeta-avance')?.textContent)
     ])).toEqual([
-      ['Conflicto #C-001', 'Plan 02 · Rotación del técnico de compras Activo · con vencidas', '2 por revisar', '1 de 5 aprobadas'],
+      ['Conflicto #C-001', 'Plan 02 · Rotación del técnico de compras Activo · con vencidas', '2 por revisar', '1 de 7 aprobadas'],
       ['Conflicto #C-002', 'Plan 01 · Independencia de la cuadrilla Activo', '1 por revisar', '2 de 3 aprobadas']
     ]);
     expect(limpio(tarjetas()[0].querySelector('.tarjeta-personas')?.textContent)).toContain(' y ');
@@ -146,7 +146,7 @@ describe('RevisionEvidenciasComponent', () => {
     ]);
     expect(grupos).toEqual([
       ['CM', 'Carlos Andrés Mayorga Sánchez', 2],
-      [jasmine.any(String), jasmine.any(String), 2],
+      ['FA', 'Fernando José Andrade Vela', 4],
       ['JM', 'Jorge Luis Mayorga Sánchez', 1]
     ]);
 
@@ -188,7 +188,7 @@ describe('RevisionEvidenciasComponent', () => {
 
     cerrarModal();
     expect(limpio(tarjetas()[0].querySelector('.tarjeta-revisar')?.textContent)).toBe('1 por revisar');
-    expect(limpio(tarjetas()[0].querySelector('.tarjeta-avance')?.textContent)).toBe('2 de 5 aprobadas');
+    expect(limpio(tarjetas()[0].querySelector('.tarjeta-avance')?.textContent)).toBe('2 de 7 aprobadas');
   }));
 
   it('aprobar la última cierra el plan: aviso en el modal y la tarjeta desaparece al cerrarlo', fakeAsync(() => {

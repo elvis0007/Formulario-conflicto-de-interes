@@ -79,6 +79,28 @@ actividades ve depende de **qué empleado** es. En desarrollo se elige con
 localStorage.setItem('SISCI-DEV-EMPLEADO', 'EMP-001');
 ```
 
+Con el empleado por defecto (`EMP-010`) las pantallas del Responsable
+muestran actividades en todos los estados y en varios planes:
+
+| Actividad | Plan | Estado |
+|---|---|---|
+| A-017 | PL-002 (C-001) | Pendiente |
+| A-018 | PL-002 (C-001) | Vencida (se muestra «Pendiente» con el plazo en rojo) |
+| A-015 | PL-002 (C-001) | Rechazada con motivo |
+| A-004 | PL-002 (C-001) | Aprobada |
+| A-008 | PL-003 (C-002) | En revisión |
+| A-007 | PL-003 (C-002) | Aprobada |
+| A-013 | PL-006 (C-008, cerrado) | Aprobada |
+| A-014 | PL-007 (borrador) | No se ve: los borradores no se notificaron |
+
+Otros empleados útiles: `EMP-002` (una sola actividad, en revisión) y
+`EMP-003` (solo tiene una actividad en un borrador: dashboard y Bandeja
+vacíos).
+
+El saludo del dashboard usa el nombre de la sesión simulada («Usuario
+Desarrollo»), no el del empleado elegido. Las evidencias que se suben
+viven en una URL local (`blob:`) y se pierden al recargar.
+
 El mismo empleado decide **qué notificaciones muestra la campana**: las que
 tienen `destinatarioId` solo las ve ese empleado; las que no lo tienen son
 para RRHH (`R` o `A`). Como `EMP-010` es responsable de varias

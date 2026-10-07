@@ -32,7 +32,7 @@ const DIA = 24 * HORA;
 export const NOTIFICACIONES: readonly Notificacion[] = [
   {
     id: 'N-001',
-    titulo: 'Nueva evidencia para revisar',
+    titulo: 'Nueva evidencia por revisar',
     texto: 'Carlos Andrés Mayorga Sánchez subió evidencia de la '
       + 'actividad A-005 del plan PL-002.',
     fecha: haceMinutos(25),

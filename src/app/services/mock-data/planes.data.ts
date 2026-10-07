@@ -37,6 +37,13 @@ function pdfSimulado(nombre: string, fechaSubida?: string): Archivo {
  * motivo (A-015); y a PL-003 le falta una sola aprobacion (A-008) para
  * cerrarse.
  *
+ * Responsable (Dia 10): el empleado por defecto de la sesion simulada
+ * (EMP-010, Fernando José Andrade Vela) tiene actividades en todos los
+ * estados y en varios planes: pendiente (A-017) y vencida (A-018) en
+ * PL-002, rechazada con motivo (A-015) y aprobada (A-004) en PL-002, en
+ * revision (A-008) y aprobada (A-007) en PL-003, aprobada (A-013) en PL-006
+ * (cerrado) y una en el borrador PL-007 (A-014), que no debe ver.
+ *
  * @author Elvis Flores
  */
 export const PLANES: readonly PlanAccion[] = [
@@ -192,6 +199,28 @@ export const PLANES: readonly PlanAccion[] = [
           fechaSubida: '2026-09-15T12:30:00',
           estado: 'pendiente'
         }
+      },
+      {
+        id: 'A-017',
+        descripcion: 'Capacitar al personal de bodega en el nuevo '
+          + 'procedimiento de despacho.',
+        responsableId: 'EMP-010',
+        responsableNombre: 'Fernando José Andrade Vela',
+        plazoMeses: 4,
+        plazoDias: 25,
+        fechaLimite: '2026-10-26',
+        estado: 'pendiente'
+      },
+      {
+        id: 'A-018',
+        descripcion: 'Entregar el inventario de accesos del técnico a '
+          + 'los sistemas de compras.',
+        responsableId: 'EMP-010',
+        responsableNombre: 'Fernando José Andrade Vela',
+        plazoMeses: 3,
+        plazoDias: 0,
+        fechaLimite: '2026-09-01',
+        estado: 'vencida'
       }
     ]
   },
