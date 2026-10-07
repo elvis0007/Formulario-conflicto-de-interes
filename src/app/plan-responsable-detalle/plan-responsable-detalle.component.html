@@ -30,6 +30,29 @@
     }
   </header>
 
+  @if (conflicto) {
+    <section class="caso" aria-label="Caso">
+      <div class="caso-persona">
+        <span class="caso-rol">{{ conflicto.rolA }}</span>
+        <span class="caso-nombre">{{ conflicto.personaA.nombres }}</span>
+        <span class="caso-cargo">{{ conflicto.personaA.cargo }} · {{ conflicto.personaA.departamento }}</span>
+      </div>
+      <div class="caso-persona">
+        <span class="caso-rol">{{ conflicto.rolB }}</span>
+        <span class="caso-nombre">{{ conflicto.personaB.nombres }}</span>
+        <span class="caso-cargo">{{ conflicto.personaB.cargo }} · {{ conflicto.personaB.departamento }}</span>
+      </div>
+      <div class="caso-dato">
+        <span class="caso-etiqueta">Parentesco</span>
+        <span class="caso-parentesco">{{ parentesco }}</span>
+      </div>
+      <div class="caso-dato">
+        <span class="caso-etiqueta">Riesgo</span>
+        <app-badge [tono]="tonoRiesgo" [texto]="textoRiesgo" />
+      </div>
+    </section>
+  }
+
   <p class="aviso aviso--info">
     Solo ves las actividades que te corresponden ({{ plan.actividades.length }} de {{ datos.totalActividades }}).
   </p>

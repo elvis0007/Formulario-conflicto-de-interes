@@ -161,3 +161,20 @@ export function rolesInvolucrados(conflicto: Conflicto): RolesInvolucrados {
     ? { tipo: 'simetrica', etiqueta }
     : { tipo: 'roles', rolA: conflicto.rolA, rolB: conflicto.rolB };
 }
+
+/**
+ * Parentesco de un caso en una linea: «Hermanos · Consanguinidad, 2do
+ * grado», «Tío / Sobrino · Consanguinidad, 3er grado» o «Cónyuges ·
+ * Afinidad» (sin grado).
+ *
+ * @param conflicto Caso.
+ * @returns Texto del parentesco.
+ * @author Elvis Flores
+ */
+export function textoParentesco(conflicto: Conflicto): string {
+  const roles = rolesInvolucrados(conflicto);
+  const quienes = roles.tipo === 'simetrica' ? roles.etiqueta : roles.rolA + ' / ' + roles.rolB;
+  const grado = conflicto.grado === null ? '' : ', ' + textoGrado(conflicto.grado);
+
+  return quienes + ' · ' + conflicto.relacion + grado;
+}

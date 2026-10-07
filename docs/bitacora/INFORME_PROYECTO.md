@@ -1633,8 +1633,8 @@ Las tres pantallas del rol `P`, que eran placeholders del Día 1:
   - Dos estados vacíos: sin planes, o ninguno con el filtro (con «Ver
     todas»).
 - **Detalle del plan:**
-  - Sin datos del caso (personas ni parentesco), solo lo necesario para
-    ejecutar las actividades.
+  - Sin datos del caso (personas ni parentesco). Corregido el Día 11:
+    RRHH ya aprobó los mockups de la §6.12 y el detalle muestra el caso.
   - Tarjetas con plazo, fecha límite y días restantes (en rojo si venció)
     y los textos de estado del Responsable.
   - La evidencia según el estado: subir, volver a subir con el motivo en
@@ -1685,9 +1685,6 @@ Las tres pantallas del rol `P`, que eran placeholders del Día 1:
 
 ### Pendiente / a tener en cuenta
 
-- **Confirmar con RRHH** si el Responsable debe ver los datos del caso en
-  el detalle del plan. La especificación (§6.12) pide Involucrados,
-  Parentesco, Riesgo y «Asignado por»; por privacidad hoy no se muestran.
 - El saludo usa el nombre de la sesión; en la sesión simulada es «Usuario
   Desarrollo» aunque se elija otro empleado.
 - Las evidencias subidas viven en una URL local (`blob:`) hasta recargar.

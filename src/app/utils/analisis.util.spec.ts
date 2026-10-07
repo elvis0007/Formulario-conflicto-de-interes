@@ -8,6 +8,7 @@ import {
   textoClasificacion,
   textoEstadoAnalisis,
   textoGrado,
+  textoParentesco,
   textoRiesgo
 } from './analisis.util';
 import { TODOS } from './filtros-listados.util';
@@ -100,5 +101,26 @@ describe('analisis.util', () => {
 
       expect(rolesInvolucrados(sinEtiqueta).tipo).toBe('roles');
     });
+  });
+});
+
+describe('textoParentesco', () => {
+  /**
+   * @param id Id del caso.
+   * @returns El caso de ejemplo.
+   */
+  function caso(id: string): Conflicto {
+    const encontrado = CONFLICTOS.find((c) => c.id === id);
+
+    if (encontrado === undefined) {
+      throw new Error('No existe ' + id);
+    }
+    return encontrado;
+  }
+
+  it('etiqueta simétrica o roles, relación y grado; los cónyuges sin grado', () => {
+    expect(textoParentesco(caso('C-001'))).toBe('Hermanos · Consanguinidad, 2do grado');
+    expect(textoParentesco(caso('C-002'))).toBe('Tío / Sobrino · Consanguinidad, 3er grado');
+    expect(textoParentesco(caso('C-009'))).toBe('Cónyuges · Afinidad');
   });
 });

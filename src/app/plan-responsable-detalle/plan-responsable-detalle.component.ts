@@ -1,23 +1,25 @@
 import { Component, DestroyRef, ElementRef, OnInit, ViewChild, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { EMPTY, switchMap } from 'rxjs';
+import { EMPTY, map, of, switchMap } from 'rxjs';
 import { RUTAS } from '../app.paths';
-import { Actividad, Archivo, PlanAccion, PlanDeResponsable } from '../models';
+import { Actividad, Archivo, Conflicto, PlanAccion, PlanDeResponsable } from '../models';
 import { FechaLargaPipe } from '../pipes/fecha-larga.pipe';
+import { ConflictosMockService } from '../services/conflictos-mock.service';
 import { PerfilUsuarioService } from '../services/perfil-usuario.service';
 import { ESTADOS_CON_SUBIDA, PlanesMockService } from '../services/planes-mock.service';
 import { BadgeComponent } from '../shared/badge/badge.component';
 import { DocumentViewerComponent } from '../shared/document-viewer/document-viewer.component';
 import { IconoComponent } from '../shared/icono/icono.component';
 import { ModalComponent } from '../shared/modal/modal.component';
+import { textoParentesco, textoRiesgo } from '../utils/analisis.util';
 import { ACCEPT_EVIDENCIA, validarEvidencia } from '../utils/documento.util';
 import { DiasRestantes, calcularDiasRestantes, formatearFecha, parsearFecha } from '../utils/fechas.util';
 import { textoEstadoPlan } from '../utils/planes.util';
 import { RELOJ } from '../utils/reloj';
 import { textoPlazo } from '../utils/responsable.util';
 import { textoEstadoActividad } from '../utils/revision.util';
-import { Tono, mapearEstadoActividadATono, mapearEstadoPlanATono } from '../utils/tono.util';
+import { Tono, mapearEstadoActividadATono, mapearEstadoPlanATono, mapearRiesgoATono } from '../utils/tono.util';
 
 /** Lo que la pantalla muestra de una actividad. */
 export interface VistaActividadResponsable {
@@ -52,9 +54,8 @@ const ERROR_CARGA = 'No se pudo cargar el plan. Inténtalo de nuevo.';
  * detalle).
  *
  * - Cabecera con PNIP.CI.FR.02, conflicto, plan, estado y fecha de inicio.
- *   Por privacidad NO muestra los datos del caso (personas ni parentesco):
- *   solo lo necesario para ejecutar las actividades. PENDIENTE confirmarlo
- *   con RRHH (la especificacion los incluye).
+ * - Tarjeta compacta del caso: las dos personas, el parentesco y el riesgo
+ *   (especificacion §6.12; mockups aprobados por RRHH).
  * - «Ver documento del plan» y «Ver evidencia» en el visor de documentos.
  * - Solo las actividades del responsable, con plazo, fecha limite y dias
  *   restantes, estado y evidencia; «Subir evidencia» / «Volver a subir»
@@ -96,6 +97,9 @@ export class PlanResponsableDetalleComponent implements OnInit {
   /** Actividades listas para la vista. */
   actividades: VistaActividadResponsable[] = [];
 
+  /** Caso del plan; `null` si no se encontro. */
+  conflicto: Conflicto | null = null;
+
   /** Errores de subida por actividad. */
   errores: Record<string, string> = {};
 
@@ -113,6 +117,7 @@ export class PlanResponsableDetalleComponent implements OnInit {
 
   private readonly planesServicio = inject(PlanesMockService);
   private readonly perfil = inject(PerfilUsuarioService);
+  private readonly conflictosServicio = inject(ConflictosMockService);
   private readonly ruta = inject(ActivatedRoute);
   private readonly reloj = inject(RELOJ);
   private readonly destroyRef = inject(DestroyRef);
@@ -139,6 +144,21 @@ export class PlanResponsableDetalleComponent implements OnInit {
     return this.plan ? mapearEstadoPlanATono(this.plan.estado) : 'gris';
   }
 
+  /** @returns Parentesco del caso en una linea. */
+  get parentesco(): string {
+    return this.conflicto ? textoParentesco(this.conflicto) : '';
+  }
+
+  /** @returns «Riesgo alto», «Riesgo moderado»... */
+  get textoRiesgo(): string {
+    return this.conflicto ? 'Riesgo ' + textoRiesgo(this.conflicto.riesgo).toLowerCase() : '';
+  }
+
+  /** @returns Tono del riesgo del caso. */
+  get tonoRiesgo(): Tono {
+    return this.conflicto ? mapearRiesgoATono(this.conflicto.riesgo) : 'gris';
+  }
+
   /** @returns `true` si el plan esta cerrado (solo lectura). */
   get soloLectura(): boolean {
     return this.plan?.estado === 'cerrado';
@@ -159,15 +179,25 @@ export class PlanResponsableDetalleComponent implements OnInit {
           this.errores = {};
           this.documento = null;
           if (empleadoId === null || planId === '') {
+            this.conflicto = null;
             this.mostrar(null);
             return EMPTY;
           }
-          return this.planesServicio.obtenerPlanDeResponsable(planId, empleadoId);
+          // El caso solo se pide si el plan es suyo.
+          return this.planesServicio.obtenerPlanDeResponsable(planId, empleadoId).pipe(
+            switchMap((datos) => datos === null
+              ? of({ datos, conflicto: undefined })
+              : this.conflictosServicio.obtenerConflictoPorId(datos.plan.conflictoId)
+                .pipe(map((conflicto) => ({ datos, conflicto }))))
+          );
         }),
         takeUntilDestroyed(this.destroyRef)
       )
       .subscribe({
-        next: (datos) => this.mostrar(datos),
+        next: ({ datos, conflicto }) => {
+          this.conflicto = conflicto ?? null;
+          this.mostrar(datos);
+        },
         error: (err: unknown) => {
           this.cargando = false;
           this.errorCarga = ERROR_CARGA;

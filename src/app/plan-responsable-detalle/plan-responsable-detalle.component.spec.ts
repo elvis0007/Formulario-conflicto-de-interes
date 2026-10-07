@@ -31,7 +31,8 @@ describe('PlanResponsableDetalleComponent', () => {
     raiz = fixture.nativeElement;
     document.body.appendChild(raiz);
     fixture.detectChanges();
-    tick(LATENCIA_SIMULADA_MS);
+    // Plan y, despues, su caso.
+    tick(LATENCIA_SIMULADA_MS * 2);
     fixture.detectChanges();
   }
 
@@ -97,7 +98,7 @@ describe('PlanResponsableDetalleComponent', () => {
 
   afterEach(() => raiz?.remove());
 
-  it('cabecera sin datos del caso y solo SUS actividades', fakeAsync(() => {
+  it('cabecera, tarjeta del caso y solo SUS actividades', fakeAsync(() => {
     crear('PL-002');
 
     expect(limpio(raiz.querySelector('.volver')?.textContent)).toBe('← Volver a Bandeja de Tareas');
@@ -108,9 +109,32 @@ describe('PlanResponsableDetalleComponent', () => {
     expect(limpio(raiz.querySelector('.aviso--info')?.textContent))
       .toBe('Solo ves las actividades que te corresponden (4 de 7).');
 
-    // Privacidad: ni las personas del caso ni otros responsables.
-    expect(raiz.textContent).not.toContain('Mayorga');
+    // Solo sus actividades: ninguna de otros responsables.
     expect(raiz.querySelectorAll('.actividad').length).toBe(4);
+    expect(raiz.querySelector('.actividades')?.textContent).not.toContain('Rotar al técnico');
+  }));
+
+  it('tarjeta compacta del caso: las dos personas, el parentesco y el riesgo', fakeAsync(() => {
+    crear('PL-002');
+
+    const caso = raiz.querySelector('.caso') as HTMLElement;
+    expect(Array.from(caso.querySelectorAll('.caso-persona')).map((p) => [
+      limpio(p.querySelector('.caso-rol')?.textContent),
+      limpio(p.querySelector('.caso-nombre')?.textContent),
+      limpio(p.querySelector('.caso-cargo')?.textContent)
+    ])).toEqual([
+      ['Hermano', 'Carlos Andrés Mayorga Sánchez', 'Jefe de Adquisiciones · Adquisiciones'],
+      ['Hermano', 'Jorge Luis Mayorga Sánchez', 'Técnico de Compras Públicas · Adquisiciones']
+    ]);
+    expect(limpio(caso.querySelector('.caso-parentesco')?.textContent)).toBe('Hermanos · Consanguinidad, 2do grado');
+    expect(limpio(caso.querySelector('app-badge')?.textContent)).toBe('Riesgo alto');
+  }));
+
+  it('tarjeta del caso con roles distintos (tío / sobrino)', fakeAsync(() => {
+    crear('PL-003');
+
+    expect(limpio(raiz.querySelector('.caso-parentesco')?.textContent)).toBe('Tío / Sobrino · Consanguinidad, 3er grado');
+    expect(limpio(raiz.querySelector('.caso app-badge')?.textContent)).toBe('Riesgo moderado');
   }));
 
   it('estado con los textos del Responsable, plazo y fecha límite con días', fakeAsync(() => {
@@ -205,6 +229,7 @@ describe('PlanResponsableDetalleComponent', () => {
       crear(planId);
       expect(limpio(raiz.querySelector('.no-encontrado h2')?.textContent)).withContext(planId).toBe('No se encontró el plan');
       expect(raiz.querySelector('.actividad')).withContext(planId).toBeNull();
+      expect(raiz.querySelector('.caso')).withContext(planId).toBeNull();
       raiz.remove();
     }
   }));
