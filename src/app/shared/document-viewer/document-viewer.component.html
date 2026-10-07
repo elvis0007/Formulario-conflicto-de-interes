@@ -1,0 +1,60 @@
+<section class="visor" [attr.aria-label]="'Documento ' + archivo.nombre">
+  <header class="barra">
+    <div class="barra-info">
+      <span class="barra-nombre">
+        <app-icono nombre="documento" [tamano]="16" />
+        {{ archivo.nombre }}
+      </span>
+      @if (subidoPor || fechaSubida) {
+        <span class="barra-subida">
+          Subido{{ subidoPor ? ' por ' + subidoPor : '' }}{{ fechaSubida ? ' el ' + (fechaSubida | fechaLarga) : '' }}
+        </span>
+      }
+    </div>
+    <div class="barra-acciones">
+      <div class="zoom" role="group" aria-label="Zoom">
+        <button
+          type="button"
+          class="barra-boton"
+          aria-label="Alejar"
+          [disabled]="zoom <= zoomMinimo"
+          (click)="cambiarZoom(-1)">−</button>
+        <span class="zoom-valor" aria-live="polite">{{ zoom }} %</span>
+        <button
+          type="button"
+          class="barra-boton"
+          aria-label="Acercar"
+          [disabled]="zoom >= zoomMaximo"
+          (click)="cambiarZoom(1)">+</button>
+      </div>
+      <button
+        type="button"
+        class="barra-boton barra-boton--texto"
+        [class.barra-boton--hecho]="descargado.activa"
+        [attr.aria-disabled]="descargado.activa"
+        (click)="descargar()">
+        <app-icono [nombre]="descargado.activa ? 'check' : 'descargar'" [tamano]="15" />
+        {{ descargado.activa ? 'Descargado ✓' : 'Descargar' }}
+      </button>
+      <button type="button" class="barra-boton" aria-label="Cerrar visor" (click)="cerrar.emit()">✕</button>
+    </div>
+  </header>
+
+  <div class="area">
+    @if (esEjemplo) {
+      <div class="sin-vista" role="status">
+        <app-icono nombre="documento" [tamano]="40" />
+        <p>Vista previa no disponible (archivo de ejemplo)</p>
+      </div>
+    } @else if (esPdf && urlPdf) {
+      <iframe
+        class="pdf"
+        [src]="urlPdf"
+        [title]="archivo.nombre"
+        [style.width.%]="zoom"
+        [style.height.px]="altoPdf"></iframe>
+    } @else {
+      <img class="imagen" [src]="archivo.url" [alt]="archivo.nombre" [style.width.%]="zoom" />
+    }
+  </div>
+</section>

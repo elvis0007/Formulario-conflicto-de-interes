@@ -1,14 +1,20 @@
-import { Injectable, inject } from '@angular/core';
-import { Observable, defer, map, switchMap, throwError } from 'rxjs';
-import { PlanAccion } from '../models';
+import { Injectable, Injector, inject } from '@angular/core';
+import { Observable, defer, forkJoin, map, of, switchMap, throwError } from 'rxjs';
+import { Actividad, Notificacion, PlanAccion } from '../models';
 import { validarDocumentoFirmado } from '../utils/documento.util';
 import { calcularFechaLimite, formatearFechaIso, parsearFecha } from '../utils/fechas.util';
 import { manejarError } from '../utils/manejar-error';
-import { actividadCompleta, hayPlanActivo, responsablesDelPlan } from '../utils/planes.util';
+import {
+  actividadCompleta,
+  derivarEstadoPlan,
+  hayPlanActivo,
+  responsablesDelPlan
+} from '../utils/planes.util';
 import { RELOJ } from '../utils/reloj';
 import { PLANES } from './mock-data/planes.data';
 import { simularRespuesta } from './mock-data/simular-respuesta';
 import { NotificacionesMockService } from './notificaciones-mock.service';
+import { PerfilUsuarioService } from './perfil-usuario.service';
 
 /** Resultado de subir el documento firmado. */
 export interface ResultadoDocumento {
@@ -44,6 +50,12 @@ export class PlanesMockService {
 
   private readonly reloj = inject(RELOJ);
   private readonly notificaciones = inject(NotificacionesMockService);
+
+  /**
+   * Para resolver `PerfilUsuarioService` (nombre de quien revisa) solo al
+   * revisar: asi crear este servicio no exige la sesion.
+   */
+  private readonly injector = inject(Injector);
 
   /**
    * Obtiene todos los planes.
@@ -293,6 +305,120 @@ export class PlanesMockService {
   }
 
   /**
+   * Aprueba la evidencia de una actividad en revision.
+   *
+   * La actividad pasa a `aprobada` y la evidencia guarda quien la reviso
+   * (nombre del usuario actual) y cuando (`RELOJ`). Avisa al responsable
+   * («Evidencia aprobada»). Si era la ultima pendiente, el plan se cierra
+   * solo: estado `cerrado`, fecha de cierre hoy y aviso a RRHH («Plan de
+   * acción cerrado»). El estado del plan siempre sale de
+   * `derivarEstadoPlan`.
+   *
+   * @param planId Id del plan.
+   * @param actividadId Id de la actividad.
+   * @returns El plan actualizado, o `null` si no se pudo aprobar.
+   */
+  aprobarEvidencia(planId: string, actividadId: string): Observable<PlanAccion | null> {
+    return defer(() => {
+      const { plan, actividad } = this.actividadEnRevision(planId, actividadId);
+      const evidencia = actividad.evidencia;
+
+      if (evidencia === undefined) {
+        return throwError(() => new Error('La actividad ' + actividadId + ' no tiene evidencia.'));
+      }
+
+      actividad.estado = 'aprobada';
+      evidencia.estado = 'aprobada';
+      evidencia.revisadoPor = this.nombreRevisor();
+      evidencia.fechaRevision = this.reloj().toISOString();
+      delete evidencia.motivoRechazo;
+
+      const avisos = [this.avisoAlResponsable(plan, actividad, 'Evidencia aprobada',
+        'fue aprobada.', 'ok')];
+      if (this.recalcularEstado(plan)) {
+        avisos.push(this.avisoPlanCerrado(plan));
+      }
+      return this.notificarYResponder(plan, avisos);
+    }).pipe(
+      manejarError<PlanAccion | null>('PlanesMockService.aprobarEvidencia', null)
+    );
+  }
+
+  /**
+   * Rechaza la evidencia de una actividad en revision. El motivo es
+   * obligatorio (no vacio). La actividad pasa a `rechazada` y la evidencia
+   * guarda el motivo, quien la reviso y cuando. Avisa al responsable
+   * («Evidencia rechazada», con el motivo) para que la vuelva a subir.
+   *
+   * @param planId Id del plan.
+   * @param actividadId Id de la actividad.
+   * @param motivo Motivo del rechazo.
+   * @returns El plan actualizado, o `null` si no se pudo rechazar.
+   */
+  rechazarEvidencia(planId: string, actividadId: string, motivo: string): Observable<PlanAccion | null> {
+    return defer(() => {
+      const texto = (motivo ?? '').trim();
+      const { plan, actividad } = this.actividadEnRevision(planId, actividadId);
+      const evidencia = actividad.evidencia;
+
+      if (texto === '') {
+        return throwError(() => new Error('El motivo del rechazo es obligatorio.'));
+      }
+      if (evidencia === undefined) {
+        return throwError(() => new Error('La actividad ' + actividadId + ' no tiene evidencia.'));
+      }
+
+      actividad.estado = 'rechazada';
+      evidencia.estado = 'rechazada';
+      evidencia.motivoRechazo = texto;
+      evidencia.revisadoPor = this.nombreRevisor();
+      evidencia.fechaRevision = this.reloj().toISOString();
+      this.recalcularEstado(plan);
+
+      return this.notificarYResponder(plan, [this.avisoAlResponsable(plan, actividad,
+        'Evidencia rechazada', 'fue rechazada: ' + texto + ' Vuelve a subirla.', 'rechazo')]);
+    }).pipe(
+      manejarError<PlanAccion | null>('PlanesMockService.rechazarEvidencia', null)
+    );
+  }
+
+  /**
+   * Deshace la revision de una actividad aprobada o rechazada: vuelve a
+   * `en_revision` y se borran el resultado, el motivo, quien la reviso y
+   * cuando. Si el plan se habia cerrado, vuelve a estar activo y se borra
+   * su fecha de cierre.
+   *
+   * @param planId Id del plan.
+   * @param actividadId Id de la actividad.
+   * @returns El plan actualizado, o `null` si no se pudo deshacer.
+   */
+  deshacerRevision(planId: string, actividadId: string): Observable<PlanAccion | null> {
+    return defer(() => {
+      const plan = this.planes.find((p) => p.id === planId);
+      const actividad = plan?.actividades.find((a) => a.id === actividadId);
+      const evidencia = actividad?.evidencia;
+
+      if (plan === undefined || actividad === undefined || plan.estado === 'borrador') {
+        return throwError(() => new Error('No existe la actividad ' + actividadId + ' en un plan enviado.'));
+      }
+      if ((actividad.estado !== 'aprobada' && actividad.estado !== 'rechazada') || evidencia === undefined) {
+        return throwError(() => new Error('La actividad ' + actividadId + ' no tiene una revisión que deshacer.'));
+      }
+
+      actividad.estado = 'en_revision';
+      evidencia.estado = 'pendiente';
+      delete evidencia.motivoRechazo;
+      delete evidencia.revisadoPor;
+      delete evidencia.fechaRevision;
+      this.recalcularEstado(plan);
+
+      return simularRespuesta(plan);
+    }).pipe(
+      manejarError<PlanAccion | null>('PlanesMockService.deshacerRevision', null)
+    );
+  }
+
+  /**
    * @returns Siguiente id libre de plan (`PL-008`, `PL-009`...).
    */
   private siguienteIdPlan(): string {
@@ -352,5 +478,120 @@ export class PlanesMockService {
     if (url?.startsWith('blob:')) {
       URL.revokeObjectURL(url);
     }
+  }
+
+  /**
+   * Busca una actividad en revision de un plan enviado.
+   *
+   * @param planId Id del plan.
+   * @param actividadId Id de la actividad.
+   * @returns El plan y la actividad.
+   * @throws Error si no existe o no esta en revision.
+   */
+  private actividadEnRevision(planId: string, actividadId: string): { plan: PlanAccion; actividad: Actividad } {
+    const plan = this.planes.find((p) => p.id === planId);
+    const actividad = plan?.actividades.find((a) => a.id === actividadId);
+
+    if (plan === undefined || actividad === undefined) {
+      throw new Error('No existe la actividad ' + actividadId + ' en el plan ' + planId + '.');
+    }
+    if (actividad.estado !== 'en_revision') {
+      throw new Error('La actividad ' + actividadId + ' no está en revisión.');
+    }
+
+    return { plan, actividad };
+  }
+
+  /**
+   * Recalcula el estado del plan con `derivarEstadoPlan` y mantiene la
+   * fecha de cierre: la pone hoy si se acaba de cerrar y la borra si se
+   * reabrio.
+   *
+   * @param plan Plan modificado.
+   * @returns `true` si el plan se acaba de cerrar.
+   */
+  private recalcularEstado(plan: PlanAccion): boolean {
+    const antes = plan.estado;
+
+    plan.estado = derivarEstadoPlan(plan.actividades, plan.fechaInicio);
+    if (plan.estado === 'cerrado' && antes !== 'cerrado') {
+      plan.fechaCierre = formatearFechaIso(this.reloj());
+      return true;
+    }
+    if (plan.estado !== 'cerrado') {
+      delete plan.fechaCierre;
+    }
+
+    return false;
+  }
+
+  /**
+   * @returns Nombre de quien revisa (usuario actual).
+   */
+  private nombreRevisor(): string {
+    return this.injector.get(PerfilUsuarioService).obtenerNombreUsuario();
+  }
+
+  /**
+   * @param plan Plan.
+   * @returns «Conflicto #C-001 · Plan 02».
+   */
+  private referenciaPlan(plan: PlanAccion): string {
+    return 'Conflicto #' + plan.conflictoId + ' · Plan ' + String(plan.numero).padStart(2, '0');
+  }
+
+  /**
+   * Aviso al responsable de una actividad sobre su evidencia.
+   *
+   * @param plan Plan.
+   * @param actividad Actividad revisada.
+   * @param titulo Titulo de la notificacion.
+   * @param resultado Final del texto («fue aprobada.»...).
+   * @param tipo Tipo visual.
+   * @returns La notificacion a crear.
+   */
+  private avisoAlResponsable(
+    plan: PlanAccion,
+    actividad: Actividad,
+    titulo: string,
+    resultado: string,
+    tipo: Notificacion['tipo']
+  ): Pick<Notificacion, 'titulo' | 'texto' | 'tipo' | 'destinatarioId'> {
+    return {
+      titulo,
+      texto: 'Tu evidencia de «' + actividad.descripcion + '» (' + this.referenciaPlan(plan) + ') ' + resultado,
+      tipo,
+      destinatarioId: actividad.responsableId
+    };
+  }
+
+  /**
+   * @param plan Plan recien cerrado.
+   * @returns Aviso para RRHH (sin destinatario).
+   */
+  private avisoPlanCerrado(plan: PlanAccion): Pick<Notificacion, 'titulo' | 'texto' | 'tipo' | 'destinatarioId'> {
+    return {
+      titulo: 'Plan cerrado',
+      texto: this.referenciaPlan(plan) + ' · ' + plan.nombre
+        + ' se cerró: todas sus actividades están aprobadas.',
+      tipo: 'ok'
+    };
+  }
+
+  /**
+   * Agrega los avisos y responde con el plan.
+   *
+   * @param plan Plan actualizado.
+   * @param avisos Notificaciones a crear.
+   * @returns El plan, tras agregar los avisos.
+   */
+  private notificarYResponder(
+    plan: PlanAccion,
+    avisos: Pick<Notificacion, 'titulo' | 'texto' | 'tipo' | 'destinatarioId'>[]
+  ): Observable<PlanAccion> {
+    return forkJoin([
+      avisos.length > 0 ? this.notificaciones.agregarNotificaciones(avisos) : of([]),
+      simularRespuesta(plan)
+    ]).pipe(map(([, actualizado]) => actualizado));
   }
 }

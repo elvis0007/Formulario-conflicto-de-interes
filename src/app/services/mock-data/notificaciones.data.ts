@@ -24,6 +24,9 @@ const DIA = 24 * HORA;
  * Notificaciones de ejemplo, leidas y no leidas, de todos los `tipo`. Dos
  * (N-006 y N-010) tienen mas de 7 dias, para ver el filtro de la campana.
  *
+ * Las que van a un responsable llevan su `destinatarioId` (N-002, N-005,
+ * N-007 y N-010); el resto, sin destinatario, son para RRHH.
+ *
  * @author Elvis Flores
  */
 export const NOTIFICACIONES: readonly Notificacion[] = [
@@ -39,11 +42,14 @@ export const NOTIFICACIONES: readonly Notificacion[] = [
   {
     id: 'N-002',
     titulo: 'Evidencia rechazada',
-    texto: 'La evidencia de la actividad A-007 fue rechazada: la matriz '
-      + 'no tiene la firma del jefe de área.',
+    texto: 'Tu evidencia de «Activar el registro de auditoría de accesos al '
+      + 'sistema de compras públicas.» (Conflicto #C-001 · Plan 02) fue '
+      + 'rechazada: La captura no muestra la fecha en que se activó el '
+      + 'registro. Vuelve a subirla.',
     fecha: haceMinutos(3 * HORA),
     leida: false,
-    tipo: 'rechazo'
+    tipo: 'rechazo',
+    destinatarioId: 'EMP-010'
   },
   {
     id: 'N-003',
@@ -69,11 +75,12 @@ export const NOTIFICACIONES: readonly Notificacion[] = [
       + 'aprobada.',
     fecha: haceMinutos(2 * DIA),
     leida: true,
-    tipo: 'ok'
+    tipo: 'ok',
+    destinatarioId: 'EMP-004'
   },
   {
     id: 'N-006',
-    titulo: 'Plan de acción cerrado',
+    titulo: 'Plan cerrado',
     texto: 'El plan PL-006 se cerró: todas sus actividades están '
       + 'aprobadas.',
     fecha: haceMinutos(12 * DIA),
@@ -83,10 +90,11 @@ export const NOTIFICACIONES: readonly Notificacion[] = [
   {
     id: 'N-007',
     titulo: 'Actividad próxima a vencer',
-    texto: 'La actividad A-007 vence en pocos días.',
+    texto: 'La actividad A-008 vence en pocos días.',
     fecha: haceMinutos(5 * HORA),
     leida: false,
-    tipo: 'alerta'
+    tipo: 'alerta',
+    destinatarioId: 'EMP-010'
   },
   {
     id: 'N-008',
@@ -112,6 +120,7 @@ export const NOTIFICACIONES: readonly Notificacion[] = [
     texto: 'Se le asignó la actividad A-008 del plan PL-003.',
     fecha: haceMinutos(10 * DIA),
     leida: true,
-    tipo: 'info'
+    tipo: 'info',
+    destinatarioId: 'EMP-010'
   }
 ];

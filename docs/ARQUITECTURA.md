@@ -120,7 +120,9 @@ src/
     ├── plan-responsable-detalle/┘
     │
     ├── shared/            componentes reutilizables (app-badge,
-    │                      app-data-table, app-modal...)
+    │                      app-data-table, app-modal, app-document-viewer...)
+    ├── testing/           solo para specs: dobles de prueba
+    │                      (PerfilUsuarioFalso); no entra en el build
     ├── pipes/             pipes standalone
     ├── utils/             funciones puras (fechas, planes, tonos...)
     ├── models/            interfaces y tipos (barrel: models/index.ts)

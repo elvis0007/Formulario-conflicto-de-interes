@@ -1408,9 +1408,8 @@ firmarlo a mano, escanearlo, subir el PDF y «Enviar y notificar».
   - `NotificacionesMockService.agregarNotificaciones()` las crea y avisa
     por `cambios`; la campana escucha ese aviso y se actualiza sola, sin
     recargar.
-  - **PENDIENTE (backend):** la campana aún no filtra por usuario. Hoy RRHH
-    ve también las de los responsables, por eso aparecen varias iguales
-    tras un envío.
+  - La campana aún no filtraba por usuario (RRHH veía también las de los
+    responsables). Resuelto el Día 9 en el mock; ver esa entrada.
 - **Modelos:** `Archivo.fechaSubida` (opcional; los PDF firmados de ejemplo
   tienen una fecha anterior al inicio del plan) y
   `Notificacion.destinatarioId`.
@@ -1461,9 +1460,117 @@ los archivos elegidos con `DOM.setFileInputFiles` no se pueden leer.
 
 ### Pendiente / a tener en cuenta
 
-- **Filtrar la campana por usuario** (`destinatarioId`) cuando exista el
-  backend.
 - **El documento subido vive en una URL local** (`blob:`) mientras dure la
   sesión; al recargar se pierde. Con el backend será `GET /archivos/:id`.
 - **Cierre automático del plan** cuando todas las actividades estén
-  aprobadas: Día 9 (Revisión de Evidencias).
+  aprobadas: hecho el Día 9 (Revisión de Evidencias).
+
+## Día 9 — Revisión de Evidencias, visor de documentos y cierre automático del plan (07/10/2026)
+
+Pantalla `/rrhh/revision-evidencias` (especificación §6.8), visor de
+documentos reutilizable y cierre automático del plan. Todo contra los
+servicios mock.
+
+### Decisiones
+
+- **Campana filtrada por usuario (mock):** `NotificacionesMockService`
+  devuelve, cuenta y marca como leídas solo las visibles para el usuario
+  actual. Con `destinatarioId`, solo ese empleado
+  (`PerfilUsuarioService.obtenerEmpleadoActualId()`); sin él, solo RRHH
+  (`R` o `A`). `R+P` ve las dos. Documentado en el TSDoc que en el backend
+  real este filtro lo hará el servidor según la sesión. El servicio pide
+  `PerfilUsuarioService` con `Injector` al usarlo (no al crearse), para no
+  arrastrar `AuthService`/`HttpClient` a quien solo agrega notificaciones.
+- **Datos:** `Evidencia.fechaRevision` (opcional). PL-002 (C-001) suma
+  A-015 (rechazada, imagen, EMP-010) y A-016 (en revisión, imagen JPG,
+  EMP-002); A-005 sigue en revisión con un PDF. En PL-003 (C-002), A-007
+  queda aprobada (se rechazó una vez y se volvió a subir) y A-008 en
+  revisión con una imagen PNG: es la única que falta para cerrar el plan.
+  Las notificaciones de ejemplo de responsables llevan `destinatarioId`
+  (N-002, N-005, N-007, N-010); N-002 ahora es el rechazo de A-015.
+- **Reglas en `PlanesMockService`:**
+  - `aprobarEvidencia` y `rechazarEvidencia` solo con la actividad en
+    revisión; guardan `revisadoPor` (nombre del usuario actual) y
+    `fechaRevision` (`RELOJ`). El rechazo exige motivo (se recorta).
+  - Avisan al responsable: «Evidencia aprobada» / «Evidencia rechazada»
+    («Tu evidencia de «…» (Conflicto #id · Plan 0n) fue rechazada: motivo.
+    Vuelve a subirla.»).
+  - `deshacerRevision` devuelve la actividad a «en revisión» y borra
+    motivo, revisor y fecha. **No retira el aviso ya enviado**: si se
+    rechaza, se deshace y se vuelve a rechazar, el responsable recibe dos
+    avisos (en el recorrido, EMP-002 tiene dos «Evidencia rechazada»).
+  - **Cierre automático:** tras cada acción el estado se recalcula con
+    `derivarEstadoPlan`. Si queda `cerrado`, se guarda `fechaCierre` (hoy,
+    `RELOJ`) y se avisa a RRHH con «Plan cerrado» (sin destinatario). Al
+    deshacer una aprobación de un plan cerrado vuelve a activo y se borra
+    `fechaCierre`. Rechazar la última pendiente no cierra el plan.
+- **Pantalla:**
+  - Resumen: «n por revisar» (en planes activos), «n aprobadas hoy» y
+    «n rechazadas hoy» (por `fechaRevision`, en cualquier plan, así cuenta
+    la aprobación que cerró un plan).
+  - Tarjetas en 3 columnas (2 bajo 1100 px, 1 bajo 700 px), una por
+    conflicto con plan activo, primero las que tienen por revisar; borde
+    ámbar si hay pendientes. Estado vacío si no hay planes activos.
+  - Modal (`ancho="medio"`, 860 px): actividades agrupadas por responsable
+    con avatar de iniciales; fecha límite en rojo si venció sin aprobarse;
+    «Sin evidencia todavía» si no hay archivo. En revisión: «Ver
+    documento», «Aprobar», «Rechazar» (textarea + «Confirmar rechazo» +
+    «Cancelar»). Resueltas: insignia, motivo, «Revisada por … el …» y
+    «Deshacer».
+  - Si el plan se cierra, aviso «Plan cerrado: todas las actividades
+    fueron aprobadas»; la tarjeta sigue hasta cerrar el modal.
+  - La pantalla no aplica reglas: llama al servicio y reemplaza el plan
+    devuelto; el resumen y las tarjetas se recalculan.
+- **Visor (`shared/document-viewer`):** sin dependencias nuevas. PDF en
+  `<iframe>`, imágenes en `<img>`. Barra con nombre, quién lo subió y
+  cuándo, zoom − / + (50–200 %, de 25 en 25) con porcentaje, «Descargar» →
+  «Descargado ✓» unos segundos, y cerrar. URLs `/mock/...` → «Vista previa
+  no disponible (archivo de ejemplo)»; `blob:` y las del backend se ven.
+  Al abrirlo el modal pasa a `ancho="ancho"`, el visor queda a la
+  izquierda y la actividad se resalta con «Viendo documento»; bajo 900 px
+  se apilan. La URL del PDF se marca como confiable porque el `<iframe>`
+  lo exige: solo debe recibir URLs de nuestros servicios.
+- **`ModalComponent`:** nuevo ancho `'medio'`.
+- **Specs:** `src/app/testing/PerfilUsuarioFalso` (roles, empleado y nombre
+  fijos) para las pruebas que filtran notificaciones o necesitan el nombre
+  del revisor. No entra en el build (solo lo importan specs).
+
+### Verificación
+
+- `ng test`: 351 OK; fallan solo las 3 antiguas de `app.component.spec`
+  (No provider for HttpClient). Nuevas: filtro de la campana por rol y
+  destinatario (R, P, R+P; contador y «marcar todas»), aprobar, rechazar
+  sin motivo (no), deshacer, avisos al responsable, cierre y reapertura
+  automáticos (`RELOJ` fijo 02/10/2026), resumen, agrupación, iniciales,
+  visor (zoom y límites, descarga, aviso de ejemplo, `blob:` en `img` e
+  `iframe`) y la pantalla completa. Se ajustaron los specs de la campana,
+  `NotificacionesMockService`, el aviso de envío del Día 8 y el conteo de
+  actividades de PL-002 en Análisis (ahora 5).
+- Builds de desarrollo y producción correctos (los avisos de presupuesto
+  son de archivos del host, como antes).
+- Recorrido con sesión simulada en Edge headless (backend bloqueado):
+  - Como `R` (`EMP-008`): «3 por revisar», C-001 primero (2) y C-002 (1).
+    Modal agrupado por responsable; visor con aviso de ejemplo, zoom
+    125 % / 75 %, «Descargado ✓» que vuelve a «Descargar»; imagen `blob:`
+    visible (400×220). Aprobar A-005, rechazar A-016 sin motivo (error) y
+    con motivo, deshacer, volver a rechazar. Aprobar A-008 cierra PL-003:
+    aviso en el modal, insignia «Cerrado» y la tarjeta desaparece al
+    cerrar. Resumen final: 0 por revisar, 2 aprobadas y 1 rechazada hoy.
+  - Análisis (C-002) y Plan de Acción (PL-003) muestran «Cerrado».
+  - La campana de RRHH suma «Plan cerrado» y no muestra los avisos a
+    responsables. Como `P`: EMP-010 ve «Evidencia aprobada» de A-008,
+    EMP-002 el rechazo de A-016 con el motivo, EMP-001 la aprobación de
+    A-005. De vuelta a `R`, siguen sin verse.
+  - Para no perder el estado en memoria, el recorrido cambia de identidad
+    sin recargar (API de depuración de Angular); con el selector de rol la
+    página se recarga y los mocks se reinician.
+  - A 760 px el visor se apila sobre la lista, sin scroll horizontal.
+
+### Pendiente / a tener en cuenta
+
+- **Confirmar con RRHH** si «Deshacer» debe retirar o corregir el aviso ya
+  enviado al responsable (hoy queda y, si se vuelve a revisar, llega otro).
+- Con el backend, el filtro de la campana lo hace el servidor; el mock solo
+  lo imita.
+- Las fechas de revisión usan la hora del navegador; con el backend
+  deberían venir del servidor.

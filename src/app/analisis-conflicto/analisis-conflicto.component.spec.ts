@@ -414,7 +414,7 @@ describe('AnalisisConflictoComponent', () => {
         ['Plan 01 · Separación de funciones en compras', 'Cerrado', 'Inicio: 03/11/2025',
           '2 de 2 actividades cumplidas', 'Abrir plan →'],
         ['Plan 02 · Rotación del técnico de compras · actual', 'Activo · con vencidas',
-          'Inicio: 01/06/2026', '1 de 3 actividades cumplidas', 'Abrir plan →']
+          'Inicio: 01/06/2026', '1 de 5 actividades cumplidas', 'Abrir plan →']
       ]);
       expect(raiz.querySelector('.planes .plan-abrir')?.getAttribute('href'))
         .toBe('/rrhh/conflictos/C-001/planes/PL-001');

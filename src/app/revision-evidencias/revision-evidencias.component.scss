@@ -1,5 +1,363 @@
 @use '../../styles/pantalla';
+@use '../../styles/listados';
 
 :host {
   @include pantalla.raiz;
+}
+
+@include listados.estilos;
+
+.resumen {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cargando {
+  color: var(--text2);
+}
+
+.tarjeta-vacia {
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+  background-color: var(--paper);
+}
+
+.cuadricula {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+@media (max-width: 1100px) {
+  .cuadricula {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .cuadricula {
+    grid-template-columns: 1fr;
+  }
+}
+
+// Tarjeta clicable (boton), con el aspecto de tarjeta del sistema.
+.tarjeta {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+  background-color: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+
+  &:hover {
+    box-shadow: 0 6px 16px rgba(29, 31, 32, 0.1);
+    transform: translateY(-1px);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+}
+
+.tarjeta--pendiente {
+  border-left: 4px solid var(--amber);
+}
+
+.tarjeta-cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.tarjeta-conflicto {
+  font-family: var(--font-condensed);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.tarjeta-personas {
+  color: var(--text2);
+  font-size: 13px;
+}
+
+.tarjeta-plan {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.tarjeta-pie {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 8px;
+  border-top: 1px solid var(--hairline);
+  font-size: 13px;
+}
+
+.tarjeta-revisar {
+  color: var(--amber-text);
+  font-weight: 700;
+}
+
+.tarjeta-revisar--cero {
+  color: var(--text3);
+  font-weight: 600;
+}
+
+.tarjeta-avance {
+  color: var(--text2);
+}
+
+// ---- Modal ----
+.modal-personas {
+  margin: 0 0 12px;
+  color: var(--text2);
+}
+
+.aviso {
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+.aviso--cerrado {
+  background-color: var(--green-fill);
+  color: var(--green-text);
+}
+
+.aviso--error {
+  background-color: var(--red-fill);
+  color: var(--red-text);
+}
+
+.revision {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+}
+
+// Con el visor: documento a la izquierda, actividades a la derecha.
+.revision--con-visor {
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .revision--con-visor {
+    grid-template-columns: 1fr;
+  }
+}
+
+.revision-visor {
+  position: sticky;
+  top: 0;
+}
+
+.responsables {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+.responsable {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  gap: 12px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--hairline);
+
+  &:last-child {
+    padding-bottom: 0;
+    border-bottom: 0;
+  }
+}
+
+.revision--con-visor .responsable,
+.responsables:only-child .responsable {
+  @media (max-width: 1100px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.revision--con-visor .responsable {
+  grid-template-columns: 1fr;
+}
+
+.responsable-persona {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  align-self: start;
+}
+
+.avatar {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background-color: var(--accent-100);
+  color: var(--accent-700);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.responsable-nombre {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.actividades {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.actividad {
+  padding: 10px 12px;
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  background-color: var(--paper);
+}
+
+.actividad--viendo {
+  border-color: var(--accent);
+  box-shadow: inset 3px 0 0 var(--accent);
+  background-color: var(--accent-100);
+}
+
+.actividad-cabecera {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.actividad-descripcion {
+  margin: 0;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.viendo {
+  display: inline-block;
+  margin-top: 4px;
+  color: var(--accent-700);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.actividad-dato {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: 4px 0 0;
+  color: var(--text2);
+  font-size: 12.5px;
+}
+
+.actividad-dato--vencida {
+  color: var(--red-text);
+  font-weight: 700;
+}
+
+.actividad-dato--sin {
+  color: var(--text3);
+  font-style: italic;
+}
+
+.motivo {
+  margin: 6px 0 0;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background-color: var(--orange-fill);
+  color: var(--orange-text);
+  font-size: 12.5px;
+}
+
+.acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.boton--chico {
+  padding: 5px 10px;
+  font-size: 12.5px;
+}
+
+.boton--aprobar {
+  border-color: var(--green);
+  background-color: var(--green);
+  color: var(--paper);
+}
+
+.boton--rechazar,
+.boton--rechazar-confirmar {
+  border-color: var(--orange);
+  color: var(--orange-text);
+}
+
+.boton--rechazar-confirmar {
+  background-color: var(--orange);
+  color: var(--paper);
+}
+
+.rechazo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.rechazo-etiqueta {
+  color: var(--text2);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.rechazo-motivo {
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  resize: vertical;
+
+  &:focus {
+    border-color: var(--accent);
+    outline: 2px solid var(--accent-300);
+  }
+}
+
+.rechazo-motivo--error {
+  border-color: var(--red);
+}
+
+.error {
+  color: var(--red-text);
+  font-size: 12px;
+  font-weight: 600;
 }

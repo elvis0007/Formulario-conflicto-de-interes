@@ -28,6 +28,10 @@ $duracion: 160ms;
   }
 }
 
+.dialogo--medio {
+  width: min(860px, 100%);
+}
+
 .dialogo--ancho {
   width: min(1080px, 100%);
 }

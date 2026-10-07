@@ -53,8 +53,11 @@ export class ModalComponent implements OnChanges, OnDestroy {
   /** Si el modal esta visible. */
   @Input() abierto = false;
 
-  /** `ancho` ensancha el modal (visor de documentos). */
-  @Input() ancho: 'normal' | 'ancho' = 'normal';
+  /**
+   * Ancho del modal: `normal` (560 px), `medio` (860 px, listas) o `ancho`
+   * (1080 px, visor de documentos).
+   */
+  @Input() ancho: 'normal' | 'medio' | 'ancho' = 'normal';
 
   /** Se emite cuando el usuario pide cerrar el modal. */
   @Output() cerrar = new EventEmitter<void>();

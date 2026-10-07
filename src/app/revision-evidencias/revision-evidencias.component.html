@@ -1,0 +1,187 @@
+<header class="encabezado">
+  <div>
+    <h2 class="titulo">Revisión de Evidencias</h2>
+    <span class="codigo">Evidencias subidas por los responsables de los planes activos</span>
+  </div>
+  <div class="resumen" aria-label="Resumen">
+    <app-badge class="resumen-revisar" tono="gris" [texto]="resumen.porRevisar + ' por revisar'" />
+    <app-badge class="resumen-aprobadas" tono="verde" [texto]="resumen.aprobadasHoy + ' aprobadas hoy'" />
+    <app-badge class="resumen-rechazadas" tono="naranja" [texto]="resumen.rechazadasHoy + ' rechazadas hoy'" />
+  </div>
+</header>
+
+@if (cargando) {
+  <p class="cargando" role="status">Cargando evidencias…</p>
+} @else if (tarjetas.length === 0) {
+  <section class="tarjeta-vacia">
+    <app-empty-state icono="check" texto="No hay planes activos con evidencias para revisar." />
+  </section>
+} @else {
+  <div class="cuadricula">
+    @for (t of tarjetas; track t.plan.id) {
+      <button
+        type="button"
+        class="tarjeta"
+        [class.tarjeta--pendiente]="t.porRevisar > 0"
+        (click)="abrir(t)">
+        <span class="tarjeta-cabecera">
+          <span class="tarjeta-conflicto">Conflicto #{{ t.conflicto.id }}</span>
+          <app-badge [tono]="t.tonoRiesgo" [texto]="'Riesgo ' + t.textoRiesgo.toLowerCase()" />
+        </span>
+        <span class="tarjeta-personas">{{ t.conflicto.personaA.nombres }} y {{ t.conflicto.personaB.nombres }}</span>
+        <span class="tarjeta-plan">
+          {{ t.tituloPlan }}
+          <app-badge [tono]="t.tonoEstado" [texto]="t.textoEstado" />
+        </span>
+        <span class="tarjeta-pie">
+          <span class="tarjeta-revisar" [class.tarjeta-revisar--cero]="t.porRevisar === 0">
+            {{ t.porRevisar }} por revisar
+          </span>
+          <span class="tarjeta-avance">{{ t.aprobadas }} de {{ t.total }} aprobadas</span>
+        </span>
+      </button>
+    }
+  </div>
+}
+
+<app-modal
+  [titulo]="tituloModal"
+  [ancho]="viendo ? 'ancho' : 'medio'"
+  [abierto]="abierta !== null"
+  (cerrar)="cerrar()">
+  <app-badge
+    appModalCabecera
+    [tono]="abierta?.tonoEstado ?? 'gris'"
+    [texto]="abierta?.textoEstado ?? ''" />
+
+  @if (abierta) {
+    <p class="modal-personas">{{ abierta.conflicto.personaA.nombres }} y {{ abierta.conflicto.personaB.nombres }}</p>
+
+    @if (planCerrado) {
+      <p class="aviso aviso--cerrado" role="status">{{ avisoPlanCerrado }}</p>
+    }
+    @if (errorAccion) {
+      <p class="aviso aviso--error" role="alert">{{ errorAccion }}</p>
+    }
+
+    <div class="revision" [class.revision--con-visor]="viendo !== null">
+      @if (viendo && viendo.evidencia) {
+        <app-document-viewer
+          class="revision-visor"
+          [archivo]="viendo.evidencia.archivo"
+          [subidoPor]="viendo.responsableNombre"
+          [fechaSubida]="viendo.evidencia.fechaSubida"
+          (cerrar)="viendo = null" />
+      }
+
+      <div class="responsables">
+        @for (grupo of grupos; track grupo.responsableId) {
+          <section class="responsable" [attr.aria-label]="'Actividades de ' + grupo.nombre">
+            <div class="responsable-persona">
+              <span class="avatar" aria-hidden="true">{{ grupo.iniciales }}</span>
+              <span class="responsable-nombre">{{ grupo.nombre }}</span>
+            </div>
+
+            <ul class="actividades">
+              @for (v of grupo.actividades; track v.actividad.id) {
+                <li class="actividad" [class.actividad--viendo]="viendo?.id === v.actividad.id">
+                  <div class="actividad-cabecera">
+                    <p class="actividad-descripcion">{{ v.actividad.descripcion }}</p>
+                    <app-badge [tono]="v.tonoEstado" [texto]="v.textoEstado" />
+                  </div>
+
+                  @if (viendo?.id === v.actividad.id) {
+                    <span class="viendo">Viendo documento</span>
+                  }
+
+                  @if (v.fechaLimite) {
+                    <p class="actividad-dato" [class.actividad-dato--vencida]="v.vencida">
+                      Fecha límite: {{ v.fechaLimite }}{{ v.vencida ? ' · vencida' : '' }}
+                    </p>
+                  }
+
+                  @if (v.actividad.evidencia; as evidencia) {
+                    <p class="actividad-dato">
+                      <app-icono nombre="documento" [tamano]="14" />
+                      {{ evidencia.archivo.nombre }} — subida el {{ evidencia.fechaSubida | fechaLarga }}
+                    </p>
+                  } @else {
+                    <p class="actividad-dato actividad-dato--sin">Sin evidencia todavía</p>
+                  }
+
+                  @if (v.resuelta && v.actividad.evidencia; as evidencia) {
+                    @if (evidencia.motivoRechazo) {
+                      <p class="motivo">Motivo del rechazo: {{ evidencia.motivoRechazo }}</p>
+                    }
+                    @if (evidencia.revisadoPor) {
+                      <p class="actividad-dato">
+                        Revisada por {{ evidencia.revisadoPor }}{{ evidencia.fechaRevision ? ' el ' + fecha(evidencia.fechaRevision) : '' }}
+                      </p>
+                    }
+                  }
+
+                  @if (v.enRevision || v.resuelta) {
+                    <div class="acciones">
+                      <button type="button" class="boton boton--chico" (click)="verDocumento(v.actividad)">
+                        <app-icono nombre="ojo" [tamano]="14" />
+                        Ver documento
+                      </button>
+                      @if (v.enRevision && rechazandoId !== v.actividad.id) {
+                        <button
+                          type="button"
+                          class="boton boton--chico boton--aprobar"
+                          [disabled]="procesandoId !== null"
+                          (click)="aprobar(v.actividad)">
+                          <app-icono nombre="check" [tamano]="14" />
+                          Aprobar
+                        </button>
+                        <button
+                          type="button"
+                          class="boton boton--chico boton--rechazar"
+                          [disabled]="procesandoId !== null"
+                          (click)="empezarRechazo(v.actividad)">Rechazar</button>
+                      }
+                      @if (v.resuelta) {
+                        <button
+                          type="button"
+                          class="boton boton--chico"
+                          [disabled]="procesandoId !== null"
+                          (click)="deshacer(v.actividad)">Deshacer</button>
+                      }
+                    </div>
+                  }
+
+                  @if (rechazandoId === v.actividad.id) {
+                    <div class="rechazo">
+                      <label class="rechazo-etiqueta" [for]="'motivo-' + v.actividad.id">Motivo del rechazo (obligatorio)</label>
+                      <textarea
+                        class="rechazo-motivo"
+                        rows="3"
+                        maxlength="500"
+                        [id]="'motivo-' + v.actividad.id"
+                        [value]="motivo"
+                        [class.rechazo-motivo--error]="motivoFaltante"
+                        [attr.aria-invalid]="motivoFaltante"
+                        (input)="alEscribirMotivo($event)"></textarea>
+                      @if (motivoFaltante) {
+                        <span class="error" role="alert">Escribe el motivo del rechazo.</span>
+                      }
+                      <div class="acciones">
+                        <button type="button" class="boton boton--chico" (click)="cancelarRechazo()">Cancelar</button>
+                        <button
+                          type="button"
+                          class="boton boton--chico boton--rechazar-confirmar"
+                          [disabled]="procesandoId !== null"
+                          (click)="confirmarRechazo(v.actividad)">Confirmar rechazo</button>
+                      </div>
+                    </div>
+                  }
+                </li>
+              }
+            </ul>
+          </section>
+        }
+      </div>
+    </div>
+  }
+</app-modal>

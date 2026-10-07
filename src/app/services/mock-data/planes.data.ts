@@ -32,6 +32,11 @@ function pdfSimulado(nombre: string, fechaSubida?: string): Archivo {
  * Las fechas limite estan calculadas con `calcularFechaLimite` sobre
  * `fechaInicio`; los planes en borrador no tienen ni una ni otra.
  *
+ * Revision de Evidencias (Dia 9): hay evidencias en revision en dos planes
+ * activos, en PDF (A-005) y en imagen (A-008, A-016); un rechazo con
+ * motivo (A-015); y a PL-003 le falta una sola aprobacion (A-008) para
+ * cerrarse.
+ *
  * @author Elvis Flores
  */
 export const PLANES: readonly PlanAccion[] = [
@@ -59,7 +64,8 @@ export const PLANES: readonly PlanAccion[] = [
           archivo: pdfSimulado('A-001-memorando.pdf'),
           fechaSubida: '2025-11-28T10:42:00',
           estado: 'aprobada',
-          revisadoPor: 'Lucía Alejandra Freire Ortiz'
+          revisadoPor: 'Lucía Alejandra Freire Ortiz',
+          fechaRevision: '2025-11-29T09:00:00'
         }
       },
       {
@@ -80,7 +86,8 @@ export const PLANES: readonly PlanAccion[] = [
           },
           fechaSubida: '2025-11-14T16:05:00',
           estado: 'aprobada',
-          revisadoPor: 'Lucía Alejandra Freire Ortiz'
+          revisadoPor: 'Lucía Alejandra Freire Ortiz',
+          fechaRevision: '2025-11-15T10:00:00'
         }
       }
     ]
@@ -122,7 +129,8 @@ export const PLANES: readonly PlanAccion[] = [
           },
           fechaSubida: '2026-06-24T11:30:00',
           estado: 'aprobada',
-          revisadoPor: 'Lucía Alejandra Freire Ortiz'
+          revisadoPor: 'Lucía Alejandra Freire Ortiz',
+          fechaRevision: '2026-06-25T09:30:00'
         }
       },
       {
@@ -138,6 +146,50 @@ export const PLANES: readonly PlanAccion[] = [
         evidencia: {
           archivo: pdfSimulado('A-005-informe-trimestral.pdf'),
           fechaSubida: '2026-09-25T09:14:00',
+          estado: 'pendiente'
+        }
+      },
+      {
+        id: 'A-015',
+        descripcion: 'Activar el registro de auditoría de accesos al '
+          + 'sistema de compras públicas.',
+        responsableId: 'EMP-010',
+        responsableNombre: 'Fernando José Andrade Vela',
+        plazoMeses: 2,
+        plazoDias: 15,
+        fechaLimite: '2026-08-16',
+        estado: 'rechazada',
+        evidencia: {
+          archivo: {
+            nombre: 'A-015-registro-auditoria.png',
+            url: '/mock/archivos/A-015-registro-auditoria.png',
+            tipo: 'png'
+          },
+          fechaSubida: '2026-08-12T17:20:00',
+          estado: 'rechazada',
+          motivoRechazo: 'La captura no muestra la fecha en que se activó '
+            + 'el registro.',
+          revisadoPor: 'Lucía Alejandra Freire Ortiz',
+          fechaRevision: '2026-08-14T09:05:00'
+        }
+      },
+      {
+        id: 'A-016',
+        descripcion: 'Entregar el acta de entrega-recepción de la bodega '
+          + 'firmada.',
+        responsableId: 'EMP-002',
+        responsableNombre: 'Jorge Luis Mayorga Sánchez',
+        plazoMeses: 3,
+        plazoDias: 15,
+        fechaLimite: '2026-09-16',
+        estado: 'en_revision',
+        evidencia: {
+          archivo: {
+            nombre: 'A-016-acta-bodega.jpg',
+            url: '/mock/archivos/A-016-acta-bodega.jpg',
+            tipo: 'jpg'
+          },
+          fechaSubida: '2026-09-15T12:30:00',
           estado: 'pendiente'
         }
       }
@@ -166,7 +218,8 @@ export const PLANES: readonly PlanAccion[] = [
           archivo: pdfSimulado('A-006-orden-de-cambio.pdf'),
           fechaSubida: '2026-09-02T09:14:00',
           estado: 'aprobada',
-          revisadoPor: 'Lucía Alejandra Freire Ortiz'
+          revisadoPor: 'Lucía Alejandra Freire Ortiz',
+          fechaRevision: '2026-09-03T08:45:00'
         }
       },
       {
@@ -178,14 +231,15 @@ export const PLANES: readonly PlanAccion[] = [
         plazoMeses: 1,
         plazoDias: 15,
         fechaLimite: '2026-10-02',
-        estado: 'rechazada',
+        // Se rechazo el 19/09 (falta de firma, ver N-002) y el responsable
+        // volvio a subirla corregida.
+        estado: 'aprobada',
         evidencia: {
-          archivo: pdfSimulado('A-007-matriz-firmas.pdf'),
-          fechaSubida: '2026-09-18T15:48:00',
-          estado: 'rechazada',
-          motivoRechazo: 'La matriz adjunta no tiene la firma del '
-            + 'jefe de área.',
-          revisadoPor: 'Lucía Alejandra Freire Ortiz'
+          archivo: pdfSimulado('A-007-matriz-firmas-v2.pdf'),
+          fechaSubida: '2026-09-24T15:48:00',
+          estado: 'aprobada',
+          revisadoPor: 'Lucía Alejandra Freire Ortiz',
+          fechaRevision: '2026-09-26T10:15:00'
         }
       },
       {
@@ -197,7 +251,17 @@ export const PLANES: readonly PlanAccion[] = [
         plazoMeses: 2,
         plazoDias: 0,
         fechaLimite: '2026-10-17',
-        estado: 'pendiente'
+        // La ultima que falta aprobar: al aprobarla, PL-003 se cierra.
+        estado: 'en_revision',
+        evidencia: {
+          archivo: {
+            nombre: 'A-008-captura-sistema.png',
+            url: '/mock/archivos/A-008-captura-sistema.png',
+            tipo: 'png'
+          },
+          fechaSubida: '2026-10-05T16:40:00',
+          estado: 'pendiente'
+        }
       }
     ]
   },
@@ -254,7 +318,8 @@ export const PLANES: readonly PlanAccion[] = [
           archivo: pdfSimulado('A-011-declaracion.pdf'),
           fechaSubida: '2025-05-20T08:55:00',
           estado: 'aprobada',
-          revisadoPor: 'Diana Carolina Pérez López'
+          revisadoPor: 'Diana Carolina Pérez López',
+          fechaRevision: '2025-05-21T09:10:00'
         }
       }
     ]
@@ -283,7 +348,8 @@ export const PLANES: readonly PlanAccion[] = [
           archivo: pdfSimulado('A-012-compromiso.pdf'),
           fechaSubida: '2026-01-22T14:20:00',
           estado: 'aprobada',
-          revisadoPor: 'Diana Carolina Pérez López'
+          revisadoPor: 'Diana Carolina Pérez López',
+          fechaRevision: '2026-01-23T08:30:00'
         }
       },
       {
@@ -304,7 +370,8 @@ export const PLANES: readonly PlanAccion[] = [
           },
           fechaSubida: '2026-02-09T10:03:00',
           estado: 'aprobada',
-          revisadoPor: 'Diana Carolina Pérez López'
+          revisadoPor: 'Diana Carolina Pérez López',
+          fechaRevision: '2026-02-10T09:00:00'
         }
       }
     ]

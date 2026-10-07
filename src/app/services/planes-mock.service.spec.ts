@@ -6,6 +6,7 @@ import { NotificacionesMockService } from './notificaciones-mock.service';
 import { PlanesMockService, ResultadoDocumento } from './planes-mock.service';
 import { ERROR_DOCUMENTO_GRANDE, ERROR_DOCUMENTO_NO_PDF } from '../utils/documento.util';
 import { RELOJ } from '../utils/reloj';
+import { PerfilUsuarioFalso, proveerPerfilFalso } from '../testing/perfil-usuario-falso';
 
 describe('PlanesMockService', () => {
   let servicio: PlanesMockService;
@@ -105,6 +106,7 @@ describe('PlanesMockService: documento firmado y envío', () => {
   const HOY = new Date(2026, 9, 2, 10, 0);
   let servicio: PlanesMockService;
   let notificaciones: NotificacionesMockService;
+  let perfil: PerfilUsuarioFalso;
   let urls = 0;
 
   /**
@@ -131,8 +133,9 @@ describe('PlanesMockService: documento firmado y envío', () => {
 
   beforeEach(() => {
     urls = 0;
+    perfil = new PerfilUsuarioFalso(['responsable'], null);
     TestBed.configureTestingModule({
-      providers: [{ provide: RELOJ, useValue: () => new Date(HOY) }]
+      providers: [{ provide: RELOJ, useValue: () => new Date(HOY) }, proveerPerfilFalso(perfil)]
     });
     servicio = TestBed.inject(PlanesMockService);
     notificaciones = TestBed.inject(NotificacionesMockService);
@@ -239,8 +242,12 @@ describe('PlanesMockService: documento firmado y envío', () => {
       esperar(servicio.subirDocumentoFirmado('PL-004', archivo('plan.pdf')));
       esperar(servicio.enviarYNotificar('PL-004'));
 
-      const nuevas = (esperar(notificaciones.obtenerNotificaciones()) ?? [])
-        .filter((n) => n.titulo === 'Nuevo plan de acción asignado');
+      // Cada responsable ve solo la suya.
+      const nuevas = ['EMP-006', 'EMP-003'].flatMap((empleadoId) => {
+        perfil.empleadoId = empleadoId;
+        return (esperar(notificaciones.obtenerNotificaciones()) ?? [])
+          .filter((n) => n.titulo === 'Nuevo plan de acción asignado');
+      });
       expect(nuevas.map((n) => [n.destinatarioId, n.texto, n.leida])).toEqual(jasmine.arrayWithExactContents([
         ['EMP-006', 'Conflicto #C-003 · Plan 01 · Control cruzado de pagos. 2 actividades a tu cargo.', false],
         ['EMP-003', 'Conflicto #C-003 · Plan 01 · Control cruzado de pagos. 1 actividad a tu cargo.', false]
@@ -248,4 +255,143 @@ describe('PlanesMockService: documento firmado y envío', () => {
       expect(cambios).toBe(1);
     }));
   });
+});
+
+describe('PlanesMockService: revisión de evidencias', () => {
+  /** «Hoy» fijo de estas pruebas: 2 de octubre de 2026, 10:00. */
+  const HOY = new Date(2026, 9, 2, 10, 0);
+  const REVISOR = 'Lucía Fernanda Paredes Cando';
+  let servicio: PlanesMockService;
+  let avisos: jasmine.Spy;
+
+  /**
+   * @param fuente Observable del servicio.
+   * @returns Lo que emitio tras las latencias simuladas.
+   */
+  function esperar<T>(fuente: Observable<T>): T | undefined {
+    let valor: T | undefined;
+
+    fuente.subscribe((v) => valor = v);
+    tick(LATENCIA_SIMULADA_MS * 2);
+    return valor;
+  }
+
+  /**
+   * @param plan Plan.
+   * @param id Id de la actividad.
+   * @returns La actividad (falla si no existe).
+   */
+  function actividad(plan: PlanAccion | null | undefined, id: string) {
+    const encontrada = plan?.actividades.find((a) => a.id === id);
+
+    if (encontrada === undefined) {
+      throw new Error('No existe ' + id);
+    }
+    return encontrada;
+  }
+
+  /** @returns Todos los avisos enviados, en orden. */
+  function avisosEnviados() {
+    return avisos.calls.allArgs().flatMap(([lista]) => lista);
+  }
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: RELOJ, useValue: () => new Date(HOY) },
+        proveerPerfilFalso(new PerfilUsuarioFalso(['rrhh'], 'EMP-008', REVISOR))
+      ]
+    });
+    servicio = TestBed.inject(PlanesMockService);
+    avisos = spyOn(TestBed.inject(NotificacionesMockService), 'agregarNotificaciones').and.callThrough();
+    spyOn(console, 'error');
+  });
+
+  it('aprobar: actividad y evidencia aprobadas, con revisor y fecha, y avisa al responsable', fakeAsync(() => {
+    const plan = esperar(servicio.aprobarEvidencia('PL-002', 'A-005'));
+    const a = actividad(plan, 'A-005');
+
+    expect(a.estado).toBe('aprobada');
+    expect(a.evidencia).toEqual(jasmine.objectContaining({
+      estado: 'aprobada',
+      revisadoPor: REVISOR,
+      fechaRevision: HOY.toISOString()
+    }));
+    expect(plan?.estado).toBe('activo_vencidas');
+    expect(avisosEnviados()).toEqual([jasmine.objectContaining({
+      titulo: 'Evidencia aprobada',
+      tipo: 'ok',
+      destinatarioId: 'EMP-001',
+      texto: jasmine.stringContaining('(Conflicto #C-001 · Plan 02) fue aprobada.')
+    })]);
+  }));
+
+  it('solo se aprueba o rechaza lo que está en revisión', fakeAsync(() => {
+    expect(esperar(servicio.aprobarEvidencia('PL-002', 'A-004'))).toBeNull();
+    expect(esperar(servicio.rechazarEvidencia('PL-002', 'A-003', 'Motivo'))).toBeNull();
+    expect(esperar(servicio.aprobarEvidencia('PL-002', 'A-999'))).toBeNull();
+    expect(avisos).not.toHaveBeenCalled();
+  }));
+
+  it('rechazar exige motivo; con motivo guarda el rechazo y avisa con el motivo', fakeAsync(() => {
+    expect(esperar(servicio.rechazarEvidencia('PL-002', 'A-016', '   '))).toBeNull();
+    expect(actividad(esperar(servicio.obtenerPlanPorId('PL-002')), 'A-016').estado).toBe('en_revision');
+
+    const plan = esperar(servicio.rechazarEvidencia('PL-002', 'A-016', '  El acta no está firmada.  '));
+    const a = actividad(plan, 'A-016');
+
+    expect(a.estado).toBe('rechazada');
+    expect(a.evidencia).toEqual(jasmine.objectContaining({
+      estado: 'rechazada',
+      motivoRechazo: 'El acta no está firmada.',
+      revisadoPor: REVISOR,
+      fechaRevision: HOY.toISOString()
+    }));
+    expect(avisosEnviados()).toEqual([jasmine.objectContaining({
+      titulo: 'Evidencia rechazada',
+      destinatarioId: 'EMP-002',
+      texto: jasmine.stringContaining('fue rechazada: El acta no está firmada.')
+    })]);
+  }));
+
+  it('deshacer vuelve a «en revisión» y borra los datos de la revisión', fakeAsync(() => {
+    esperar(servicio.rechazarEvidencia('PL-002', 'A-016', 'Falta firma.'));
+    const a = actividad(esperar(servicio.deshacerRevision('PL-002', 'A-016')), 'A-016');
+
+    expect(a.estado).toBe('en_revision');
+    expect(a.evidencia?.estado).toBe('pendiente');
+    expect(a.evidencia?.motivoRechazo).toBeUndefined();
+    expect(a.evidencia?.revisadoPor).toBeUndefined();
+    expect(a.evidencia?.fechaRevision).toBeUndefined();
+  }));
+
+  it('no deshace lo que no fue revisado', fakeAsync(() => {
+    expect(esperar(servicio.deshacerRevision('PL-002', 'A-005'))).toBeNull();
+    expect(esperar(servicio.deshacerRevision('PL-002', 'A-003'))).toBeNull();
+  }));
+
+  it('aprobar la última cierra el plan con fecha de hoy y avisa a RRHH; deshacer lo reabre', fakeAsync(() => {
+    const cerrado = esperar(servicio.aprobarEvidencia('PL-003', 'A-008'));
+
+    expect(cerrado?.estado).toBe('cerrado');
+    expect(cerrado?.fechaCierre).toBe('2026-10-02');
+    expect(avisosEnviados().map((n) => [n.titulo, n.destinatarioId])).toEqual([
+      ['Evidencia aprobada', 'EMP-010'],
+      ['Plan cerrado', undefined]
+    ]);
+    expect(esperar(servicio.obtenerPlanPorId('PL-003'))?.estado).toBe('cerrado');
+
+    const reabierto = esperar(servicio.deshacerRevision('PL-003', 'A-008'));
+
+    expect(reabierto?.estado).toBe('activo');
+    expect(reabierto?.fechaCierre).toBeUndefined();
+    expect('fechaCierre' in (reabierto ?? {})).toBeFalse();
+  }));
+
+  it('rechazar no cierra el plan aunque sea la última pendiente', fakeAsync(() => {
+    const plan = esperar(servicio.rechazarEvidencia('PL-003', 'A-008', 'No se ve el usuario.'));
+
+    expect(plan?.estado).toBe('activo');
+    expect(plan?.fechaCierre).toBeUndefined();
+  }));
 });

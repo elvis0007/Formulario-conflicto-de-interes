@@ -16,4 +16,9 @@ export interface Evidencia {
   motivoRechazo?: string;
   /** Nombre de quien reviso la evidencia. */
   revisadoPor?: string;
+  /**
+   * Fecha y hora de la revision (ISO 8601); solo si se aprobo o rechazo.
+   * Sirve para contar «aprobadas hoy» y «rechazadas hoy».
+   */
+  fechaRevision?: string;
 }

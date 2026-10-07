@@ -79,6 +79,21 @@ actividades ve depende de **qué empleado** es. En desarrollo se elige con
 localStorage.setItem('SISCI-DEV-EMPLEADO', 'EMP-001');
 ```
 
+El mismo empleado decide **qué notificaciones muestra la campana**: las que
+tienen `destinatarioId` solo las ve ese empleado; las que no lo tienen son
+para RRHH (`R` o `A`). Como `EMP-010` es responsable de varias
+actividades, para ver la campana «solo de RRHH» con `R` conviene elegir un
+empleado que no sea responsable, p. ej. `EMP-008`:
+
+```js
+localStorage.setItem('SISCI-DEV-ROL', 'R');
+localStorage.setItem('SISCI-DEV-EMPLEADO', 'EMP-008');
+```
+
+Los datos simulados viven en memoria: al cambiar de rol con el selector la
+página se recarga y se pierden las aprobaciones, rechazos y notificaciones
+hechas en esa sesión.
+
 ## Desactivar
 
 ```js

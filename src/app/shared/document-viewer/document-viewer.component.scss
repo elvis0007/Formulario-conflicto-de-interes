@@ -1,0 +1,147 @@
+// Los tokens los hereda de la pantalla que lo usa.
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.visor {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  background-color: var(--paper);
+  overflow: hidden;
+}
+
+.barra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--hairline);
+  background-color: var(--surface);
+}
+
+.barra-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.barra-nombre {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+  font-size: 13.5px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.barra-subida {
+  color: var(--text2);
+  font-size: 12px;
+}
+
+.barra-acciones {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.zoom {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.zoom-valor {
+  min-width: 46px;
+  font-size: 12.5px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.barra-boton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-width: 30px;
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background-color: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover:enabled {
+    border-color: var(--accent);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+}
+
+.barra-boton--texto {
+  font-size: 12.5px;
+}
+
+.barra-boton--hecho {
+  border-color: var(--green);
+  background-color: var(--green-fill);
+  color: var(--green-text);
+}
+
+.area {
+  flex: 1;
+  min-height: 320px;
+  max-height: 70vh;
+  overflow: auto;
+  padding: 12px;
+  background-color: var(--bg);
+  text-align: center;
+}
+
+.pdf {
+  min-width: 100%;
+  border: 0;
+  background-color: var(--paper);
+}
+
+.imagen {
+  max-width: none;
+  height: auto;
+  box-shadow: 0 2px 8px rgba(29, 31, 32, 0.15);
+}
+
+.sin-vista {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 100%;
+  min-height: 280px;
+  color: var(--text2);
+
+  p {
+    margin: 0;
+    font-weight: 600;
+  }
+}
