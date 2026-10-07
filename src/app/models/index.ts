@@ -7,6 +7,7 @@ export * from './actividad';
 export * from './analisis';
 export * from './archivo';
 export * from './conflicto';
+export * from './consulta-previa';
 export * from './empleado-sin-formulario';
 export * from './evento-historial';
 export * from './evidencia';

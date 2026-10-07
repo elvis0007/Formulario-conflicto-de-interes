@@ -15,6 +15,10 @@ export interface PlanAccion {
   /** Id del conflicto al que pertenece el plan. */
   conflictoId: string;
   estado: EstadoPlan;
+  /** Cuando se creo el borrador (ISO 8601). */
+  fechaCreacion?: string;
+  /** Quien lo creo (RRHH). */
+  creadoPor?: string;
   /** Fecha en que el plan pasa a activo (ISO 8601). */
   fechaInicio?: string;
   /** Fecha en que el plan se cerro (ISO 8601). */

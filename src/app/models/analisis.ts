@@ -20,6 +20,10 @@ export interface AnalisisConflictos {
   estado: EstadoAnalisis | null;
   /** Fecha y hora de la ultima generacion (ISO 8601); `null` si nunca. */
   fechaGeneracion: string | null;
+  /** Cuando se valido (ISO 8601); solo si esta validado. */
+  fechaValidacion?: string;
+  /** Quien lo valido. */
+  validadoPor?: string;
   /** Casos detectados; vacio si nunca se genero. */
   conflictos: Conflicto[];
 }

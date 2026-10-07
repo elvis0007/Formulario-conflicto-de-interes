@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, Injector, inject } from '@angular/core';
 import { Observable, defer, forkJoin, map, throwError } from 'rxjs';
 import {
   AnalisisConflictos,
@@ -7,8 +7,10 @@ import {
 } from '../models';
 import { contarPendientes } from '../utils/analisis.util';
 import { manejarError } from '../utils/manejar-error';
+import { RELOJ } from '../utils/reloj';
 import { CONFLICTOS } from './mock-data/conflictos.data';
 import { simularRespuesta } from './mock-data/simular-respuesta';
+import { PerfilUsuarioService } from './perfil-usuario.service';
 import { PlanesMockService } from './planes-mock.service';
 
 /**
@@ -69,6 +71,13 @@ export class AnalisisMockService {
   private correlativo = 0;
 
   private readonly planesServicio = inject(PlanesMockService);
+  private readonly reloj = inject(RELOJ);
+
+  /**
+   * Para resolver `PerfilUsuarioService` (quien clasifica o valida) solo al
+   * hacerlo: asi crear este servicio no exige la sesion.
+   */
+  private readonly injector = inject(Injector);
 
   /**
    * Obtiene el analisis vigente.
@@ -101,7 +110,7 @@ export class AnalisisMockService {
     this.analisis = {
       id: 'AN-' + String(this.correlativo).padStart(3, '0'),
       estado: 'borrador',
-      fechaGeneracion: new Date().toISOString(),
+      fechaGeneracion: this.reloj().toISOString(),
       conflictos: structuredClone([...CONFLICTOS])
     };
 
@@ -159,6 +168,8 @@ export class AnalisisMockService {
 
       caso.clasificacion = clasificacion;
       caso.observacionClasificacion = observacion.trim() || undefined;
+      caso.fechaClasificacion = this.reloj().toISOString();
+      caso.clasificadoPor = this.nombreUsuario();
       return simularRespuesta(true);
     }).pipe(
       manejarError<boolean>('AnalisisMockService.actualizarClasificacion', false)
@@ -181,6 +192,8 @@ export class AnalisisMockService {
       }
 
       this.analisis.estado = 'validado';
+      this.analisis.fechaValidacion = this.reloj().toISOString();
+      this.analisis.validadoPor = this.nombreUsuario();
       return simularRespuesta(true);
     }).pipe(
       manejarError<boolean>('AnalisisMockService.validarAnalisis', false)
@@ -194,6 +207,27 @@ export class AnalisisMockService {
    * @param analisis$ Respuesta del analisis.
    * @returns El analisis con los planes vigentes de cada caso.
    */
+  /**
+   * Todos los analisis generados en la sesion (los anteriores y el
+   * vigente), del mas antiguo al mas reciente, sin planes. Lo usa el
+   * Historial para los eventos de deteccion, clasificacion y validacion.
+   *
+   * @returns Analisis registrados; vacia si no se genero ninguno o si falla.
+   * @author Elvis Flores
+   */
+  obtenerAnalisisRegistrados(): Observable<AnalisisConflictos[]> {
+    const registrados = this.analisis.estado === null ? [...this.historial] : [...this.historial, this.analisis];
+
+    return simularRespuesta(registrados).pipe(
+      manejarError<AnalisisConflictos[]>('AnalisisMockService.obtenerAnalisisRegistrados', [])
+    );
+  }
+
+  /** @returns Nombre del usuario actual (quien clasifica o valida). */
+  private nombreUsuario(): string {
+    return this.injector.get(PerfilUsuarioService).obtenerNombreUsuario();
+  }
+
   private conPlanesVigentes(analisis$: Observable<AnalisisConflictos>): Observable<AnalisisConflictos> {
     return forkJoin([analisis$, this.planesServicio.obtenerPlanes()]).pipe(
       map(([analisis, planes]) => ({

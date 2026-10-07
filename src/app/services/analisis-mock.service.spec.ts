@@ -1,4 +1,5 @@
 import { TestBed, fakeAsync, tick } from '@angular/core/testing';
+import { PerfilUsuarioFalso, proveerPerfilFalso } from '../testing/perfil-usuario-falso';
 import { Observable } from 'rxjs';
 import { AnalisisConflictos } from '../models';
 import { AnalisisMockService, LATENCIA_GENERACION_MS } from './analisis-mock.service';
@@ -23,7 +24,7 @@ describe('AnalisisMockService', () => {
   }
 
   beforeEach(() => {
-    TestBed.configureTestingModule({});
+    TestBed.configureTestingModule({ providers: [proveerPerfilFalso(new PerfilUsuarioFalso(['rrhh'], 'EMP-008', 'Lucía Alejandra Freire Ortiz'))] });
     servicio = TestBed.inject(AnalisisMockService);
   });
 
@@ -104,7 +105,7 @@ describe('AnalisisMockService: clasificación, validación e historial', () => {
   }
 
   beforeEach(() => {
-    TestBed.configureTestingModule({});
+    TestBed.configureTestingModule({ providers: [proveerPerfilFalso(new PerfilUsuarioFalso(['rrhh'], 'EMP-008', 'Lucía Alejandra Freire Ortiz'))] });
     servicio = TestBed.inject(AnalisisMockService);
     spyOn(console, 'error');
   });
@@ -186,7 +187,7 @@ describe('AnalisisMockService: clasificación, validación e historial', () => {
 
 describe('AnalisisMockService: planes vigentes', () => {
   it('cada caso trae los planes actuales de PlanesMockService', fakeAsync(() => {
-    TestBed.configureTestingModule({});
+    TestBed.configureTestingModule({ providers: [proveerPerfilFalso(new PerfilUsuarioFalso(['rrhh'], 'EMP-008', 'Lucía Alejandra Freire Ortiz'))] });
     const servicio = TestBed.inject(AnalisisMockService);
     const planes = TestBed.inject(PlanesMockService);
     let analisis: AnalisisConflictos | undefined;

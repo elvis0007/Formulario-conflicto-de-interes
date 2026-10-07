@@ -1,0 +1,103 @@
+<header class="encabezado">
+  <div>
+    <h2 class="titulo">Consulta Previa a Contratación</h2>
+    <span class="codigo">¿El candidato tiene familiares dentro de la empresa?</span>
+  </div>
+</header>
+
+<p class="aviso" role="note">{{ aviso }}</p>
+
+<form class="formulario" [formGroup]="formulario" (ngSubmit)="consultar()" novalidate>
+  <label class="campo">
+    <span class="campo-etiqueta">Cédula</span>
+    <input
+      class="control"
+      formControlName="cedula"
+      inputmode="numeric"
+      maxlength="10"
+      placeholder="10 dígitos"
+      [class.control--error]="cedulaInvalida"
+      [attr.aria-invalid]="cedulaInvalida" />
+  </label>
+  <label class="campo campo--ancho">
+    <span class="campo-etiqueta">Nombres</span>
+    <input class="control" formControlName="nombres" placeholder="Nombres del candidato" />
+  </label>
+  <label class="campo campo--ancho">
+    <span class="campo-etiqueta">Apellidos</span>
+    <input class="control" formControlName="apellidos" placeholder="Apellidos del candidato" />
+  </label>
+  <div class="formulario-acciones">
+    <button type="submit" class="boton boton--primario" [disabled]="consultando">
+      <app-icono nombre="buscar" [tamano]="16" />
+      {{ consultando ? 'Consultando…' : 'Consultar' }}
+    </button>
+    <button type="button" class="boton" (click)="nuevaConsulta()">Nueva consulta</button>
+  </div>
+  @if (cedulaInvalida) {
+    <p class="error" role="alert">{{ errorCedula }}</p>
+  }
+  @if (faltanDatos) {
+    <p class="error" role="alert">{{ errorDatosMinimos }}</p>
+  }
+  @if (errorConsulta) {
+    <p class="error" role="alert">{{ errorConsulta }}</p>
+  }
+</form>
+
+<section class="resultado" aria-live="polite">
+  @if (!resultado) {
+    <div class="tarjeta-vacia">
+      <app-empty-state icono="buscar" texto="Aún no se ha consultado ningún candidato." />
+    </div>
+  } @else {
+    <h3 class="seccion-titulo">Resultado para {{ descripcion(resultado.datos) }}</h3>
+    @if (resultado.coincidencias.length === 0) {
+      <p class="sin-coincidencias">Sin coincidencias con empleados actuales</p>
+    } @else {
+      <p class="conteo">
+        {{ resultado.coincidencias.length }}
+        {{ resultado.coincidencias.length === 1 ? 'posible pariente' : 'posibles parientes' }} entre los empleados actuales
+      </p>
+      <div class="coincidencias">
+        @for (c of resultado.coincidencias; track c.empleado.id) {
+          <article class="coincidencia">
+            <div class="coincidencia-cabecera">
+              <span class="coincidencia-nombre">{{ c.empleado.nombres }}</span>
+              <app-badge [tono]="tonoRiesgo(c)" [texto]="textoRiesgo(c)" />
+            </div>
+            <span class="coincidencia-cargo">{{ c.empleado.cargo }} · {{ c.empleado.departamento }}</span>
+            <dl class="coincidencia-datos">
+              <div>
+                <dt>Parentesco estimado</dt>
+                <dd class="coincidencia-parentesco">{{ c.parentesco }}</dd>
+              </div>
+              <div>
+                <dt>Relación y grado</dt>
+                <dd class="coincidencia-grado">{{ relacion(c) }}</dd>
+              </div>
+            </dl>
+            <p class="coincidencia-motivo">{{ c.motivo }}</p>
+          </article>
+        }
+      </div>
+    }
+  }
+</section>
+
+@if (recientes.length > 0) {
+  <section class="recientes" aria-labelledby="titulo-recientes">
+    <h3 id="titulo-recientes" class="seccion-titulo">Consultas recientes</h3>
+    <ul class="lista-recientes">
+      @for (r of recientes; track r.id) {
+        <li class="reciente">
+          <span class="reciente-fecha">{{ r.fecha | fechaLarga }}</span>
+          <span class="reciente-datos">{{ descripcion(r.datos) }}</span>
+          <span class="reciente-conteo" [class.reciente-conteo--con]="r.coincidencias.length > 0">
+            {{ r.coincidencias.length }} {{ r.coincidencias.length === 1 ? 'coincidencia' : 'coincidencias' }}
+          </span>
+        </li>
+      }
+    </ul>
+  </section>
+}

@@ -1,5 +1,206 @@
 @use '../../styles/pantalla';
+@use '../../styles/listados';
 
 :host {
   @include pantalla.raiz;
+}
+
+@include listados.estilos;
+
+.aviso {
+  margin: 0 0 14px;
+  padding: 10px 14px;
+  border: 1px solid var(--accent-300);
+  border-radius: 10px;
+  background-color: var(--accent-100);
+  color: var(--accent-700);
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.formulario {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  padding: 16px 18px;
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+  background-color: var(--paper);
+}
+
+.campo--ancho {
+  flex: 1;
+  min-width: 200px;
+}
+
+.control--error {
+  border-color: var(--red);
+}
+
+.formulario-acciones {
+  display: flex;
+  gap: 8px;
+}
+
+.error {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--red-text);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.resultado {
+  margin-top: 18px;
+}
+
+.tarjeta-vacia {
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+  background-color: var(--paper);
+}
+
+.seccion-titulo {
+  margin: 0 0 10px;
+  font-family: var(--font-condensed);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.sin-coincidencias {
+  margin: 0;
+  padding: 14px 16px;
+  border: 1px solid var(--green);
+  border-radius: 10px;
+  background-color: var(--green-fill);
+  color: var(--green-text);
+  font-weight: 700;
+}
+
+.conteo {
+  margin: 0 0 10px;
+  color: var(--text2);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.coincidencias {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 1100px) {
+  .coincidencias {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .coincidencias {
+    grid-template-columns: 1fr;
+  }
+}
+
+.coincidencia {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+  background-color: var(--paper);
+}
+
+.coincidencia-cabecera {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.coincidencia-nombre {
+  font-weight: 700;
+}
+
+.coincidencia-cargo {
+  color: var(--text2);
+  font-size: 13px;
+}
+
+.coincidencia-datos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 20px;
+  margin: 4px 0 0;
+
+  dt {
+    color: var(--text3);
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  dd {
+    margin: 2px 0 0;
+    font-size: 13.5px;
+    font-weight: 600;
+  }
+}
+
+.coincidencia-motivo {
+  margin: 4px 0 0;
+  color: var(--text2);
+  font-size: 12.5px;
+}
+
+.recientes {
+  margin-top: 22px;
+  padding: 14px 18px;
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+  background-color: var(--paper);
+}
+
+.lista-recientes {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.reciente {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr) auto;
+  gap: 12px;
+  padding: 8px 0;
+  border-top: 1px solid var(--hairline);
+  font-size: 13px;
+
+  &:first-child {
+    border-top: 0;
+  }
+}
+
+@media (max-width: 700px) {
+  .reciente {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+}
+
+.reciente-fecha {
+  color: var(--text3);
+}
+
+.reciente-conteo {
+  color: var(--text2);
+  font-weight: 700;
+}
+
+.reciente-conteo--con {
+  color: var(--amber-text);
 }

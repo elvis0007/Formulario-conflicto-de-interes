@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
+import { PerfilUsuarioFalso, proveerPerfilFalso } from '../testing/perfil-usuario-falso';
 import { ActivatedRoute, ParamMap, Router, convertToParamMap, provideRouter } from '@angular/router';
 import { BehaviorSubject, Observable, isObservable } from 'rxjs';
 import { AnalisisMockService, LATENCIA_GENERACION_MS } from '../services/analisis-mock.service';
@@ -99,7 +100,8 @@ describe('PlanAccionDetalleComponent', () => {
       providers: [
         provideRouter([]),
         { provide: ActivatedRoute, useValue: { paramMap: parametros } },
-        { provide: RELOJ, useValue: () => new Date(2026, 9, 2, 10, 0) }
+        { provide: RELOJ, useValue: () => new Date(2026, 9, 2, 10, 0) },
+        proveerPerfilFalso(new PerfilUsuarioFalso(['rrhh'], 'EMP-008', 'Lucía Alejandra Freire Ortiz'))
       ]
     });
     analisis = TestBed.inject(AnalisisMockService);

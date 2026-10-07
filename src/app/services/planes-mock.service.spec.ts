@@ -47,7 +47,7 @@ describe('PlanesMockService', () => {
   }
 
   beforeEach(() => {
-    TestBed.configureTestingModule({});
+    TestBed.configureTestingModule({ providers: [proveerPerfilFalso(new PerfilUsuarioFalso(['rrhh'], 'EMP-008', 'Lucía Alejandra Freire Ortiz'))] });
     servicio = TestBed.inject(PlanesMockService);
     spyOn(console, 'error');
   });

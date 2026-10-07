@@ -25,4 +25,10 @@ export interface Actividad {
   estado: EstadoActividad;
   /** Ultima evidencia subida por el responsable, si la hay. */
   evidencia?: Evidencia;
+  /**
+   * Evidencias rechazadas que el responsable reemplazo al volver a subir,
+   * de la mas antigua a la mas reciente. Solo para el Historial: la
+   * vigente es `evidencia` (una sola por actividad).
+   */
+  evidenciasAnteriores?: Evidencia[];
 }

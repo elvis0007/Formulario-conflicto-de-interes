@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
+import { PerfilUsuarioFalso, proveerPerfilFalso } from '../testing/perfil-usuario-falso';
 import { Router, provideRouter } from '@angular/router';
 import { Observable } from 'rxjs';
 import { AnalisisMockService, LATENCIA_GENERACION_MS } from '../services/analisis-mock.service';
@@ -122,7 +123,7 @@ describe('AnalisisConflictoComponent', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [AnalisisConflictoComponent],
-      providers: [provideRouter([])]
+      providers: [provideRouter([]), proveerPerfilFalso(new PerfilUsuarioFalso(['rrhh'], 'EMP-008', 'Lucía Alejandra Freire Ortiz'))]
     });
     servicio = TestBed.inject(AnalisisMockService);
   });

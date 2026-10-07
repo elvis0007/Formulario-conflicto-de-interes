@@ -1,5 +1,262 @@
 @use '../../styles/pantalla';
+@use '../../styles/listados';
 
 :host {
   @include pantalla.raiz;
+}
+
+@include listados.estilos;
+
+.cargando {
+  color: var(--text2);
+}
+
+.disposicion {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  align-items: start;
+  gap: 18px;
+}
+
+@media (max-width: 900px) {
+  .disposicion {
+    grid-template-columns: 1fr;
+  }
+}
+
+.selector {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+  background-color: var(--paper);
+}
+
+.lista-conflictos {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 560px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+@media (max-width: 900px) {
+  .lista-conflictos {
+    max-height: 220px;
+  }
+}
+
+.opcion-conflicto {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background-color: transparent;
+  color: var(--ink);
+  font-family: var(--font-sans);
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    background-color: var(--surface);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+}
+
+.opcion-conflicto--elegida {
+  border-color: var(--accent);
+  background-color: var(--accent-100);
+}
+
+.opcion-id {
+  font-weight: 700;
+}
+
+.opcion-personas {
+  color: var(--text2);
+  font-size: 12.5px;
+}
+
+.sin-conflictos,
+.sin-eventos,
+.sin-planes {
+  color: var(--text3);
+  font-size: 13px;
+  font-style: italic;
+}
+
+.linea {
+  min-width: 0;
+}
+
+.tarjeta-vacia,
+.caso {
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+  background-color: var(--paper);
+}
+
+.caso {
+  margin-bottom: 12px;
+  padding: 12px 16px;
+}
+
+.caso-titulo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.caso-id {
+  margin: 0;
+  font-family: var(--font-condensed);
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.caso-personas {
+  margin: 6px 0 0;
+  font-weight: 600;
+}
+
+.caso-parentesco {
+  margin: 2px 0 0;
+  color: var(--text2);
+  font-size: 13px;
+}
+
+.barra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.boton--chico {
+  padding: 6px 12px;
+  font-size: 12.5px;
+}
+
+.arbol,
+.actividades {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.nodo {
+  padding: 8px 12px;
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  background-color: var(--paper);
+}
+
+.nodo--actividad {
+  background-color: var(--surface);
+}
+
+.nodo-cuerpo {
+  margin-left: 22px;
+  padding-left: 14px;
+  border-left: 2px solid var(--hairline);
+}
+
+.actividades {
+  margin-top: 8px;
+}
+
+.nodo-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.nodo-titulo {
+  font-weight: 700;
+}
+
+.nodo-titulo--actividad {
+  flex: 1;
+  min-width: 180px;
+  font-weight: 600;
+}
+
+.nodo-conteo {
+  color: var(--text3);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.eventos {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 8px 0 4px 22px;
+  padding: 0 0 0 14px;
+  border-left: 2px solid var(--hairline);
+  list-style: none;
+}
+
+.evento {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.punto {
+  position: absolute;
+  top: 5px;
+  left: -21px;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--paper);
+  border-radius: 50%;
+}
+
+.punto--azul {
+  background-color: var(--accent);
+}
+
+.punto--verde {
+  background-color: var(--green);
+}
+
+.punto--naranja {
+  background-color: var(--orange);
+}
+
+.punto--rojo {
+  background-color: var(--red);
+}
+
+.punto--gris {
+  background-color: var(--text3);
+}
+
+.evento-texto {
+  font-size: 13.5px;
+}
+
+.evento-meta {
+  color: var(--text3);
+  font-size: 12px;
 }

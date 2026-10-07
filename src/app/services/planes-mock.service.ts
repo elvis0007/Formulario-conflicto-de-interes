@@ -210,6 +210,8 @@ export class PlanesMockService {
         }
         guardado.id = this.siguienteIdPlan();
         guardado.numero = delConflicto.reduce((max, p) => Math.max(max, p.numero), 0) + 1;
+        guardado.fechaCreacion = this.reloj().toISOString();
+        guardado.creadoPor = this.nombreRevisor();
       } else {
         indice = this.planes.findIndex((p) => p.id === guardado.id);
         if (indice < 0) {
@@ -219,6 +221,8 @@ export class PlanesMockService {
           return throwError(() => new Error('El plan ' + guardado.id + ' ya no es un borrador.'));
         }
         guardado.numero = this.planes[indice].numero;
+        guardado.fechaCreacion = this.planes[indice].fechaCreacion;
+        guardado.creadoPor = this.planes[indice].creadoPor;
         // El documento solo cambia con subir/quitarDocumentoFirmado.
         guardado.documentoFirmado = this.planes[indice].documentoFirmado;
       }
@@ -527,6 +531,10 @@ export class PlanesMockService {
         fechaSubida: ahora
       };
 
+      // La rechazada se guarda para el Historial; la vigente es la nueva.
+      if (actividad.evidencia?.estado === 'rechazada') {
+        actividad.evidenciasAnteriores = [...(actividad.evidenciasAnteriores ?? []), actividad.evidencia];
+      }
       this.liberarUrl(actividad.evidencia?.archivo.url);
       actividad.evidencia = { archivo: nuevo, fechaSubida: ahora, estado: 'pendiente' };
       actividad.estado = 'en_revision';

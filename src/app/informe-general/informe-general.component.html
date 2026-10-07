@@ -1,0 +1,143 @@
+<header class="encabezado">
+  <div>
+    <h2 class="titulo">Informe General</h2>
+    <span class="codigo">PNIP.CI.RG.03</span>
+  </div>
+  <button
+    type="button"
+    class="boton"
+    [class.boton--hecho]="descargado.activa"
+    [attr.aria-disabled]="descargado.activa"
+    (click)="descargarExcel()">
+    <app-icono nombre="excel" [tamano]="16" />
+    {{ descargado.activa ? 'Descargado ✓' : 'Descargar Excel' }}
+  </button>
+</header>
+
+@if (cargando) {
+  <p class="cargando" role="status">Cargando el informe…</p>
+} @else {
+  <h3 class="banda">Filtros</h3>
+  <div class="filtros">
+    <label class="campo">
+      <span class="campo-etiqueta">Estado del plan</span>
+      <select class="control filtro-estado" [value]="filtros.estado" (change)="cambiarFiltro('estado', $event)">
+        <option [value]="todos" [selected]="filtros.estado === todos">Todos</option>
+        @for (e of estados; track e) {
+          <option [value]="e" [selected]="filtros.estado === e">{{ textoEstadoPlan(e) }}</option>
+        }
+      </select>
+    </label>
+    <label class="campo">
+      <span class="campo-etiqueta">Riesgo</span>
+      <select class="control filtro-riesgo" [value]="filtros.riesgo" (change)="cambiarFiltro('riesgo', $event)">
+        <option [value]="todos" [selected]="filtros.riesgo === todos">Todos</option>
+        @for (r of riesgos; track r) {
+          <option [value]="r" [selected]="filtros.riesgo === r">{{ textoRiesgo(r) }}</option>
+        }
+      </select>
+    </label>
+    <label class="campo">
+      <span class="campo-etiqueta">Responsable</span>
+      <select class="control filtro-responsable" [value]="filtros.responsableId" (change)="cambiarFiltro('responsableId', $event)">
+        <option [value]="todos" [selected]="filtros.responsableId === todos">Todos</option>
+        @for (r of responsables; track r.id) {
+          <option [value]="r.id" [selected]="filtros.responsableId === r.id">{{ r.nombre }}</option>
+        }
+      </select>
+    </label>
+    <label class="campo campo--buscador">
+      <span class="campo-etiqueta">Buscar</span>
+      <input
+        type="search"
+        class="control filtro-texto"
+        placeholder="Nombre o número de conflicto"
+        [value]="filtros.texto"
+        (input)="cambiarFiltro('texto', $event)" />
+    </label>
+    @if (hayFiltros) {
+      <button type="button" class="boton limpiar" (click)="limpiarFiltros()">Limpiar filtros</button>
+    }
+  </div>
+
+  @if (filtrados.length === 0) {
+    <section class="tarjeta-vacia">
+      <app-empty-state icono="buscar" texto="Ningún plan de acción coincide con los filtros." />
+    </section>
+  } @else {
+    <div class="barra-tabla">
+      <span class="conteo">{{ filtrados.length }} {{ filtrados.length === 1 ? 'conflicto' : 'conflictos' }} con plan de acción</span>
+      <div class="acciones">
+        <button type="button" class="boton boton--chico" (click)="expandirTodo(true)">Expandir todo</button>
+        <button type="button" class="boton boton--chico" (click)="expandirTodo(false)">Contraer todo</button>
+      </div>
+    </div>
+
+    <div class="marco">
+      <table class="tabla">
+        <thead>
+          <tr>
+            <th scope="col" class="col-chevron"><span class="lector">Expandir</span></th>
+            <th scope="col">Actividad</th>
+            <th scope="col">Responsable</th>
+            <th scope="col">Plazo</th>
+            <th scope="col">Fecha límite</th>
+            <th scope="col">Estado</th>
+            <th scope="col">Evidencia</th>
+          </tr>
+        </thead>
+        @for (g of visibles; track g.conflicto.id) {
+          <tbody class="grupo" [attr.data-conflicto]="g.conflicto.id">
+            <tr class="fila-grupo">
+              <td class="col-chevron">
+                <app-expand-arrow-button
+                  [expandido]="estaExpandido(g.conflicto.id)"
+                  [etiqueta]="'actividades del conflicto ' + g.conflicto.id"
+                  [controla]="'actividades-' + g.conflicto.id"
+                  (alternar)="alternar(g.conflicto.id)" />
+              </td>
+              <td colspan="6">
+                <div class="grupo-cabecera">
+                  <a class="grupo-conflicto" [routerLink]="rutaPlan(g)" [title]="'Abrir el plan en Plan de Acción'">
+                    Conflicto #{{ g.conflicto.id }}
+                  </a>
+                  <span class="grupo-personas">{{ g.conflicto.personaA.nombres }} · {{ g.conflicto.personaB.nombres }}</span>
+                  <app-badge class="grupo-riesgo" [tono]="tonoRiesgo(g.conflicto.riesgo)" [texto]="'Riesgo ' + textoRiesgo(g.conflicto.riesgo).toLowerCase()" />
+                  <span class="grupo-plan">{{ tituloPlan(g.plan) }}</span>
+                  <app-badge class="grupo-estado" [tono]="tonoEstadoPlan(g.plan.estado)" [texto]="textoEstadoPlan(g.plan.estado)" />
+                  <span class="grupo-avance">{{ avance(g.plan) }}</span>
+                </div>
+              </td>
+            </tr>
+            @if (estaExpandido(g.conflicto.id)) {
+              @for (a of g.actividades; track a.id) {
+                <tr class="fila-actividad" [id]="$first ? 'actividades-' + g.conflicto.id : null">
+                  <td class="col-chevron"></td>
+                  <td class="actividad-descripcion">{{ a.descripcion }}</td>
+                  <td>{{ a.responsableNombre }}</td>
+                  <td class="sin-salto">{{ plazo(a) }}</td>
+                  <td class="sin-salto" [class.vencida]="vencida(a)">{{ fecha(a.fechaLimite) || '—' }}</td>
+                  <td><app-badge [tono]="tonoEstadoActividad(a)" [texto]="textoEstadoActividad(a)" /></td>
+                  <td class="sin-salto">{{ a.evidencia ? fecha(a.evidencia.fechaSubida) : '—' }}</td>
+                </tr>
+              } @empty {
+                <tr class="fila-actividad">
+                  <td class="col-chevron"></td>
+                  <td colspan="6" class="sin-actividades">El plan no tiene actividades.</td>
+                </tr>
+              }
+            }
+          </tbody>
+        }
+      </table>
+
+      <div class="paginacion">
+        <span class="pagina" aria-live="polite">Página {{ pagina }} de {{ totalPaginas }}</span>
+        <div class="controles">
+          <button type="button" class="boton-pagina" [disabled]="pagina === 1" (click)="irAPagina(-1)">« Anterior</button>
+          <button type="button" class="boton-pagina" [disabled]="pagina === totalPaginas" (click)="irAPagina(1)">Siguiente »</button>
+        </div>
+      </div>
+    </div>
+  }
+}

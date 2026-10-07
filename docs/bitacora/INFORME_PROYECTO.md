@@ -1693,3 +1693,139 @@ Las tres pantallas del rol `P`, que eran placeholders del Día 1:
   «Avance general» y «Avance por conflicto», y en la Bandeja separar
   activos y cerrados. Hoy se hizo lo pedido en el prompt; quedan para el
   día de pulido si RRHH los quiere.
+
+## Día 11 — Informe General, Historial y Consulta Previa (07/10/2026)
+
+Las tres pantallas de RRHH que quedaban como placeholders, y un ajuste en
+el detalle del plan del Responsable. Todo contra los servicios mock.
+
+### Paso 0 — Caso en el detalle del Responsable (commit aparte)
+
+- RRHH ya aprobó los mockups de la §6.12: el detalle del plan muestra una
+  tarjeta compacta del caso con las dos personas (rol, nombre, cargo y
+  departamento), el parentesco y el riesgo.
+- El caso solo se pide si el plan es del responsable; un plan ajeno sigue
+  mostrando «No se encontró el plan» y no carga el caso.
+- `textoParentesco()` en `analisis.util`: «Hermanos · Consanguinidad, 2do
+  grado», «Tío / Sobrino · …», «Cónyuges · Afinidad» (sin grado).
+- Se quitó de la bitácora el pendiente de privacidad del Día 10.
+- Commit: `fix: muestra el caso en el detalle del plan del Responsable`.
+
+### Decisiones
+
+- **Informe General (`/rrhh/informe-general`, PNIP.CI.RG.03):**
+  - Un grupo por conflicto con plan enviado; el plan del grupo es el
+    actual, sin contar borradores (C-003, que solo tiene un borrador, no
+    aparece).
+  - Fila de grupo: conflicto (enlace a su plan en Plan de Acción),
+    personas, riesgo, plan, estado y «x de y cumplidas».
+  - Filas de actividad: descripción, responsable, plazo, fecha límite (en
+    rojo si venció), estado con los textos de RRHH y fecha de la
+    evidencia.
+  - Filtros combinables: estado del plan, riesgo, responsable (deja solo
+    sus actividades) y buscador por nombre de personas o responsables, o
+    por número de conflicto, sin distinguir acentos.
+  - Grupos plegables con «Expandir todo» / «Contraer todo».
+  - Paginación por grupos (5 por página).
+  - «Descargar Excel» → «Descargado ✓», sin archivo.
+  - **No usa `DataTableComponent`:** esa tabla pagina por filas y aquí se
+    pagina por grupos con filas plegables. Por eso los cambios sin guardar
+    de sus estilos (de otra sesión) no interfieren.
+- **Historial (`/rrhh/historial`):**
+  - Selector con buscador (número o nombre) y la línea de tiempo del
+    conflicto elegido.
+  - La §6.9 propone tarjetas y un modal; se siguió el prompt (selector y
+    línea de tiempo en la página) y se conservaron de la especificación el
+    árbol, los puntos de color y «Expandir/Contraer todo».
+  - Árbol de tres niveles: eventos del conflicto, de cada plan y de cada
+    actividad. Por defecto se abren los del conflicto y el plan actual.
+  - Cada evento: punto de color por tipo (info, ok, rechazo, vencido,
+    cierre), texto y «fecha · autor» con `FechaLargaPipe`.
+  - Filtro por tipo con conteos. «Descargar PDF» → «Descargado ✓».
+- **`HistorialMockService` no guarda eventos:** `armarHistorial()` los
+  arma en cada consulta con los datos vigentes de conflictos, análisis y
+  planes. Así lo hecho en otras pantallas aparece sin recargar.
+  - Conflicto: detección, cada análisis que lo incluyó, clasificación
+    (con autor y fecha) y validación.
+  - Plan: creado, documento firmado, enviado y cerrado.
+  - Actividad: asignada, cada evidencia subida y su revisión, y el
+    vencimiento (el día siguiente a la fecha límite, si no se aprobó a
+    tiempo).
+- **Datos que faltaban para el historial** (se agregaron al modelo y se
+  registran desde hoy):
+  - `Conflicto.fechaClasificacion` y `clasificadoPor`;
+    `AnalisisConflictos.fechaValidacion` y `validadoPor`. Los pone
+    `AnalisisMockService`, que ahora usa `RELOJ` al generar.
+  - `PlanAccion.fechaCreacion` y `creadoPor`, que pone `guardarBorrador`.
+    Los planes de ejemplo ya los traen.
+  - `Actividad.evidenciasAnteriores`: al volver a subir una evidencia
+    rechazada, la anterior se guarda ahí (antes se perdía). A-007 trae su
+    primera versión rechazada.
+  - Los datos de ejemplo ya clasificados no tienen fecha de clasificación:
+    se usa la de detección, con autor «RRHH».
+- **Consulta Previa (`/rrhh/consulta-previa`):**
+  - Formulario reactivo: cédula (10 dígitos) o nombres y apellidos.
+  - `ConsultaPreviaMockService.consultarCandidato()` busca contra los
+    empleados de ejemplo y sus formularios declarados. Por empleado se
+    queda la coincidencia más fuerte, en este orden:
+    1. Cédula o nombre en su formulario: el parentesco declarado.
+    2. Nombre del padre, la madre o el cónyuge en su ficha.
+    3. Los dos apellidos iguales: hermano/a estimado, 2do grado.
+    4. El primer apellido igual: pariente paterno estimado, 3er grado.
+  - Riesgo estimado: 1er grado o cónyuge → alto; 2do → moderado; 3ro y 4to
+    → bajo.
+  - Tarjetas por coincidencia, o «Sin coincidencias con empleados
+    actuales».
+  - Aviso visible de que es informativa; «Nueva consulta» limpia el
+    formulario y el resultado; «Consultas recientes» de la sesión, en
+    memoria.
+
+### Verificación
+
+- `ng test`: 440 OK; fallan solo las 3 antiguas de `app.component.spec`.
+  Nuevas:
+  - Informe: armado de grupos, filtros solos y combinados, responsable,
+    contraer/expandir y paginación por grupos.
+  - Historial: armado por nivel desde los datos (clasificación con autor,
+    validación, rechazo reemplazado, vencimiento, borrador), orden
+    cronológico, árbol, filtro por tipo y selector.
+  - Historial desde otra pantalla: aprobar en Revisión, generar,
+    clasificar y validar el análisis, y volver a subir una rechazada
+    aparecen.
+  - Consulta Previa: validaciones; búsqueda con y sin coincidencias; por
+    cédula, ficha y apellidos; recientes.
+  - Tarjeta del caso en el detalle del Responsable.
+  - Las pruebas que clasifican, validan o crean planes ahora usan
+    `PerfilUsuarioFalso` (registran quién lo hizo).
+- Builds de desarrollo y producción correctos (los avisos de presupuesto
+  son de archivos del host).
+- Recorrido en Edge headless (backend bloqueado):
+  - Como `R` (`EMP-008`), Informe General:
+    - 4 grupos.
+    - Cerrado → C-004 y C-008; más «Moderado» → C-008.
+    - Responsable EMP-010 → 3 grupos con solo sus filas.
+    - «tamayo» → C-002 y C-008.
+    - «Contraer todo» deja 0 filas; el enlace de C-002 abre PL-003.
+  - Historial de C-002: 15 eventos. Se aprobó A-008 en Revisión (cierra
+    PL-003) y, sin recargar, el historial mostró 17: «Evidencia aprobada»
+    y «Plan cerrado» (filtro «Cierres» = 1). «Descargar PDF» confirma.
+  - Consulta Previa:
+    - Los dos errores de validación se ven.
+    - «Fausto Tamayo Guevara» (C.I. 1800000318): padre declarado de
+      EMP-005 (riesgo alto) y posible hermano de EMP-004 (moderado).
+    - «Juan Carlos Vásconez Mora»: «Sin coincidencias con empleados
+      actuales».
+    - Recientes con 2 consultas.
+  - Como `P` (`EMP-010`), detalle de PL-002 con la tarjeta del caso.
+  - A 760 px las tres pantallas sin scroll horizontal. Sin errores de
+    consola.
+
+### Pendiente / a tener en cuenta
+
+- Con el backend, el historial vendrá de `GET /historial/conflictos/:id`
+  con eventos registrados de verdad. Los de los datos de ejemplo sin fecha
+  de clasificación se muestran con la fecha de detección.
+- La Consulta Previa es una estimación por nombres y apellidos; confirmar
+  con RRHH las reglas reales (por ejemplo, si cruza con el Registro
+  Civil).
+- «Descargar Excel» y «Descargar PDF» solo confirman; falta el archivo.

@@ -52,6 +52,8 @@ export const PLANES: readonly PlanAccion[] = [
     numero: 1,
     nombre: 'Separación de funciones en compras',
     conflictoId: 'C-001',
+    fechaCreacion: '2025-10-20T10:30:00',
+    creadoPor: 'Lucía Alejandra Freire Ortiz',
     estado: 'cerrado',
     fechaInicio: '2025-11-03',
     fechaCierre: '2026-03-20',
@@ -104,6 +106,8 @@ export const PLANES: readonly PlanAccion[] = [
     numero: 2,
     nombre: 'Rotación del técnico de compras',
     conflictoId: 'C-001',
+    fechaCreacion: '2026-05-20T09:00:00',
+    creadoPor: 'Lucía Alejandra Freire Ortiz',
     estado: 'activo_vencidas',
     fechaInicio: '2026-06-01',
     documentoFirmado: pdfSimulado('PL-002-plan-firmado.pdf', '2026-05-28'),
@@ -229,6 +233,8 @@ export const PLANES: readonly PlanAccion[] = [
     numero: 1,
     nombre: 'Independencia de la cuadrilla',
     conflictoId: 'C-002',
+    fechaCreacion: '2026-08-10T11:15:00',
+    creadoPor: 'Lucía Alejandra Freire Ortiz',
     estado: 'activo',
     fechaInicio: '2026-08-17',
     documentoFirmado: pdfSimulado('PL-003-plan-firmado.pdf', '2026-08-14'),
@@ -260,9 +266,17 @@ export const PLANES: readonly PlanAccion[] = [
         plazoMeses: 1,
         plazoDias: 15,
         fechaLimite: '2026-10-02',
-        // Se rechazo el 19/09 (falta de firma, ver N-002) y el responsable
-        // volvio a subirla corregida.
+        // Se rechazo el 19/09 (falta de firma) y el responsable volvio a
+        // subirla corregida: la primera queda en evidenciasAnteriores.
         estado: 'aprobada',
+        evidenciasAnteriores: [{
+          archivo: pdfSimulado('A-007-matriz-firmas.pdf'),
+          fechaSubida: '2026-09-18T16:05:00',
+          estado: 'rechazada',
+          motivoRechazo: 'La matriz no tiene la firma del jefe de área.',
+          revisadoPor: 'Lucía Alejandra Freire Ortiz',
+          fechaRevision: '2026-09-19T08:40:00'
+        }],
         evidencia: {
           archivo: pdfSimulado('A-007-matriz-firmas-v2.pdf'),
           fechaSubida: '2026-09-24T15:48:00',
@@ -299,6 +313,8 @@ export const PLANES: readonly PlanAccion[] = [
     numero: 1,
     nombre: 'Control cruzado de pagos',
     conflictoId: 'C-003',
+    fechaCreacion: '2026-09-28T15:20:00',
+    creadoPor: 'Lucía Alejandra Freire Ortiz',
     estado: 'borrador',
     actividades: [
       {
@@ -328,6 +344,8 @@ export const PLANES: readonly PlanAccion[] = [
     numero: 1,
     nombre: 'Exclusión de procesos de selección',
     conflictoId: 'C-004',
+    fechaCreacion: '2025-05-02T08:45:00',
+    creadoPor: 'Lucía Alejandra Freire Ortiz',
     estado: 'cerrado',
     fechaInicio: '2025-05-12',
     fechaCierre: '2025-07-30',
@@ -358,6 +376,8 @@ export const PLANES: readonly PlanAccion[] = [
     numero: 1,
     nombre: 'Restricción de expedientes de Distribución',
     conflictoId: 'C-008',
+    fechaCreacion: '2026-01-05T14:00:00',
+    creadoPor: 'Lucía Alejandra Freire Ortiz',
     estado: 'cerrado',
     fechaInicio: '2026-01-12',
     fechaCierre: '2026-04-15',
@@ -410,6 +430,8 @@ export const PLANES: readonly PlanAccion[] = [
     numero: 2,
     nombre: 'Seguimiento anual',
     conflictoId: 'C-008',
+    fechaCreacion: '2026-09-22T10:00:00',
+    creadoPor: 'Lucía Alejandra Freire Ortiz',
     estado: 'borrador',
     documentoFirmado: pdfSimulado('PL-007-plan-firmado.pdf', '2026-09-25'),
     actividades: [

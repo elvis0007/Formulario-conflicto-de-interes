@@ -31,6 +31,13 @@ export interface Conflicto {
   clasificacion: Clasificacion;
   /** Observacion opcional que RRHH dejo al clasificar el caso. */
   observacionClasificacion?: string;
+  /**
+   * Cuando se clasifico en el analisis (ISO 8601). Lo usa el Historial;
+   * los datos de ejemplo no lo traen (se toma la fecha de deteccion).
+   */
+  fechaClasificacion?: string;
+  /** Quien clasifico el caso. */
+  clasificadoPor?: string;
   /** Explicacion de por que se asigno el nivel de `riesgo`. */
   motivoRiesgo: string;
   /** Datos que llevaron a detectar el conflicto (formularios, nombres...). */

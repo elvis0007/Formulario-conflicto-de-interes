@@ -1,5 +1,191 @@
 @use '../../styles/pantalla';
+@use '../../styles/listados';
 
 :host {
   @include pantalla.raiz;
+}
+
+@include listados.estilos;
+
+.cargando {
+  color: var(--text2);
+}
+
+.limpiar {
+  align-self: flex-end;
+}
+
+.tarjeta-vacia {
+  margin-top: 16px;
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+  background-color: var(--paper);
+}
+
+.barra-tabla {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 16px 0 10px;
+}
+
+.conteo {
+  color: var(--text2);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.boton--chico {
+  padding: 6px 12px;
+  font-size: 12.5px;
+}
+
+// Tabla propia (agrupada y paginada por grupos), con el mismo aspecto que
+// las tablas de la app.
+.marco {
+  overflow-x: auto;
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  background-color: var(--paper);
+}
+
+.tabla {
+  width: 100%;
+  min-width: 860px;
+  border-collapse: collapse;
+  font-size: 13px;
+
+  th {
+    padding: 10px 12px;
+    background-color: var(--navy-form);
+    color: var(--paper);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-align: left;
+    text-transform: uppercase;
+  }
+
+  td {
+    padding: 8px 12px;
+    border-top: 1px solid var(--hairline);
+    vertical-align: middle;
+  }
+}
+
+.col-chevron {
+  width: 48px;
+}
+
+.lector {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.fila-grupo td {
+  background-color: var(--surface);
+}
+
+.grupo-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+}
+
+.grupo-conflicto {
+  color: var(--accent-700);
+  font-family: var(--font-condensed);
+  font-size: 16px;
+  font-weight: 700;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+}
+
+.grupo-personas {
+  font-weight: 600;
+}
+
+.grupo-plan {
+  color: var(--text2);
+}
+
+.grupo-avance {
+  margin-left: auto;
+  color: var(--text2);
+  font-size: 12.5px;
+}
+
+.actividad-descripcion {
+  max-width: 320px;
+}
+
+.sin-salto {
+  white-space: nowrap;
+}
+
+.vencida {
+  color: var(--red-text);
+  font-weight: 700;
+}
+
+.sin-actividades {
+  color: var(--text3);
+  font-style: italic;
+}
+
+.paginacion {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--hairline);
+  font-size: 13px;
+}
+
+.pagina {
+  color: var(--text2);
+}
+
+.controles {
+  display: flex;
+  gap: 6px;
+}
+
+.boton-pagina {
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background-color: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
 }
