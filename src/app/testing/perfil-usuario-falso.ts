@@ -37,6 +37,14 @@ export class PerfilUsuarioFalso {
   obtenerNombreUsuario(): string {
     return this.nombre;
   }
+
+  /** Sesion simulada de desarrollo (para el saludo del Responsable). */
+  sesionSimulada = false;
+
+  /** @returns El valor fijado en `sesionSimulada`. */
+  esSesionSimulada(): boolean {
+    return this.sesionSimulada;
+  }
 }
 
 /**

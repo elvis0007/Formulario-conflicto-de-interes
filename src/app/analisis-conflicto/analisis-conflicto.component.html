@@ -87,6 +87,13 @@
     [seleccionado]="filtroRiesgo"
     (cambio)="cambiarFiltro($event)" />
 
+  @if (filtrosUrl.length > 0) {
+    <div class="franja-filtros" role="status">
+      <span>Filtrando: <strong>{{ filtrosUrl.join(' · ') }}</strong></span>
+      <button type="button" class="boton boton--chico" (click)="limpiarFiltros()">Limpiar filtros</button>
+    </div>
+  }
+
   <app-data-table
     etiqueta="Casos del análisis de conflictos"
     [filas]="filasFiltradas"

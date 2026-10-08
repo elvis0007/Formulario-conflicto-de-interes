@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
+import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import { LATENCIA_SIMULADA_MS } from '../services/mock-data/simular-respuesta';
 import { PlanesMockService } from '../services/planes-mock.service';
@@ -100,6 +101,7 @@ describe('RevisionEvidenciasComponent', () => {
     TestBed.configureTestingModule({
       imports: [RevisionEvidenciasComponent],
       providers: [
+        provideRouter([]),
         { provide: RELOJ, useValue: () => new Date(HOY) },
         proveerPerfilFalso(new PerfilUsuarioFalso(['rrhh'], 'EMP-008', 'Lucía Fernanda Paredes Cando'))
       ]
@@ -120,6 +122,16 @@ describe('RevisionEvidenciasComponent', () => {
       ['Conflicto #C-002', 'Plan 01 · Independencia de la cuadrilla Activo', '1 por revisar', '2 de 3 aprobadas']
     ]);
     expect(limpio(tarjetas()[0].querySelector('.tarjeta-personas')?.textContent)).toContain(' y ');
+  }));
+
+  it('?conflicto= abre directamente su modal (enlaces del dashboard)', fakeAsync(() => {
+    TestBed.overrideProvider(ActivatedRoute, {
+      useValue: { snapshot: { queryParamMap: convertToParamMap({ conflicto: 'C-002' }) } }
+    });
+    crear();
+
+    expect(limpio(raiz.querySelector('.dialogo .titulo')?.textContent))
+      .toBe('Conflicto #C-002 — Plan 01 · Independencia de la cuadrilla');
   }));
 
   it('sin planes activos muestra el estado vacío', fakeAsync(() => {

@@ -1,7 +1,14 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable, forkJoin, map, of, switchMap } from 'rxjs';
 import { Conflicto } from '../models';
-import { HistorialConflicto, armarHistorial } from '../utils/historial.util';
+import {
+  EventoReciente,
+  HistorialConflicto,
+  ResumenHistorial,
+  armarHistorial,
+  estadoDeConflicto,
+  eventosRecientes
+} from '../utils/historial.util';
 import { manejarError } from '../utils/manejar-error';
 import { RELOJ } from '../utils/reloj';
 import { AnalisisMockService } from './analisis-mock.service';
@@ -40,6 +47,51 @@ export class HistorialMockService {
     return this.conflictosServicio.obtenerConflictos().pipe(
       map((conflictos) => [...conflictos].sort((a, b) => a.id.localeCompare(b.id))),
       manejarError<Conflicto[]>('HistorialMockService.obtenerConflictos', [])
+    );
+  }
+
+  /**
+   * Un resumen por conflicto para las tarjetas del Historial: el conflicto,
+   * sus planes vigentes y su estado.
+   *
+   * @returns Resumenes por numero de conflicto; vacia si falla.
+   * @author Elvis Flores
+   */
+  obtenerResumenes(): Observable<ResumenHistorial[]> {
+    return forkJoin({
+      conflictos: this.obtenerConflictos(),
+      planes: this.planesServicio.obtenerPlanes()
+    }).pipe(
+      map(({ conflictos, planes }) => conflictos.map((conflicto) => {
+        const suyos = planes.filter((p) => p.conflictoId === conflicto.id).sort((a, b) => a.numero - b.numero);
+
+        return { conflicto, planes: suyos, estado: estadoDeConflicto(conflicto, suyos) };
+      })),
+      manejarError<ResumenHistorial[]>('HistorialMockService.obtenerResumenes', [])
+    );
+  }
+
+  /**
+   * Los ultimos eventos de todos los conflictos (dashboard de RRHH).
+   *
+   * @param limite Cuantos devolver.
+   * @returns Eventos del mas reciente al mas antiguo; vacia si falla.
+   * @author Elvis Flores
+   */
+  obtenerEventosRecientes(limite: number): Observable<EventoReciente[]> {
+    return forkJoin({
+      conflictos: this.obtenerConflictos(),
+      planes: this.planesServicio.obtenerPlanes(),
+      analisis: this.analisisServicio.obtenerAnalisisRegistrados()
+    }).pipe(
+      map(({ conflictos, planes, analisis }) => {
+        const hoy = this.reloj();
+        const historiales = conflictos.map((c) =>
+          armarHistorial(c, planes.filter((p) => p.conflictoId === c.id), analisis, hoy));
+
+        return eventosRecientes(historiales, hoy, limite);
+      }),
+      manejarError<EventoReciente[]>('HistorialMockService.obtenerEventosRecientes', [])
     );
   }
 

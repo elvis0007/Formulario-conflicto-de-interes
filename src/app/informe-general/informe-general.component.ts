@@ -1,25 +1,29 @@
 import { Component, DestroyRef, OnDestroy, OnInit, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
-import { rutaPlanAccion } from '../app.paths';
-import { Actividad, PlanAccion, Riesgo } from '../models';
+import { PARAMETRO_ESTADO, rutaPlanAccion } from '../app.paths';
+import { Actividad, Conflicto, PlanAccion, Riesgo } from '../models';
 import { ConflictosMockService } from '../services/conflictos-mock.service';
 import { PlanesMockService } from '../services/planes-mock.service';
 import { BadgeComponent } from '../shared/badge/badge.component';
+import { BarraAvanceComponent } from '../shared/barra-avance/barra-avance.component';
 import { EmptyStateComponent } from '../shared/empty-state/empty-state.component';
 import { ExpandArrowButtonComponent } from '../shared/expand-arrow-button/expand-arrow-button.component';
 import { IconoComponent } from '../shared/icono/icono.component';
-import { RIESGOS, textoRiesgo } from '../utils/analisis.util';
+import { OpcionPill, PillsComponent } from '../shared/pills/pills.component';
+import { RIESGOS, textoParentesco, textoRiesgo } from '../utils/analisis.util';
 import { ConfirmacionTemporal } from '../utils/confirmacion-temporal';
 import { calcularDiasRestantes, formatearFecha, parsearFecha } from '../utils/fechas.util';
 import { TODOS } from '../utils/filtros-listados.util';
 import {
-  EstadoPlanInforme,
+  ESTADOS_INFORME,
   FiltrosInforme,
   GrupoInforme,
   ResponsableInforme,
   armarGruposInforme,
+  cumpleEstado,
+  esEstadoInforme,
   filtrarInforme,
   filtrosInformeVacios,
   responsablesDelInforme
@@ -38,22 +42,20 @@ import {
 /** Grupos (conflictos) por pagina. */
 export const GRUPOS_POR_PAGINA = 5;
 
-/** Opciones del filtro de estado del plan. */
-const ESTADOS_FILTRO: readonly EstadoPlanInforme[] = ['activo', 'activo_vencidas', 'cerrado'];
-
 /**
- * Informe General (PNIP.CI.RG.03, especificacion §6.7): matriz de todas
- * las personas con plan de accion enviado.
+ * Informe General (PNIP.CI.RG.03, especificacion §6.7): todas las personas
+ * con plan de accion enviado.
  *
- * - Filtros combinables: estado del plan, riesgo, responsable y buscador
- *   por nombre o numero de conflicto.
- * - Tabla agrupada por conflicto: fila de grupo (conflicto, personas,
- *   riesgo, plan actual y su estado) y una fila por actividad
- *   (descripcion, responsable, plazo, fecha limite, estado y fecha de la
- *   evidencia). Los grupos se contraen y expanden; «Expandir todo» y
- *   «Contraer todo».
- * - El numero del conflicto lleva a su plan en Plan de Acción.
- * - Paginacion por grupos, no por filas.
+ * - Filtros: Todos / En ejecución / Con vencidas / Cerrados (tambien por
+ *   URL, `?estado=`), riesgo, responsable y buscador; se combinan.
+ * - Tabla agrupada por conflicto: chevron, Conflicto, Empleado / Familiar,
+ *   Parentesco, Riesgo, Planes, Avance (barra segmentada del plan actual)
+ *   y Estado.
+ * - Al desplegar: un bloque por CADA plan enviado del conflicto, con su
+ *   cabecera (nombre, estado, inicio, «x de y cumplidas») y su tabla de
+ *   actividades (fecha limite en rojo si vencio).
+ * - «Expandir todo» / «Contraer todo»; paginacion por grupos; el numero
+ *   del conflicto lleva a su plan actual en Plan de Acción.
  * - «Descargar Excel»: solo confirmacion visual (sin archivo todavia).
  *
  * No usa `DataTableComponent` porque esa tabla pagina por filas.
@@ -62,7 +64,15 @@ const ESTADOS_FILTRO: readonly EstadoPlanInforme[] = ['activo', 'activo_vencidas
  */
 @Component({
   selector: 'app-informe-general',
-  imports: [BadgeComponent, EmptyStateComponent, ExpandArrowButtonComponent, IconoComponent, RouterLink],
+  imports: [
+    BadgeComponent,
+    BarraAvanceComponent,
+    EmptyStateComponent,
+    ExpandArrowButtonComponent,
+    IconoComponent,
+    PillsComponent,
+    RouterLink
+  ],
   templateUrl: './informe-general.component.html',
   styleUrl: './informe-general.component.scss'
 })
@@ -72,6 +82,9 @@ export class InformeGeneralComponent implements OnInit, OnDestroy {
 
   /** Filtros elegidos. */
   filtros: FiltrosInforme = filtrosInformeVacios();
+
+  /** Pildoras de estado con sus conteos. */
+  opcionesEstado: OpcionPill[] = [];
 
   /** Grupos que pasan los filtros. */
   filtrados: GrupoInforme[] = [];
@@ -85,18 +98,19 @@ export class InformeGeneralComponent implements OnInit, OnDestroy {
   /** Confirmacion de «Descargar Excel». */
   readonly descargado = new ConfirmacionTemporal();
 
-  readonly estados = ESTADOS_FILTRO;
   readonly riesgos = RIESGOS;
   readonly todos = TODOS;
 
-  /** Conflictos contraidos (por defecto todos expandidos). */
-  private readonly contraidos = new Set<string>();
+  /** Conflictos desplegados (por defecto, ninguno). */
+  private readonly expandidos = new Set<string>();
 
   /** Todos los grupos. */
   private grupos: GrupoInforme[] = [];
 
   private readonly conflictosServicio = inject(ConflictosMockService);
   private readonly planesServicio = inject(PlanesMockService);
+  private readonly ruta = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly reloj = inject(RELOJ);
   private readonly destroyRef = inject(DestroyRef);
 
@@ -120,9 +134,15 @@ export class InformeGeneralComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Carga conflictos y planes.
+   * Carga conflictos y planes; el estado puede venir en la URL.
    */
   ngOnInit(): void {
+    const estado = this.ruta.snapshot.queryParamMap.get(PARAMETRO_ESTADO);
+
+    if (esEstadoInforme(estado)) {
+      this.filtros = { ...this.filtros, estado };
+    }
+
     forkJoin({
       conflictos: this.conflictosServicio.obtenerConflictos(),
       planes: this.planesServicio.obtenerPlanes()
@@ -132,6 +152,14 @@ export class InformeGeneralComponent implements OnInit, OnDestroy {
         next: ({ conflictos, planes }) => {
           this.grupos = armarGruposInforme(conflictos, planes);
           this.responsables = responsablesDelInforme(this.grupos);
+          this.opcionesEstado = [
+            { valor: TODOS, etiqueta: 'Todos', contador: this.grupos.length },
+            ...ESTADOS_INFORME.map((e) => ({
+              valor: e.valor,
+              etiqueta: e.etiqueta,
+              contador: this.grupos.filter((g) => cumpleEstado(g.plan, e.valor)).length
+            }))
+          ];
           this.cargando = false;
           this.aplicar();
         },
@@ -150,12 +178,31 @@ export class InformeGeneralComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Cambia un filtro y vuelve a la primera pagina.
+   * Pildora de estado: filtra y deja el filtro en la URL.
+   *
+   * @param valor Estado elegido (`''` = Todos).
+   */
+  elegirEstado(valor: string): void {
+    const estado = esEstadoInforme(valor) ? valor : TODOS;
+
+    this.filtros = { ...this.filtros, estado };
+    this.pagina = 1;
+    this.aplicar();
+    this.router.navigate([], {
+      relativeTo: this.ruta,
+      queryParams: { [PARAMETRO_ESTADO]: estado === TODOS ? null : estado },
+      queryParamsHandling: 'merge'
+    }).catch((err: unknown) => console.error('[InformeGeneralComponent.elegirEstado]', err));
+  }
+
+  /**
+   * Cambia un filtro (riesgo, responsable o texto) y vuelve a la primera
+   * pagina.
    *
    * @param campo Filtro.
    * @param evento `change` o `input` del control.
    */
-  cambiarFiltro(campo: keyof FiltrosInforme, evento: Event): void {
+  cambiarFiltro(campo: 'riesgo' | 'responsableId' | 'texto', evento: Event): void {
     const valor = (evento.target as HTMLInputElement | HTMLSelectElement).value;
 
     this.filtros = { ...this.filtros, [campo]: valor } as FiltrosInforme;
@@ -168,28 +215,27 @@ export class InformeGeneralComponent implements OnInit, OnDestroy {
    */
   limpiarFiltros(): void {
     this.filtros = filtrosInformeVacios();
-    this.pagina = 1;
-    this.aplicar();
+    this.elegirEstado(TODOS);
   }
 
   /**
    * @param conflictoId Conflicto.
-   * @returns `true` si su grupo esta expandido.
+   * @returns `true` si su grupo esta desplegado.
    */
   estaExpandido(conflictoId: string): boolean {
-    return !this.contraidos.has(conflictoId);
+    return this.expandidos.has(conflictoId);
   }
 
   /**
-   * Contrae o expande un grupo.
+   * Despliega o pliega un grupo.
    *
    * @param conflictoId Conflicto.
    */
   alternar(conflictoId: string): void {
-    if (this.contraidos.has(conflictoId)) {
-      this.contraidos.delete(conflictoId);
+    if (this.expandidos.has(conflictoId)) {
+      this.expandidos.delete(conflictoId);
     } else {
-      this.contraidos.add(conflictoId);
+      this.expandidos.add(conflictoId);
     }
   }
 
@@ -197,13 +243,13 @@ export class InformeGeneralComponent implements OnInit, OnDestroy {
    * «Expandir todo» / «Contraer todo» (todos los grupos, de todas las
    * paginas).
    *
-   * @param expandir `true` para expandir.
+   * @param expandir `true` para desplegar.
    */
   expandirTodo(expandir: boolean): void {
-    this.contraidos.clear();
-    if (!expandir) {
+    this.expandidos.clear();
+    if (expandir) {
       for (const g of this.grupos) {
-        this.contraidos.add(g.conflicto.id);
+        this.expandidos.add(g.conflicto.id);
       }
     }
   }
@@ -224,26 +270,27 @@ export class InformeGeneralComponent implements OnInit, OnDestroy {
     }
   }
 
-  /**
-   * @param grupo Grupo.
-   * @returns URL de su plan en Plan de Acción.
-   */
-  rutaPlan(grupo: GrupoInforme): string {
-    return rutaPlanAccion(grupo.conflicto.id, grupo.plan.id);
+  /** @param g Grupo. @returns URL de su plan actual en Plan de Acción. */
+  rutaPlan(g: GrupoInforme): string {
+    return rutaPlanAccion(g.conflicto.id, g.plan.id);
   }
 
-  /**
-   * @param plan Plan.
-   * @returns «Plan 02 · Nombre».
-   */
+  /** @param c Conflicto. @returns Parentesco en una linea. */
+  parentesco(c: Conflicto): string {
+    return textoParentesco(c);
+  }
+
+  /** @param g Grupo. @returns «1 plan», «2 planes». */
+  textoPlanes(g: GrupoInforme): string {
+    return g.bloques.length === 1 ? '1 plan' : g.bloques.length + ' planes';
+  }
+
+  /** @param plan Plan. @returns «Plan 02 · Nombre». */
   tituloPlan(plan: PlanAccion): string {
     return 'Plan ' + String(plan.numero).padStart(2, '0') + ' · ' + plan.nombre;
   }
 
-  /**
-   * @param plan Plan.
-   * @returns «x de y cumplidas».
-   */
+  /** @param plan Plan. @returns «x de y cumplidas». */
   avance(plan: PlanAccion): string {
     const a = calcularAvance(plan.actividades);
 

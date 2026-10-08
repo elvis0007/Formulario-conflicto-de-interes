@@ -1685,14 +1685,13 @@ Las tres pantallas del rol `P`, que eran placeholders del Día 1:
 
 ### Pendiente / a tener en cuenta
 
-- El saludo usa el nombre de la sesión; en la sesión simulada es «Usuario
-  Desarrollo» aunque se elija otro empleado.
+- El saludo usaba el nombre de la sesión («Usuario Desarrollo» en la
+  sesión simulada). Resuelto el Día 12: usa el del empleado simulado.
 - Las evidencias subidas viven en una URL local (`blob:`) hasta recargar.
   Con el backend: `POST /actividades/:id/evidencia` y `GET /archivos/:id`.
 - La especificación propone en el dashboard «Mis actividades abiertas»,
-  «Avance general» y «Avance por conflicto», y en la Bandeja separar
-  activos y cerrados. Hoy se hizo lo pedido en el prompt; quedan para el
-  día de pulido si RRHH los quiere.
+  «Avance general» y «Avance por conflicto» (hechos el Día 12), y en la
+  Bandeja separar activos y cerrados (pendiente para el día de pulido).
 
 ## Día 11 — Informe General, Historial y Consulta Previa (07/10/2026)
 
@@ -1829,3 +1828,149 @@ el detalle del plan del Responsable. Todo contra los servicios mock.
   con RRHH las reglas reales (por ejemplo, si cruza con el Registro
   Civil).
 - «Descargar Excel» y «Descargar PDF» solo confirman; falta el archivo.
+
+## Día 12 — Dashboard de RRHH y alineación de Historial e Informe General con la especificación (08/10/2026)
+
+El Dashboard de RRHH (placeholder desde el Día 1), Historial e Informe
+General según los mockups aprobados (§6.9 y §6.7), y los bloques que
+faltaban en el dashboard del Responsable (§6.11). Todo contra los
+servicios mock.
+
+### Cambios sin guardar de otra sesión (informado, sin tocar)
+
+Se resumió a Elvis qué cambia cada archivo (admin, conflict-form, footer,
+mis-formularios, data-table y auth.service). A tener en cuenta si se
+guardan:
+
+- `admin.component.ts` borra el bloque `[PNIP-CI]` de `?vista=formulario`,
+  que usa el menú lateral fuera de `/admin`.
+- `data-table.component.scss` cambia los tokens comunes por colores fijos
+  propios (`--ci-*`). Afecta a Análisis de Conflictos.
+
+### Decisiones
+
+- **Dashboard de RRHH (`/rrhh/dashboard`):**
+  - Estado del análisis vigente (Borrador / Validado, fecha) con
+    «Ir a Análisis →». Sin análisis: estado vacío con «Generar análisis»,
+    que lo genera ahí mismo.
+  - Siete indicadores (`KpiCardComponent`); cada uno abre su pantalla ya
+    filtrada:
+
+    | Indicador | Abre |
+    |---|---|
+    | Conflictos detectados | Análisis |
+    | Pendientes de clasificar | Análisis `?clasificacion=pendiente` |
+    | Confirmados sin plan | Análisis `?clasificacion=confirmado&plan=sin-plan` |
+    | Planes activos | Informe `?estado=en-ejecucion` |
+    | Actividades vencidas | Informe `?estado=con-vencidas` |
+    | Evidencias por revisar | Revisión de Evidencias |
+    | Planes cerrados | Informe `?estado=cerrados` |
+
+  - Gráficos hechos con HTML y CSS, sin librerías:
+    - conflictos por riesgo y planes por estado: barras horizontales de un
+      solo tono (la fila nombra la categoría) con su número y texto
+      accesible; son clicables (riesgo → Análisis `?riesgo=`, estado →
+      Informe);
+    - estado de las actividades: barra apilada con leyenda y conteos.
+  - Colores de la barra apilada: se validaron con el script de la guía de
+    visualización. La paleta de estados de la app tiene tres tonos cálidos
+    (ámbar, naranja y rojo) que no pasan todas las pruebas juntos. Se eligió
+    el orden verde, azul, ámbar, rojo, naranja, que pasa la de daltonismo
+    (ΔE 8,6). Rojo y naranja quedan algo parecidos para la visión normal,
+    así que cada segmento lleva separación de 2 px, tooltip y leyenda con
+    texto: el color nunca va solo. No se cambiaron los colores de la app.
+  - «Requiere atención»: las vencidas más antiguas (enlace a su plan) y
+    las evidencias que más esperan (enlace a Revisión con `?conflicto=`).
+  - «Actividad reciente»: los últimos 8 eventos de
+    `HistorialMockService.obtenerEventosRecientes` con enlace al
+    historial del conflicto. Un mismo evento de varios conflictos (los del
+    análisis) se muestra una vez, como «Varios conflictos».
+  - **Diferencias con la §6.2:** la especificación propone que los
+    indicadores filtren una tabla de conflictos dentro del dashboard, un
+    selector de periodo y una tarjeta de formularios por departamento. Se
+    siguió el prompt (los indicadores llevan a cada pantalla filtrada). La
+    tabla, el periodo y la tarjeta quedan para confirmar con RRHH.
+- **Filtros por URL** (en `app.paths.ts`):
+  - Análisis: `?riesgo`, `?clasificacion` y `?plan=sin-plan`, con una
+    franja «Filtrando: …» y «Limpiar filtros».
+  - Informe: `?estado`.
+  - Historial y Revisión: `?conflicto=` abre el modal de ese conflicto.
+- **Historial según la §6.9:**
+  - Tarjetas en 4 columnas (3, 2 y 1 en pantallas menores): número,
+    estado (Activo, Plan en borrador, Cerrado, Sin plan, Archivado),
+    personas, parentesco, riesgo, número de planes y fecha de detección.
+  - Buscador y filtro Todos / Activos / Cerrados con conteos.
+  - El árbol de eventos pasa a un modal, con el filtro por tipo,
+    «Expandir/Contraer todo» y «Descargar PDF».
+  - `HistorialMockService` suma `obtenerResumenes` (tarjetas) y
+    `obtenerEventosRecientes` (dashboard).
+- **Informe General según la §6.7:**
+  - Píldoras Todos / En ejecución / Con vencidas / Cerrados, sobre el
+    plan actual. «En ejecución» incluye los activos con vencidas.
+  - Siguen el buscador, el riesgo y el responsable.
+  - Columnas: chevron, Conflicto, Empleado / Familiar, Parentesco, Riesgo,
+    Planes, Avance y Estado.
+  - Al desplegar: un bloque por CADA plan enviado (C-001 muestra Plan 01
+    cerrado y Plan 02), con cabecera y su tabla de actividades. Los grupos
+    empiezan plegados. Los borradores siguen sin contar.
+  - El filtro de responsable recorta las actividades de cada plan y oculta
+    los planes sin ninguna suya.
+- **`BarraAvanceComponent` (`shared/barra-avance`):** un segmento por
+  actividad, coloreado por su estado, con tooltip (descripción y estado),
+  `role="img"` y «x de y cumplidas». La usan el Informe y el dashboard del
+  Responsable. «En revisión» usa el acento oscuro: el celeste claro no
+  tenía contraste suficiente.
+- **Dashboard del Responsable (§6.11):**
+  - Se suman «Avance general» (barra y leyenda), «Mis actividades
+    abiertas» y «Avance por conflicto».
+  - «Mis actividades abiertas»: conflicto, personas, plan, estado y días,
+    con «Subir evidencia», «Volver a subir» o «Ver plan». Van primero las
+    rechazadas y las vencidas.
+  - «Avance por conflicto»: acordeón conflicto › plan › actividades, con
+    la barra.
+  - Saludo: en la sesión simulada usa el nombre del empleado de
+    `SISCI-DEV-EMPLEADO` (`PerfilUsuarioService.esSesionSimulada()` +
+    `PersonasMockService`), no «Usuario Desarrollo».
+
+### Verificación
+
+- `ng test`: 467 OK; fallan solo las 3 antiguas de `app.component.spec`.
+  Nuevas:
+  - Dashboard de RRHH: estado vacío y generación, indicadores, navegación
+    de cada uno con su filtro, barras, leyenda, «Requiere atención» y
+    eventos recientes.
+  - Utilidades del dashboard y barra de avance (segmentos, tooltip, texto
+    accesible, vista del Responsable).
+  - Análisis: filtros por URL y «Limpiar filtros».
+  - Historial: tarjetas, filtros, modal con varios planes, expandir y
+    contraer, filtro por tipo, `?conflicto=` y cambio hecho en otra
+    pantalla.
+  - Informe: columnas, barra, un bloque por plan, filtros, URL y
+    paginación por grupos.
+  - Responsable: saludo simulado, avance general, abiertas y acordeón.
+  - Revisión: `?conflicto=`.
+- Builds de desarrollo y producción correctos (los avisos de presupuesto
+  son de archivos del host).
+- Recorrido en Edge headless (backend bloqueado) como `R` (`EMP-008`):
+  - Dashboard vacío → «Generar análisis» → 9 · 3 · 0 · 2 · 2 · 3 · 3.
+  - Cada indicador abre su pantalla con el filtro correcto: Análisis con
+    3 pendientes, la franja «Sin plan» con 0 filas, el Informe en «En
+    ejecución» (C-001, C-002), «Con vencidas» (C-001) y «Cerrados» (C-004,
+    C-008), y Revisión con 2 tarjetas.
+  - La barra «Alto» abre Análisis con 2 filas.
+  - Historial: 9 tarjetas; el modal de C-001 muestra sus dos planes y 33
+    eventos con «Expandir todo».
+  - Informe: C-001 desplegado con Plan 01 (Cerrado, 2 de 2) y Plan 02
+    (Activo · con vencidas, 1 de 7).
+- Como `P` (`EMP-010`): «Hola, Fernando José Andrade Vela», avance 3 de 7,
+  4 abiertas y acordeón.
+- A 760 px, sin scroll horizontal. Sin errores de consola.
+
+### Pendiente / a tener en cuenta
+
+- Confirmar con RRHH las diferencias con la §6.2 (tabla de conflictos en
+  el dashboard, selector de periodo, tarjeta de formularios por
+  departamento).
+- «Confirmados sin plan» es 0 con los datos de ejemplo (C-003 tiene un
+  borrador): el filtro funciona, pero la tabla queda vacía.
+- La cabecera sigue mostrando el nombre de la sesión simulada.

@@ -1,6 +1,8 @@
 import { Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ActivatedRoute } from '@angular/router';
 import { Observable, forkJoin } from 'rxjs';
+import { PARAMETRO_CONFLICTO } from '../app.paths';
 import { Actividad, Conflicto, PlanAccion } from '../models';
 import { FechaLargaPipe } from '../pipes/fecha-larga.pipe';
 import { ConflictosMockService } from '../services/conflictos-mock.service';
@@ -146,6 +148,7 @@ export class RevisionEvidenciasComponent implements OnInit {
   private readonly planesServicio = inject(PlanesMockService);
   private readonly conflictosServicio = inject(ConflictosMockService);
   private readonly reloj = inject(RELOJ);
+  private readonly ruta = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
 
   /** @returns Titulo del modal: «Conflicto #id — Plan 0n · Nombre». */
@@ -175,12 +178,26 @@ export class RevisionEvidenciasComponent implements OnInit {
           this.conflictos = new Map(conflictos.map((c) => [c.id, c]));
           this.cargando = false;
           this.recalcular();
+          this.abrirDesdeUrl();
         },
         error: (err: unknown) => {
           this.cargando = false;
           console.error('[RevisionEvidenciasComponent.ngOnInit]', err);
         }
       });
+  }
+
+  /**
+   * Con `?conflicto=C-001` (p. ej. desde el dashboard), abre su tarjeta si
+   * tiene un plan activo.
+   */
+  private abrirDesdeUrl(): void {
+    const id = this.ruta.snapshot.queryParamMap.get(PARAMETRO_CONFLICTO);
+    const tarjeta = this.tarjetas.find((t) => t.conflicto.id === id);
+
+    if (tarjeta !== undefined) {
+      this.abrir(tarjeta);
+    }
   }
 
   /**

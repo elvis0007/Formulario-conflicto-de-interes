@@ -1,9 +1,16 @@
 import { Component, DestroyRef, OnDestroy, OnInit, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { of, switchMap } from 'rxjs';
-import { PLAN_NUEVO, rutaPlanAccion } from '../app.paths';
-import { AnalisisConflictos, Conflicto, PlanAccion, ResumenAnalisis } from '../models';
+import {
+  PARAMETRO_CLASIFICACION,
+  PARAMETRO_PLAN,
+  PARAMETRO_RIESGO,
+  PLAN_NUEVO,
+  VALOR_SIN_PLAN,
+  rutaPlanAccion
+} from '../app.paths';
+import { AnalisisConflictos, Clasificacion, Conflicto, PlanAccion, ResumenAnalisis } from '../models';
 import { FechaLargaPipe } from '../pipes/fecha-larga.pipe';
 import { GradoParentescoPipe } from '../pipes/grado-parentesco.pipe';
 import { AnalisisMockService } from '../services/analisis-mock.service';
@@ -151,6 +158,15 @@ export class AnalisisConflictoComponent implements OnInit, OnDestroy {
   /** Riesgo elegido en las pildoras. */
   filtroRiesgo: FiltroRiesgo = TODOS;
 
+  /**
+   * Filtro por clasificacion que llega por URL (`?clasificacion=`), p. ej.
+   * desde el dashboard de RRHH; `null` = sin filtro.
+   */
+  filtroClasificacion: Clasificacion | null = null;
+
+  /** Solo casos sin ningun plan (`?plan=sin-plan`). */
+  filtroSinPlan = false;
+
   /** Pildoras de riesgo con sus conteos. */
   opcionesRiesgo: OpcionPill[] = [];
 
@@ -210,6 +226,7 @@ export class AnalisisConflictoComponent implements OnInit, OnDestroy {
 
   private readonly servicio = inject(AnalisisMockService);
   private readonly router = inject(Router);
+  private readonly ruta = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
 
   /**
@@ -282,6 +299,7 @@ export class AnalisisConflictoComponent implements OnInit, OnDestroy {
    * Carga el analisis vigente.
    */
   ngOnInit(): void {
+    this.leerFiltrosDeUrl();
     this.servicio.obtenerAnalisisActual()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
@@ -345,6 +363,31 @@ export class AnalisisConflictoComponent implements OnInit, OnDestroy {
   cambiarFiltro(valor: string): void {
     this.filtroRiesgo = valor as FiltroRiesgo;
     this.aplicarFiltro();
+  }
+
+  /** @returns Textos de los filtros que llegaron por URL (la franja «Filtrando»). */
+  get filtrosUrl(): string[] {
+    const textos: string[] = [];
+
+    if (this.filtroClasificacion !== null) {
+      textos.push(textoClasificacion(this.filtroClasificacion));
+    }
+    if (this.filtroSinPlan) {
+      textos.push('Sin plan de acción');
+    }
+    return textos;
+  }
+
+  /**
+   * «Limpiar filtros»: quita los filtros de la URL y el de riesgo.
+   */
+  limpiarFiltros(): void {
+    this.filtroClasificacion = null;
+    this.filtroSinPlan = false;
+    this.filtroRiesgo = TODOS;
+    this.aplicarFiltro();
+    this.router.navigate([], { relativeTo: this.ruta, queryParams: {} })
+      .catch((err: unknown) => console.error('[AnalisisConflictoComponent.limpiarFiltros]', err));
   }
 
   /**
@@ -578,7 +621,27 @@ export class AnalisisConflictoComponent implements OnInit, OnDestroy {
         .map((c) => c.id)
     );
 
-    this.filasFiltradas = this.filas.filter((f) => ids.has(f.conflicto.id));
+    this.filasFiltradas = this.filas.filter((f) => ids.has(f.conflicto.id)
+      && (this.filtroClasificacion === null || f.conflicto.clasificacion === this.filtroClasificacion)
+      && (!this.filtroSinPlan || f.conflicto.planes.length === 0));
+  }
+
+  /**
+   * Lee los filtros de la URL (`?riesgo`, `?clasificacion`, `?plan`); los
+   * valores desconocidos se ignoran.
+   */
+  private leerFiltrosDeUrl(): void {
+    const parametros = this.ruta.snapshot.queryParamMap;
+    const riesgo = parametros.get(PARAMETRO_RIESGO);
+    const clasificacion = parametros.get(PARAMETRO_CLASIFICACION);
+
+    if (RIESGOS.some((r) => r === riesgo)) {
+      this.filtroRiesgo = riesgo as FiltroRiesgo;
+    }
+    if (clasificacion === 'pendiente' || clasificacion === 'confirmado' || clasificacion === 'homonimo') {
+      this.filtroClasificacion = clasificacion;
+    }
+    this.filtroSinPlan = parametros.get(PARAMETRO_PLAN) === VALOR_SIN_PLAN;
   }
 
   /**

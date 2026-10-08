@@ -1,0 +1,55 @@
+:host {
+  display: block;
+  min-width: 120px;
+}
+
+.avance {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.barra {
+  display: flex;
+  gap: 2px;
+  height: 10px;
+}
+
+.segmento {
+  flex: 1;
+  min-width: 4px;
+  border-radius: 3px;
+  background-color: var(--hairline);
+}
+
+.segmento--verde {
+  background-color: var(--green);
+}
+
+.segmento--azul {
+  background-color: var(--accent);
+}
+
+.segmento--ambar {
+  background-color: var(--amber);
+}
+
+.segmento--naranja {
+  background-color: var(--orange);
+}
+
+.segmento--rojo {
+  background-color: var(--red);
+}
+
+// En revision: acento oscuro (el celeste claro no tenia contraste
+// suficiente). El texto y el tooltip dicen el estado.
+.segmento--gris {
+  background-color: var(--accent-700);
+}
+
+.texto {
+  color: var(--text2);
+  font-size: 12px;
+  white-space: nowrap;
+}

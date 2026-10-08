@@ -7,6 +7,27 @@
 
 @include listados.estilos;
 
+// Filtros que llegaron por URL (desde el dashboard).
+.franja-filtros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 8px 14px;
+  border: 1px solid var(--accent-300);
+  border-radius: 10px;
+  background-color: var(--accent-100);
+  color: var(--accent-700);
+  font-size: 13px;
+}
+
+.boton--chico {
+  padding: 5px 10px;
+  font-size: 12.5px;
+}
+
 .encabezado {
   align-items: flex-start;
 }

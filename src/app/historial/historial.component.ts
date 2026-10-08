@@ -1,7 +1,9 @@
 import { NgTemplateOutlet } from '@angular/common';
 import { Component, DestroyRef, OnDestroy, OnInit, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ActivatedRoute } from '@angular/router';
 import { Subject, switchMap } from 'rxjs';
+import { PARAMETRO_CONFLICTO } from '../app.paths';
 import { Conflicto, EventoHistorial, PlanAccion } from '../models';
 import { FechaLargaPipe } from '../pipes/fecha-larga.pipe';
 import { HistorialMockService } from '../services/historial-mock.service';
@@ -9,15 +11,20 @@ import { BadgeComponent } from '../shared/badge/badge.component';
 import { EmptyStateComponent } from '../shared/empty-state/empty-state.component';
 import { ExpandArrowButtonComponent } from '../shared/expand-arrow-button/expand-arrow-button.component';
 import { IconoComponent } from '../shared/icono/icono.component';
+import { ModalComponent } from '../shared/modal/modal.component';
 import { OpcionPill, PillsComponent } from '../shared/pills/pills.component';
 import { textoParentesco, textoRiesgo } from '../utils/analisis.util';
 import { ConfirmacionTemporal } from '../utils/confirmacion-temporal';
+import { formatearFecha, parsearFecha } from '../utils/fechas.util';
 import {
   HistorialConflicto,
+  ResumenHistorial,
   TIPOS_EVENTO,
   TipoEvento,
+  textoEstadoConflicto,
   textoTipoEvento,
   todosLosEventos,
+  tonoEstadoConflicto,
   tonoTipoEvento
 } from '../utils/historial.util';
 import { obtenerPlanActual, textoEstadoPlan } from '../utils/planes.util';
@@ -30,28 +37,31 @@ import {
   mapearRiesgoATono
 } from '../utils/tono.util';
 
-/** Filtro por tipo de evento. */
+/** Filtro por tipo de evento (dentro del modal). */
 export type FiltroTipoEvento = 'todos' | TipoEvento;
+
+/** Filtro de las tarjetas. */
+export type FiltroConflictos = 'todos' | 'activos' | 'cerrados';
 
 /** Clave del nodo «Eventos del conflicto». */
 const NODO_CONFLICTO = 'conflicto';
 
 /**
- * Historial (especificacion §6.9): linea de tiempo por conflicto.
+ * Historial (especificacion §6.9).
  *
- * - Selector de conflicto con buscador (numero o nombre de una persona) y
- *   la linea de tiempo del elegido.
- * - Arbol de tres niveles: eventos del conflicto, de cada plan y de cada
- *   actividad. Cada nivel se despliega y pliega; al elegir un conflicto se
- *   ven abiertos sus eventos y su plan actual. «Expandir todo» y «Contraer
- *   todo».
- * - Cada evento: punto de color por tipo, texto y «fecha · autor».
- * - Filtro por tipo de evento.
- * - «Descargar PDF»: solo confirmacion visual (sin archivo todavia).
+ * - Tarjetas en 4 columnas, una por conflicto: numero, estado, personas,
+ *   parentesco, riesgo, numero de planes y fecha de deteccion.
+ * - Buscador (numero o nombre) y filtro Todos / Activos / Cerrados.
+ * - Al hacer clic se abre un modal con el arbol de eventos: los del
+ *   conflicto, los de cada plan y los de cada actividad. Cada nivel se
+ *   despliega y pliega (al abrir, los del conflicto y su plan actual);
+ *   «Expandir todo» / «Contraer todo»; filtro por tipo de evento;
+ *   «Descargar PDF» (solo confirmacion visual).
+ * - `?conflicto=C-001` abre directamente su arbol (enlaces del dashboard).
  *
- * Los eventos los arma `HistorialMockService` con los datos vigentes; al
- * entrar a la pantalla o elegir otro conflicto se vuelven a pedir, asi lo
- * hecho en otras pantallas aparece sin recargar.
+ * Los eventos los arma `HistorialMockService` con los datos vigentes cada
+ * vez que se abre un conflicto: lo hecho en otras pantallas aparece sin
+ * recargar.
  *
  * @author Elvis Flores
  */
@@ -63,6 +73,7 @@ const NODO_CONFLICTO = 'conflicto';
     ExpandArrowButtonComponent,
     FechaLargaPipe,
     IconoComponent,
+    ModalComponent,
     NgTemplateOutlet,
     PillsComponent
   ],
@@ -70,32 +81,38 @@ const NODO_CONFLICTO = 'conflicto';
   styleUrl: './historial.component.scss'
 })
 export class HistorialComponent implements OnInit, OnDestroy {
-  /** Todavia no llego la lista de conflictos. */
+  /** Todavia no llegaron las tarjetas. */
   cargando = true;
 
-  /** Se esta pidiendo el historial del elegido. */
-  cargandoHistorial = false;
-
-  /** Texto del buscador de conflictos. */
+  /** Texto del buscador. */
   busqueda = '';
 
-  /** Conflicto elegido. */
-  seleccionadoId: string | null = null;
+  /** Filtro de las tarjetas. */
+  filtro: FiltroConflictos = 'todos';
 
-  /** Historial del elegido. */
+  /** Pildoras del filtro de tarjetas, con conteos. */
+  opcionesFiltro: OpcionPill[] = [];
+
+  /** Conflicto abierto en el modal; `null` con el modal cerrado. */
+  abiertoId: string | null = null;
+
+  /** Se esta pidiendo el historial del abierto. */
+  cargandoHistorial = false;
+
+  /** Historial del conflicto abierto. */
   historial: HistorialConflicto | null = null;
 
   /** Filtro por tipo de evento. */
   filtroTipo: FiltroTipoEvento = 'todos';
 
-  /** Pildoras del filtro, con conteos del conflicto elegido. */
+  /** Pildoras del filtro por tipo, con conteos del abierto. */
   opcionesTipo: OpcionPill[] = [];
 
   /** Confirmacion de «Descargar PDF». */
   readonly descargado = new ConfirmacionTemporal();
 
-  /** Todos los conflictos. */
-  private conflictos: Conflicto[] = [];
+  /** Un resumen por conflicto. */
+  private resumenes: ResumenHistorial[] = [];
 
   /** Nodos abiertos: `conflicto`, `plan:PL-1`, `actividad:A-1`. */
   private readonly abiertos = new Set<string>();
@@ -104,16 +121,25 @@ export class HistorialComponent implements OnInit, OnDestroy {
   private readonly pedir$ = new Subject<string>();
 
   private readonly servicio = inject(HistorialMockService);
+  private readonly ruta = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
 
-  /** @returns Conflictos que pasan el buscador. */
-  get conflictosFiltrados(): Conflicto[] {
-    return this.conflictos.filter((c) =>
-      contieneTexto([c.id, c.personaA.nombres, c.personaB.nombres], this.busqueda));
+  /** @returns Tarjetas que pasan el buscador y el filtro. */
+  get visibles(): ResumenHistorial[] {
+    return this.resumenes
+      .filter((r) => this.filtro === 'todos'
+        || (this.filtro === 'activos' && r.estado === 'activo')
+        || (this.filtro === 'cerrados' && r.estado === 'cerrado'))
+      .filter((r) => contieneTexto([r.conflicto.id, r.conflicto.personaA.nombres, r.conflicto.personaB.nombres], this.busqueda));
+  }
+
+  /** @returns Titulo del modal. */
+  get tituloModal(): string {
+    return this.abiertoId ? 'Historial · Conflicto #' + this.abiertoId : '';
   }
 
   /**
-   * Carga los conflictos y elige el primero.
+   * Carga las tarjetas y, si la URL lo pide, abre un conflicto.
    */
   ngOnInit(): void {
     this.pedir$
@@ -129,14 +155,20 @@ export class HistorialComponent implements OnInit, OnDestroy {
         }
       });
 
-    this.servicio.obtenerConflictos()
+    this.servicio.obtenerResumenes()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (conflictos) => {
-          this.conflictos = conflictos;
+        next: (resumenes) => {
+          this.resumenes = resumenes;
           this.cargando = false;
-          if (conflictos.length > 0) {
-            this.elegir(conflictos[0].id);
+          this.opcionesFiltro = [
+            { valor: 'todos', etiqueta: 'Todos', contador: resumenes.length },
+            { valor: 'activos', etiqueta: 'Activos', contador: resumenes.filter((r) => r.estado === 'activo').length },
+            { valor: 'cerrados', etiqueta: 'Cerrados', contador: resumenes.filter((r) => r.estado === 'cerrado').length }
+          ];
+          const pedido = this.ruta.snapshot.queryParamMap.get(PARAMETRO_CONFLICTO);
+          if (pedido !== null && resumenes.some((r) => r.conflicto.id === pedido)) {
+            this.abrir(pedido);
           }
         },
         error: (err: unknown) => {
@@ -161,14 +193,32 @@ export class HistorialComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Elige un conflicto y pide su historial.
+   * @param valor Filtro elegido.
+   */
+  elegirFiltro(valor: string): void {
+    this.filtro = valor === 'activos' || valor === 'cerrados' ? valor : 'todos';
+  }
+
+  /**
+   * Abre el modal de un conflicto y pide su historial.
    *
    * @param conflictoId Conflicto.
    */
-  elegir(conflictoId: string): void {
-    this.seleccionadoId = conflictoId;
+  abrir(conflictoId: string): void {
+    this.abiertoId = conflictoId;
+    this.historial = null;
+    this.filtroTipo = 'todos';
     this.cargandoHistorial = true;
+    this.descargado.cancelar();
     this.pedir$.next(conflictoId);
+  }
+
+  /**
+   * Cierra el modal.
+   */
+  cerrar(): void {
+    this.abiertoId = null;
+    this.historial = null;
   }
 
   /**
@@ -232,7 +282,7 @@ export class HistorialComponent implements OnInit, OnDestroy {
    * @param eventos Eventos de un nodo.
    * @returns Los que pasan el filtro por tipo.
    */
-  visibles(eventos: readonly EventoHistorial[]): EventoHistorial[] {
+  eventosVisibles(eventos: readonly EventoHistorial[]): EventoHistorial[] {
     return this.filtroTipo === 'todos' ? [...eventos] : eventos.filter((e) => e.tipo === this.filtroTipo);
   }
 
@@ -249,6 +299,33 @@ export class HistorialComponent implements OnInit, OnDestroy {
   /** @returns Clave del nodo del conflicto. */
   get claveConflicto(): string {
     return NODO_CONFLICTO;
+  }
+
+  /** @param r Resumen. @returns Texto del estado. */
+  textoEstado(r: ResumenHistorial): string {
+    return textoEstadoConflicto(r.estado);
+  }
+
+  /** @param r Resumen. @returns Tono del estado. */
+  tonoEstado(r: ResumenHistorial): Tono {
+    return tonoEstadoConflicto(r.estado);
+  }
+
+  /** @param r Resumen. @returns «1 plan», «2 planes» o «Sin planes». */
+  textoPlanes(r: ResumenHistorial): string {
+    const n = r.planes.length;
+
+    return n === 0 ? 'Sin planes' : n === 1 ? '1 plan' : n + ' planes';
+  }
+
+  /** @param iso Fecha. @returns «dd/mm/aaaa». */
+  fecha(iso: string): string {
+    try {
+      return formatearFecha(parsearFecha(iso));
+    } catch (err) {
+      console.error('[HistorialComponent.fecha] Fecha inválida:', iso, err);
+      return iso;
+    }
   }
 
   /** @param tipo Tipo. @returns Color del punto. */
@@ -298,7 +375,7 @@ export class HistorialComponent implements OnInit, OnDestroy {
 
   /**
    * Muestra un historial: abre los eventos del conflicto y su plan
-   * actual, y recalcula los conteos del filtro.
+   * actual, y recalcula los conteos del filtro por tipo.
    *
    * @param historial Historial recibido.
    */

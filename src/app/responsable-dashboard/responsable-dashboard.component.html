@@ -34,7 +34,48 @@
     }
   </div>
 
-  <section class="proximas" aria-labelledby="titulo-proximas">
+  <section class="bloque avance-general" aria-labelledby="titulo-avance">
+    <h3 id="titulo-avance" class="seccion-titulo">Avance general</h3>
+    <app-barra-avance [actividades]="actividades" [vistaResponsable]="true" />
+    <ul class="leyenda-avance">
+      <li><span class="muestra segmento--verde" aria-hidden="true"></span>Aprobadas {{ conteo.aprobada }}</li>
+      <li><span class="muestra segmento--gris" aria-hidden="true"></span>En revisión {{ conteo.en_revision }}</li>
+      <li><span class="muestra segmento--ambar" aria-hidden="true"></span>Pendientes {{ conteo.pendiente + conteo.vencida }}</li>
+      <li><span class="muestra segmento--naranja" aria-hidden="true"></span>Rechazadas {{ conteo.rechazada }}</li>
+    </ul>
+  </section>
+
+  <section class="bloque abiertas" aria-labelledby="titulo-abiertas">
+    <h3 id="titulo-abiertas" class="seccion-titulo">Mis actividades abiertas</h3>
+    @if (abiertas.length === 0) {
+      <p class="sin-proximas">Todas tus actividades están aprobadas.</p>
+    } @else {
+      <ul class="lista-abiertas">
+        @for (a of abiertas; track a.actividad.id) {
+          <li class="abierta" [attr.data-actividad]="a.actividad.id">
+            <span class="abierta-texto">
+              <span class="abierta-descripcion">{{ a.actividad.descripcion }}</span>
+              <span class="abierta-contexto">
+                Conflicto #{{ a.plan.conflictoId }}{{ a.conflicto ? ' · ' + personas(a.conflicto) : '' }} · {{ tituloPlan(a.plan) }}
+              </span>
+            </span>
+            <span class="abierta-estado">
+              <app-badge [tono]="tonoEstadoDe(a.actividad)" [texto]="textoEstadoDe(a.actividad)" />
+              @if (a.dias) {
+                <span class="dias" [class.dias--vencida]="a.dias.vencida">{{ a.dias.texto }}</span>
+              }
+            </span>
+            <a
+              class="boton boton--chico"
+              [class.boton--primario]="a.accion !== 'Ver plan'"
+              [routerLink]="rutaPlan(a.plan.id)">{{ a.accion }}</a>
+          </li>
+        }
+      </ul>
+    }
+  </section>
+
+  <section class="bloque proximas" aria-labelledby="titulo-proximas">
     <h3 id="titulo-proximas" class="seccion-titulo">Próximas a vencer</h3>
     @if (proximas.length === 0) {
       <p class="sin-proximas">No tienes actividades pendientes ni rechazadas.</p>
@@ -59,5 +100,43 @@
         }
       </ul>
     }
+  </section>
+
+  <section class="bloque por-conflicto" aria-labelledby="titulo-por-conflicto">
+    <h3 id="titulo-por-conflicto" class="seccion-titulo">Avance por conflicto</h3>
+    <ul class="acordeon">
+      @for (c of porConflicto; track c.conflictoId) {
+        <li class="acordeon-item" [attr.data-conflicto]="c.conflictoId">
+          <div class="acordeon-cabecera">
+            <app-expand-arrow-button
+              [expandido]="estaDesplegado(c.conflictoId)"
+              [etiqueta]="'conflicto ' + c.conflictoId"
+              (alternar)="alternar(c.conflictoId)" />
+            <span class="acordeon-titulo">
+              <span class="acordeon-id">Conflicto #{{ c.conflictoId }}</span>
+              <span class="acordeon-personas">{{ personas(c.conflicto) }}</span>
+            </span>
+            <app-barra-avance class="acordeon-barra" [actividades]="c.actividades" [vistaResponsable]="true" />
+          </div>
+          @if (estaDesplegado(c.conflictoId)) {
+            <div class="acordeon-cuerpo">
+              @for (p of c.planes; track p.id) {
+                <div class="acordeon-plan">
+                  <a class="acordeon-plan-titulo" [routerLink]="rutaPlan(p.id)">{{ tituloPlan(p) }}</a>
+                  <ul class="acordeon-actividades">
+                    @for (a of p.actividades; track a.id) {
+                      <li>
+                        <span>{{ a.descripcion }}</span>
+                        <app-badge [tono]="tonoEstadoDe(a)" [texto]="textoEstadoDe(a)" />
+                      </li>
+                    }
+                  </ul>
+                </div>
+              }
+            </div>
+          }
+        </li>
+      }
+    </ul>
   </section>
 }

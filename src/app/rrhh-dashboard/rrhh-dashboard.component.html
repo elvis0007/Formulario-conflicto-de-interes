@@ -1,0 +1,177 @@
+<header class="encabezado">
+  <div>
+    <h2 class="titulo">Dashboard</h2>
+    <span class="codigo">Resumen de conflictos de interés y planes de acción</span>
+  </div>
+  @if (hayAnalisis && analisis) {
+    <div class="estado-analisis">
+      <span class="estado-analisis-texto">
+        Análisis {{ analisis.id }}
+        <app-badge [tono]="tonoEstadoAnalisis" [texto]="textoEstadoAnalisis" />
+      </span>
+      <span class="estado-analisis-fecha">Generado el {{ analisis.fechaGeneracion | fechaLarga }}</span>
+      <a class="enlace" [routerLink]="rutaAnalisis">Ir a Análisis →</a>
+    </div>
+  }
+</header>
+
+@if (cargando) {
+  <p class="cargando" role="status">Cargando el resumen…</p>
+} @else if (!hayAnalisis) {
+  <section class="tarjeta-vacia">
+    <app-empty-state
+      icono="analisis"
+      texto="Aún no se ha generado un análisis de conflictos."
+      [textoAccion]="generando ? 'Generando…' : 'Generar análisis'"
+      (accion)="generarAnalisis()" />
+  </section>
+} @else {
+  <div class="indicadores">
+    @for (i of indicadores; track i.clave) {
+      <app-kpi-card
+        [attr.data-indicador]="i.clave"
+        [titulo]="i.titulo"
+        [valor]="i.valor"
+        [tono]="i.tono"
+        [clicable]="true"
+        (seleccionado)="irA(i)" />
+    }
+  </div>
+
+  <div class="graficos">
+    <section class="tarjeta" aria-labelledby="titulo-riesgo">
+      <h3 id="titulo-riesgo" class="tarjeta-titulo">Conflictos por nivel de riesgo</h3>
+      <ul class="barras">
+        @for (b of porRiesgo; track b.clave) {
+          <li>
+            <button
+              type="button"
+              class="barra-fila barra-fila--clicable"
+              [attr.data-riesgo]="b.clave"
+              [attr.aria-label]="b.etiqueta + ': ' + cantidad(b.valor, 'conflicto', 'conflictos') + '. Ver en Análisis'"
+              [title]="b.etiqueta + ': ' + b.valor"
+              (click)="irARiesgo(b)">
+              <span class="barra-etiqueta">{{ b.etiqueta }}</span>
+              <span class="barra-pista" aria-hidden="true"><span class="barra-relleno" [style.width.%]="b.porcentaje"></span></span>
+              <span class="barra-valor">{{ b.valor }}</span>
+            </button>
+          </li>
+        }
+      </ul>
+    </section>
+
+    <section class="tarjeta" aria-labelledby="titulo-planes">
+      <h3 id="titulo-planes" class="tarjeta-titulo">Estado de los planes</h3>
+      <ul class="barras">
+        @for (b of porEstadoPlan; track b.clave) {
+          <li>
+            @if (esEstadoNavegable(b)) {
+              <button
+                type="button"
+                class="barra-fila barra-fila--clicable"
+                [attr.data-estado-plan]="b.clave"
+                [attr.aria-label]="b.etiqueta + ': ' + cantidad(b.valor, 'plan', 'planes') + '. Ver en el Informe General'"
+                [title]="b.etiqueta + ': ' + b.valor"
+                (click)="irAEstadoPlan(b)">
+                <span class="barra-etiqueta">{{ b.etiqueta }}</span>
+                <span class="barra-pista" aria-hidden="true"><span class="barra-relleno" [style.width.%]="b.porcentaje"></span></span>
+                <span class="barra-valor">{{ b.valor }}</span>
+              </button>
+            } @else {
+              <div class="barra-fila" [attr.data-estado-plan]="b.clave" role="img" [attr.aria-label]="b.etiqueta + ': ' + cantidad(b.valor, 'plan', 'planes')">
+                <span class="barra-etiqueta">{{ b.etiqueta }}</span>
+                <span class="barra-pista" aria-hidden="true"><span class="barra-relleno" [style.width.%]="b.porcentaje"></span></span>
+                <span class="barra-valor">{{ b.valor }}</span>
+              </div>
+            }
+          </li>
+        }
+      </ul>
+    </section>
+
+    <section class="tarjeta" aria-labelledby="titulo-actividades">
+      <h3 id="titulo-actividades" class="tarjeta-titulo">Estado de las actividades</h3>
+      <p class="tarjeta-sub">{{ totalActividades }} actividades de planes enviados</p>
+      <div class="apilada">
+        @for (s of actividades; track s.estado) {
+          <span
+            [class]="'apilada-segmento segmento--' + s.tono"
+            [style.width.%]="s.porcentaje"
+            [title]="textoSegmento(s)"></span>
+        }
+      </div>
+      <ul class="leyenda" aria-label="Actividades por estado">
+        @for (s of actividades; track s.estado) {
+          <li class="leyenda-item" [attr.data-estado]="s.estado">
+            <span [class]="'leyenda-muestra segmento--' + s.tono" aria-hidden="true"></span>
+            <span class="leyenda-texto">{{ s.etiqueta }}</span>
+            <span class="leyenda-valor">{{ s.valor }}</span>
+          </li>
+        }
+      </ul>
+    </section>
+  </div>
+
+  <div class="listas">
+    <section class="tarjeta" aria-labelledby="titulo-atencion">
+      <h3 id="titulo-atencion" class="tarjeta-titulo">Requiere atención</h3>
+
+      <h4 class="sub">Actividades vencidas</h4>
+      <ul class="items atencion-vencidas">
+        @for (v of vencidas; track v.actividad.id) {
+          <li class="item">
+            <span class="item-texto">
+              <span class="item-titulo">{{ v.actividad.descripcion }}</span>
+              <span class="item-meta">{{ referencia(v.plan) }} · {{ v.actividad.responsableNombre }}</span>
+            </span>
+            <span class="item-dato item-dato--vencida">{{ v.dias?.texto ?? fecha(v.fecha) }}</span>
+            <a class="enlace" [routerLink]="rutaPlan(v)">Ver plan →</a>
+          </li>
+        } @empty {
+          <li class="vacio">No hay actividades vencidas.</li>
+        }
+      </ul>
+
+      <h4 class="sub">Evidencias por revisar</h4>
+      <ul class="items atencion-evidencias">
+        @for (e of evidencias; track e.actividad.id) {
+          <li class="item">
+            <span class="item-texto">
+              <span class="item-titulo">{{ e.actividad.descripcion }}</span>
+              <span class="item-meta">{{ referencia(e.plan) }} · {{ e.actividad.responsableNombre }}</span>
+            </span>
+            <span class="item-dato">Subida el {{ fecha(e.fecha) }}</span>
+            <a class="enlace" [routerLink]="rutaRevision" [queryParams]="parametrosConflicto(e.plan.conflictoId)">Revisar →</a>
+          </li>
+        } @empty {
+          <li class="vacio">No hay evidencias por revisar.</li>
+        }
+      </ul>
+    </section>
+
+    <section class="tarjeta" aria-labelledby="titulo-reciente">
+      <div class="tarjeta-cabecera">
+        <h3 id="titulo-reciente" class="tarjeta-titulo">Actividad reciente</h3>
+        <a class="enlace" [routerLink]="rutaHistorial">Ver historial →</a>
+      </div>
+      <ul class="eventos">
+        @for (r of recientes; track $index) {
+          <li class="evento">
+            <span [class]="'punto punto--' + tonoEvento(r.evento.tipo)" aria-hidden="true"></span>
+            <span class="evento-texto">{{ r.evento.texto }}</span>
+            <span class="evento-meta">
+              @if (r.conflictoId) {
+                <a class="enlace" [routerLink]="rutaHistorial" [queryParams]="parametrosConflicto(r.conflictoId)">Conflicto #{{ r.conflictoId }}</a> ·
+              } @else {
+                Varios conflictos ·
+              }
+              {{ r.evento.fecha | fechaLarga }} · {{ r.evento.autor }}
+            </span>
+          </li>
+        } @empty {
+          <li class="vacio">Sin eventos todavía.</li>
+        }
+      </ul>
+    </section>
+  </div>
+}

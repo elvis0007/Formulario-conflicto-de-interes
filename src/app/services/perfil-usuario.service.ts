@@ -29,6 +29,9 @@ const RUTA_FUERA_DEL_MODULO = '/';
  */
 const CLAVE_EMPLEADO_SIMULADO = 'SISCI-DEV-EMPLEADO';
 
+/** Clave de `localStorage` que activa la sesion simulada de desarrollo. */
+const CLAVE_SESION_SIMULADA = 'SISCI-DEV-SESION-SIMULADA';
+
 /** Pantalla de inicio de RRHH. */
 const RUTA_INICIO_RRHH = RUTAS.rrhh.dashboard;
 
@@ -203,6 +206,18 @@ export class PerfilUsuarioService {
     }
 
     return usuario?.DMPER_CODIGO || usuario?.CODIGO || null;
+  }
+
+  /**
+   * Indica si la app usa la sesion simulada de desarrollo
+   * (`SISCI-DEV-SESION-SIMULADA`, ver docs/DESARROLLO_LOCAL.md). En
+   * produccion siempre es `false`.
+   *
+   * @returns `true` con la sesion simulada activa.
+   * @author Elvis Flores
+   */
+  esSesionSimulada(): boolean {
+    return !environment.production && this.leerLocalStorage(CLAVE_SESION_SIMULADA) === 'true';
   }
 
   /**

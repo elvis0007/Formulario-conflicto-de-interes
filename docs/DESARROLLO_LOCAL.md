@@ -97,8 +97,9 @@ Otros empleados útiles: `EMP-002` (una sola actividad, en revisión) y
 `EMP-003` (solo tiene una actividad en un borrador: dashboard y Bandeja
 vacíos).
 
-El saludo del dashboard usa el nombre de la sesión simulada («Usuario
-Desarrollo»), no el del empleado elegido. Las evidencias que se suben
+Con la sesión simulada, el saludo del dashboard del Responsable usa el
+nombre del empleado elegido (`SISCI-DEV-EMPLEADO`); la cabecera sigue
+mostrando el de la sesión («Usuario Desarrollo»). Las evidencias que se suben
 viven en una URL local (`blob:`) y se pierden al recargar.
 
 El mismo empleado decide **qué notificaciones muestra la campana**: las que

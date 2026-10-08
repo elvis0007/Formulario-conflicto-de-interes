@@ -339,3 +339,116 @@ function fechaCorta(fecha: string): string {
     return fecha;
   }
 }
+
+/**
+ * Estado de un conflicto en el Historial:
+ * - `activo`: tiene un plan activo (con o sin vencidas);
+ * - `borrador`: su plan vigente esta en borrador;
+ * - `cerrado`: todos sus planes estan cerrados;
+ * - `sin-plan`: confirmado o pendiente, sin ningun plan;
+ * - `archivado`: homonimo.
+ */
+export type EstadoConflictoHistorial = 'activo' | 'borrador' | 'cerrado' | 'sin-plan' | 'archivado';
+
+/** Texto de cada estado. */
+const TEXTO_ESTADO_CONFLICTO: Readonly<Record<EstadoConflictoHistorial, string>> = {
+  activo: 'Activo',
+  borrador: 'Plan en borrador',
+  cerrado: 'Cerrado',
+  'sin-plan': 'Sin plan',
+  archivado: 'Archivado'
+};
+
+/** Tono de cada estado. */
+const TONO_ESTADO_CONFLICTO: Readonly<Record<EstadoConflictoHistorial, Tono>> = {
+  activo: 'azul',
+  borrador: 'ambar',
+  cerrado: 'verde',
+  'sin-plan': 'gris',
+  archivado: 'gris'
+};
+
+/** Un conflicto en las tarjetas del Historial. */
+export interface ResumenHistorial {
+  conflicto: Conflicto;
+  /** Sus planes (incluidos los borradores), por numero. */
+  planes: PlanAccion[];
+  estado: EstadoConflictoHistorial;
+}
+
+/** Un evento reciente con su conflicto. */
+export interface EventoReciente {
+  evento: EventoHistorial;
+  /**
+   * Conflicto del evento; `null` si es de varios a la vez (p. ej. «Incluido
+   * en el análisis AN-001» o su validacion), que se muestra una sola vez.
+   */
+  conflictoId: string | null;
+}
+
+/**
+ * @param conflicto Conflicto.
+ * @param planes Sus planes.
+ * @returns Su estado en el Historial.
+ * @author Elvis Flores
+ */
+export function estadoDeConflicto(conflicto: Conflicto, planes: readonly PlanAccion[]): EstadoConflictoHistorial {
+  if (conflicto.clasificacion === 'homonimo') {
+    return 'archivado';
+  }
+  if (planes.some((p) => p.estado === 'activo' || p.estado === 'activo_vencidas')) {
+    return 'activo';
+  }
+  if (planes.some((p) => p.estado === 'borrador')) {
+    return 'borrador';
+  }
+  return planes.length > 0 ? 'cerrado' : 'sin-plan';
+}
+
+/** @param estado Estado. @returns Texto de la insignia. */
+export function textoEstadoConflicto(estado: EstadoConflictoHistorial): string {
+  return TEXTO_ESTADO_CONFLICTO[estado];
+}
+
+/** @param estado Estado. @returns Tono de la insignia. */
+export function tonoEstadoConflicto(estado: EstadoConflictoHistorial): Tono {
+  return TONO_ESTADO_CONFLICTO[estado];
+}
+
+/**
+ * Los eventos mas recientes de varios historiales, sin los que tienen
+ * fecha futura respecto de hoy. Un mismo evento de varios conflictos (los
+ * del analisis: mismo texto, fecha y autor) se cuenta una sola vez, sin
+ * conflicto.
+ *
+ * @param historiales Historiales.
+ * @param hoy Fecha de hoy.
+ * @param limite Cuantos devolver.
+ * @returns Eventos del mas reciente al mas antiguo.
+ * @author Elvis Flores
+ */
+export function eventosRecientes(
+  historiales: readonly HistorialConflicto[],
+  hoy: Date,
+  limite: number
+): EventoReciente[] {
+  const unicos = new Map<string, EventoReciente>();
+
+  for (const h of historiales) {
+    for (const evento of todosLosEventos(h)) {
+      const clave = evento.texto + '|' + evento.fecha + '|' + evento.autor;
+      const previo = unicos.get(clave);
+
+      if (previo === undefined) {
+        unicos.set(clave, { evento, conflictoId: h.conflicto.id });
+      } else if (previo.conflictoId !== h.conflicto.id) {
+        previo.conflictoId = null;
+      }
+    }
+  }
+
+  return [...unicos.values()]
+    .filter((e) => instanteDe(e.evento.fecha) <= hoy.getTime())
+    .sort((a, b) => instanteDe(b.evento.fecha) - instanteDe(a.evento.fecha))
+    .slice(0, limite);
+}

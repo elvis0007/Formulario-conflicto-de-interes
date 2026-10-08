@@ -462,4 +462,37 @@ describe('AnalisisConflictoComponent', () => {
         .toBe('Aún no hay análisis anteriores.');
     }));
   });
+
+  describe('Día 12: filtros por URL (desde el dashboard)', () => {
+    /**
+     * @param url URL con los filtros.
+     */
+    function abrirCon(url: string): void {
+      TestBed.inject(Router).navigateByUrl(url);
+      tick();
+      crear();
+    }
+
+    it('?clasificacion=pendiente&plan=sin-plan filtra y muestra la franja «Filtrando»', fakeAsync(() => {
+      generarEnServicio();
+      abrirCon('/?clasificacion=pendiente&plan=sin-plan');
+
+      expect(filas().length).toBe(3);
+      expect(limpio(raiz.querySelector('.franja-filtros span')?.textContent))
+        .toBe('Filtrando: Pendiente de revisión · Sin plan de acción');
+    }));
+
+    it('?riesgo= elige la píldora y se combina con la clasificación; «Limpiar filtros» los quita', fakeAsync(() => {
+      generarEnServicio();
+      abrirCon('/?riesgo=bajo&clasificacion=pendiente');
+
+      expect(filas().length).toBe(2);
+      expect(raiz.querySelector('app-pills button[aria-pressed="true"]')?.textContent).toContain('Bajo');
+      Array.from(raiz.querySelectorAll('button')).find((b) => b.textContent?.includes('Limpiar filtros'))?.click();
+      fixture.detectChanges();
+      tick();
+      expect(raiz.querySelector('.franja-filtros')).toBeNull();
+      expect(filas().length).toBe(5);
+    }));
+  });
 });

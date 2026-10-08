@@ -1,7 +1,14 @@
 import { AnalisisConflictos, Conflicto, EventoHistorial, PlanAccion } from '../models';
 import { CONFLICTOS } from '../services/mock-data/conflictos.data';
 import { PLANES } from '../services/mock-data/planes.data';
-import { AUTOR_SISTEMA, armarHistorial, instanteDe, todosLosEventos } from './historial.util';
+import {
+  AUTOR_SISTEMA,
+  armarHistorial,
+  estadoDeConflicto,
+  eventosRecientes,
+  instanteDe,
+  todosLosEventos
+} from './historial.util';
 
 describe('historial.util', () => {
   const HOY = new Date(2026, 9, 2, 10, 0);
@@ -121,5 +128,23 @@ describe('historial.util', () => {
 
     expect(instantes).toEqual([...instantes].sort((a, b) => a - b));
     expect(eventos.length).toBeGreaterThan(10);
+  });
+
+  it('estado del conflicto para las tarjetas', () => {
+    const estado = (id: string): string => estadoDeConflicto(conflicto(id), planes(id));
+
+    expect(['C-001', 'C-003', 'C-004', 'C-005', 'C-006', 'C-008'].map(estado))
+      .toEqual(['activo', 'borrador', 'cerrado', 'sin-plan', 'archivado', 'borrador']);
+  });
+
+  it('eventos recientes: de varios conflictos, del más nuevo al más viejo, sin fechas futuras', () => {
+    const historiales = ['C-001', 'C-002'].map((id) => armarHistorial(conflicto(id), planes(id), [], HOY));
+    const recientes = eventosRecientes(historiales, HOY, 5);
+    const instantes = recientes.map((r) => instanteDe(r.evento.fecha));
+
+    expect(recientes.length).toBe(5);
+    expect(instantes).toEqual([...instantes].sort((a, b) => b - a));
+    expect(instantes.every((i) => i <= HOY.getTime())).toBeTrue();
+    expect(new Set(recientes.map((r) => r.conflictoId))).toEqual(new Set(['C-001', 'C-002']));
   });
 });

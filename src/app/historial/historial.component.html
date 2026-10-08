@@ -3,148 +3,152 @@
     <h2 class="titulo">Historial</h2>
     <span class="codigo">Línea de tiempo de cada conflicto, sus planes y actividades</span>
   </div>
-  @if (historial) {
-    <button
-      type="button"
-      class="boton"
-      [class.boton--hecho]="descargado.activa"
-      [attr.aria-disabled]="descargado.activa"
-      (click)="descargarPdf()">
-      <app-icono [nombre]="descargado.activa ? 'check' : 'descargar'" [tamano]="16" />
-      {{ descargado.activa ? 'Descargado ✓' : 'Descargar PDF' }}
-    </button>
-  }
 </header>
 
 @if (cargando) {
   <p class="cargando" role="status">Cargando conflictos…</p>
 } @else {
-  <div class="disposicion">
-    <aside class="selector" aria-label="Conflictos">
-      <label class="campo">
-        <span class="campo-etiqueta">Buscar conflicto</span>
-        <input
-          type="search"
-          class="control buscador"
-          placeholder="Número o nombre"
-          [value]="busqueda"
-          (input)="buscar($event)" />
-      </label>
-      <ul class="lista-conflictos">
-        @for (c of conflictosFiltrados; track c.id) {
-          <li>
-            <button
-              type="button"
-              class="opcion-conflicto"
-              [class.opcion-conflicto--elegida]="c.id === seleccionadoId"
-              [attr.aria-pressed]="c.id === seleccionadoId"
-              (click)="elegir(c.id)">
-              <span class="opcion-id">Conflicto #{{ c.id }}</span>
-              <span class="opcion-personas">{{ c.personaA.nombres }} · {{ c.personaB.nombres }}</span>
-            </button>
+  <div class="barra-filtros">
+    <app-pills
+      etiquetaGrupo="Filtrar conflictos"
+      [opciones]="opcionesFiltro"
+      [seleccionado]="filtro"
+      (cambio)="elegirFiltro($event)" />
+    <label class="campo campo--buscador">
+      <span class="campo-etiqueta">Buscar</span>
+      <input
+        type="search"
+        class="control buscador"
+        placeholder="Número o nombre"
+        [value]="busqueda"
+        (input)="buscar($event)" />
+    </label>
+  </div>
+
+  @if (visibles.length === 0) {
+    <section class="tarjeta-vacia">
+      <app-empty-state icono="buscar" texto="Ningún conflicto coincide." />
+    </section>
+  } @else {
+    <div class="cuadricula">
+      @for (r of visibles; track r.conflicto.id) {
+        <button type="button" class="tarjeta" [attr.data-conflicto]="r.conflicto.id" (click)="abrir(r.conflicto.id)">
+          <span class="tarjeta-cabecera">
+            <span class="tarjeta-id">Conflicto #{{ r.conflicto.id }}</span>
+            <app-badge class="tarjeta-estado" [tono]="tonoEstado(r)" [texto]="textoEstado(r)" />
+          </span>
+          <span class="tarjeta-personas">{{ r.conflicto.personaA.nombres }} · {{ r.conflicto.personaB.nombres }}</span>
+          <span class="tarjeta-parentesco">{{ parentesco(r.conflicto) }}</span>
+          <span class="tarjeta-pie">
+            <app-badge class="tarjeta-riesgo" [tono]="tonoRiesgo(r.conflicto)" [texto]="textoRiesgo(r.conflicto)" />
+            <span class="tarjeta-planes">{{ textoPlanes(r) }}</span>
+          </span>
+          <span class="tarjeta-deteccion">Detectado el {{ fecha(r.conflicto.fechaDeteccion) }}</span>
+        </button>
+      }
+    </div>
+  }
+}
+
+<app-modal [titulo]="tituloModal" ancho="ancho" [abierto]="abiertoId !== null" (cerrar)="cerrar()">
+  @if (historial) {
+    <app-badge appModalCabecera [tono]="tonoRiesgo(historial.conflicto)" [texto]="textoRiesgo(historial.conflicto)" />
+  }
+
+  @if (cargandoHistorial && !historial) {
+    <p class="cargando" role="status">Cargando historial…</p>
+  } @else if (historial) {
+    <div class="caso">
+      <p class="caso-personas">{{ historial.conflicto.personaA.nombres }} · {{ historial.conflicto.personaB.nombres }}</p>
+      <p class="caso-parentesco">{{ parentesco(historial.conflicto) }}</p>
+    </div>
+
+    <div class="barra">
+      <app-pills
+        etiquetaGrupo="Filtrar por tipo de evento"
+        [opciones]="opcionesTipo"
+        [seleccionado]="filtroTipo"
+        (cambio)="elegirTipo($event)" />
+      <div class="acciones">
+        <button type="button" class="boton boton--chico" (click)="expandirTodo(true)">Expandir todo</button>
+        <button type="button" class="boton boton--chico" (click)="expandirTodo(false)">Contraer todo</button>
+        <button
+          type="button"
+          class="boton boton--chico"
+          [class.boton--hecho]="descargado.activa"
+          [attr.aria-disabled]="descargado.activa"
+          (click)="descargarPdf()">
+          <app-icono [nombre]="descargado.activa ? 'check' : 'descargar'" [tamano]="14" />
+          {{ descargado.activa ? 'Descargado ✓' : 'Descargar PDF' }}
+        </button>
+      </div>
+    </div>
+
+    <ng-template #listaEventos let-eventos>
+      <ul class="eventos">
+        @for (e of eventosVisibles(eventos); track $index) {
+          <li class="evento" [attr.data-tipo]="e.tipo">
+            <span [class]="'punto punto--' + tonoEvento(e.tipo)" aria-hidden="true"></span>
+            <span class="evento-texto">{{ e.texto }}</span>
+            <span class="evento-meta">{{ e.fecha | fechaLarga }} · {{ e.autor }}</span>
           </li>
         } @empty {
-          <li class="sin-conflictos">Ningún conflicto coincide.</li>
+          <li class="sin-eventos">Sin eventos de este tipo.</li>
         }
       </ul>
-    </aside>
+    </ng-template>
 
-    <section class="linea" aria-live="polite">
-      @if (cargandoHistorial && !historial) {
-        <p class="cargando" role="status">Cargando historial…</p>
-      } @else if (!historial) {
-        <div class="tarjeta-vacia">
-          <app-empty-state icono="buscar" texto="Elige un conflicto para ver su historial." />
+    <ul class="arbol">
+      <li class="nodo nodo--conflicto">
+        <div class="nodo-cabecera">
+          <app-expand-arrow-button
+            [expandido]="estaAbierto(claveConflicto)"
+            etiqueta="eventos del conflicto"
+            (alternar)="alternar(claveConflicto)" />
+          <span class="nodo-titulo">Eventos del conflicto</span>
+          <span class="nodo-conteo">{{ eventosVisibles(historial.eventos).length }}</span>
         </div>
-      } @else {
-        <div class="caso">
-          <div class="caso-titulo">
-            <h3 class="caso-id">Conflicto #{{ historial.conflicto.id }}</h3>
-            <app-badge [tono]="tonoRiesgo(historial.conflicto)" [texto]="textoRiesgo(historial.conflicto)" />
+        @if (estaAbierto(claveConflicto)) {
+          <ng-container *ngTemplateOutlet="listaEventos; context: { $implicit: historial.eventos }" />
+        }
+      </li>
+
+      @for (p of historial.planes; track p.plan.id) {
+        <li class="nodo nodo--plan" [attr.data-plan]="p.plan.id">
+          <div class="nodo-cabecera">
+            <app-expand-arrow-button
+              [expandido]="estaAbierto(clavePlan(p.plan.id))"
+              [etiqueta]="tituloPlan(p.plan)"
+              (alternar)="alternar(clavePlan(p.plan.id))" />
+            <span class="nodo-titulo">{{ tituloPlan(p.plan) }}</span>
+            <app-badge [tono]="tonoEstadoPlan(p.plan)" [texto]="textoEstadoPlan(p.plan)" />
           </div>
-          <p class="caso-personas">{{ historial.conflicto.personaA.nombres }} · {{ historial.conflicto.personaB.nombres }}</p>
-          <p class="caso-parentesco">{{ parentesco(historial.conflicto) }}</p>
-        </div>
-
-        <div class="barra">
-          <app-pills
-            etiquetaGrupo="Filtrar por tipo de evento"
-            [opciones]="opcionesTipo"
-            [seleccionado]="filtroTipo"
-            (cambio)="elegirTipo($event)" />
-          <div class="acciones">
-            <button type="button" class="boton boton--chico" (click)="expandirTodo(true)">Expandir todo</button>
-            <button type="button" class="boton boton--chico" (click)="expandirTodo(false)">Contraer todo</button>
-          </div>
-        </div>
-
-        <ng-template #listaEventos let-eventos>
-          <ul class="eventos">
-            @for (e of visibles(eventos); track $index) {
-              <li class="evento" [attr.data-tipo]="e.tipo">
-                <span class="punto" [class]="'punto punto--' + tonoEvento(e.tipo)" aria-hidden="true"></span>
-                <span class="evento-texto">{{ e.texto }}</span>
-                <span class="evento-meta">{{ e.fecha | fechaLarga }} · {{ e.autor }}</span>
-              </li>
-            } @empty {
-              <li class="sin-eventos">Sin eventos de este tipo.</li>
-            }
-          </ul>
-        </ng-template>
-
-        <ul class="arbol">
-          <li class="nodo nodo--conflicto">
-            <div class="nodo-cabecera">
-              <app-expand-arrow-button
-                [expandido]="estaAbierto(claveConflicto)"
-                etiqueta="eventos del conflicto"
-                (alternar)="alternar(claveConflicto)" />
-              <span class="nodo-titulo">Eventos del conflicto</span>
-              <span class="nodo-conteo">{{ visibles(historial.eventos).length }}</span>
-            </div>
-            @if (estaAbierto(claveConflicto)) {
-              <ng-container *ngTemplateOutlet="listaEventos; context: { $implicit: historial.eventos }" />
-            }
-          </li>
-
-          @for (p of historial.planes; track p.plan.id) {
-            <li class="nodo nodo--plan" [attr.data-plan]="p.plan.id">
-              <div class="nodo-cabecera">
-                <app-expand-arrow-button
-                  [expandido]="estaAbierto(clavePlan(p.plan.id))"
-                  [etiqueta]="tituloPlan(p.plan)"
-                  (alternar)="alternar(clavePlan(p.plan.id))" />
-                <span class="nodo-titulo">{{ tituloPlan(p.plan) }}</span>
-                <app-badge [tono]="tonoEstadoPlan(p.plan)" [texto]="textoEstadoPlan(p.plan)" />
-              </div>
-              @if (estaAbierto(clavePlan(p.plan.id))) {
-                <div class="nodo-cuerpo">
-                  <ng-container *ngTemplateOutlet="listaEventos; context: { $implicit: p.eventos }" />
-                  <ul class="actividades">
-                    @for (a of p.actividades; track a.actividad.id) {
-                      <li class="nodo nodo--actividad" [attr.data-actividad]="a.actividad.id">
-                        <div class="nodo-cabecera">
-                          <app-expand-arrow-button
-                            [expandido]="estaAbierto(claveActividad(a.actividad.id))"
-                            [etiqueta]="'actividad ' + a.actividad.id"
-                            (alternar)="alternar(claveActividad(a.actividad.id))" />
-                          <span class="nodo-titulo nodo-titulo--actividad">{{ a.actividad.descripcion }}</span>
-                          <app-badge [tono]="tonoEstadoActividad(a.actividad.estado)" [texto]="textoEstadoActividad(a.actividad.estado)" />
-                        </div>
-                        @if (estaAbierto(claveActividad(a.actividad.id))) {
-                          <ng-container *ngTemplateOutlet="listaEventos; context: { $implicit: a.eventos }" />
-                        }
-                      </li>
+          @if (estaAbierto(clavePlan(p.plan.id))) {
+            <div class="nodo-cuerpo">
+              <ng-container *ngTemplateOutlet="listaEventos; context: { $implicit: p.eventos }" />
+              <ul class="actividades">
+                @for (a of p.actividades; track a.actividad.id) {
+                  <li class="nodo nodo--actividad" [attr.data-actividad]="a.actividad.id">
+                    <div class="nodo-cabecera">
+                      <app-expand-arrow-button
+                        [expandido]="estaAbierto(claveActividad(a.actividad.id))"
+                        [etiqueta]="'actividad ' + a.actividad.id"
+                        (alternar)="alternar(claveActividad(a.actividad.id))" />
+                      <span class="nodo-titulo nodo-titulo--actividad">{{ a.actividad.descripcion }}</span>
+                      <app-badge [tono]="tonoEstadoActividad(a.actividad.estado)" [texto]="textoEstadoActividad(a.actividad.estado)" />
+                    </div>
+                    @if (estaAbierto(claveActividad(a.actividad.id))) {
+                      <ng-container *ngTemplateOutlet="listaEventos; context: { $implicit: a.eventos }" />
                     }
-                  </ul>
-                </div>
-              }
-            </li>
-          } @empty {
-            <li class="sin-planes">El conflicto no tiene planes de acción.</li>
+                  </li>
+                }
+              </ul>
+            </div>
           }
-        </ul>
+        </li>
+      } @empty {
+        <li class="sin-planes">El conflicto no tiene planes de acción.</li>
       }
-    </section>
-  </div>
-}
+    </ul>
+  }
+</app-modal>

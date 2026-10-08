@@ -1,0 +1,12 @@
+<div class="avance">
+  <div class="barra" role="img" [attr.aria-label]="texto">
+    @for (s of segmentos; track s.id) {
+      <span class="segmento" [class]="'segmento segmento--' + s.tono" [title]="s.titulo"></span>
+    } @empty {
+      <span class="segmento segmento--vacio"></span>
+    }
+  </div>
+  @if (mostrarTexto) {
+    <span class="texto" aria-hidden="true">{{ texto }}</span>
+  }
+</div>

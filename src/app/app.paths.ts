@@ -92,6 +92,23 @@ export function rutaPlanResponsable(planId: string): string {
 export const PARAMETRO_ESTADO = 'estado';
 
 /**
+ * Filtros por URL de Análisis de Conflictos (los usa el dashboard de RRHH):
+ * `?riesgo=alto`, `?clasificacion=pendiente`, `?plan=sin-plan`.
+ */
+export const PARAMETRO_RIESGO = 'riesgo';
+export const PARAMETRO_CLASIFICACION = 'clasificacion';
+export const PARAMETRO_PLAN = 'plan';
+
+/** Valor de `?plan=`: casos que aun no tienen ningun plan de accion. */
+export const VALOR_SIN_PLAN = 'sin-plan';
+
+/**
+ * Abre un conflicto concreto: en Historial abre su arbol y en Revisión de
+ * Evidencias su modal (`?conflicto=C-001`).
+ */
+export const PARAMETRO_CONFLICTO = 'conflicto';
+
+/**
  * Prefijos de las rutas de gestion de conflictos. Su acceso lo controla
  * `rolGuard`, no `authGuard`.
  */

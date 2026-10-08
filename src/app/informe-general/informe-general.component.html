@@ -17,16 +17,22 @@
 @if (cargando) {
   <p class="cargando" role="status">Cargando el informe…</p>
 } @else {
-  <h3 class="banda">Filtros</h3>
-  <div class="filtros">
-    <label class="campo">
-      <span class="campo-etiqueta">Estado del plan</span>
-      <select class="control filtro-estado" [value]="filtros.estado" (change)="cambiarFiltro('estado', $event)">
-        <option [value]="todos" [selected]="filtros.estado === todos">Todos</option>
-        @for (e of estados; track e) {
-          <option [value]="e" [selected]="filtros.estado === e">{{ textoEstadoPlan(e) }}</option>
-        }
-      </select>
+  <app-pills
+    class="filtro-estado"
+    etiquetaGrupo="Filtrar por estado del plan"
+    [opciones]="opcionesEstado"
+    [seleccionado]="filtros.estado"
+    (cambio)="elegirEstado($event)" />
+
+  <div class="filtros-linea">
+    <label class="campo campo--buscador">
+      <span class="campo-etiqueta">Buscar</span>
+      <input
+        type="search"
+        class="control filtro-texto"
+        placeholder="Nombre o número de conflicto"
+        [value]="filtros.texto"
+        (input)="cambiarFiltro('texto', $event)" />
     </label>
     <label class="campo">
       <span class="campo-etiqueta">Riesgo</span>
@@ -45,15 +51,6 @@
           <option [value]="r.id" [selected]="filtros.responsableId === r.id">{{ r.nombre }}</option>
         }
       </select>
-    </label>
-    <label class="campo campo--buscador">
-      <span class="campo-etiqueta">Buscar</span>
-      <input
-        type="search"
-        class="control filtro-texto"
-        placeholder="Nombre o número de conflicto"
-        [value]="filtros.texto"
-        (input)="cambiarFiltro('texto', $event)" />
     </label>
     @if (hayFiltros) {
       <button type="button" class="boton limpiar" (click)="limpiarFiltros()">Limpiar filtros</button>
@@ -77,55 +74,80 @@
       <table class="tabla">
         <thead>
           <tr>
-            <th scope="col" class="col-chevron"><span class="lector">Expandir</span></th>
-            <th scope="col">Actividad</th>
-            <th scope="col">Responsable</th>
-            <th scope="col">Plazo</th>
-            <th scope="col">Fecha límite</th>
+            <th scope="col" class="col-chevron"><span class="lector">Desplegar</span></th>
+            <th scope="col">Conflicto</th>
+            <th scope="col">Empleado / Familiar</th>
+            <th scope="col">Parentesco</th>
+            <th scope="col">Riesgo</th>
+            <th scope="col">Planes</th>
+            <th scope="col">Avance</th>
             <th scope="col">Estado</th>
-            <th scope="col">Evidencia</th>
           </tr>
         </thead>
         @for (g of visibles; track g.conflicto.id) {
           <tbody class="grupo" [attr.data-conflicto]="g.conflicto.id">
-            <tr class="fila-grupo">
+            <tr class="fila-grupo" [class.fila-grupo--abierta]="estaExpandido(g.conflicto.id)">
               <td class="col-chevron">
                 <app-expand-arrow-button
                   [expandido]="estaExpandido(g.conflicto.id)"
-                  [etiqueta]="'actividades del conflicto ' + g.conflicto.id"
-                  [controla]="'actividades-' + g.conflicto.id"
+                  [etiqueta]="'planes del conflicto ' + g.conflicto.id"
+                  [controla]="'planes-' + g.conflicto.id"
                   (alternar)="alternar(g.conflicto.id)" />
               </td>
-              <td colspan="6">
-                <div class="grupo-cabecera">
-                  <a class="grupo-conflicto" [routerLink]="rutaPlan(g)" [title]="'Abrir el plan en Plan de Acción'">
-                    Conflicto #{{ g.conflicto.id }}
-                  </a>
-                  <span class="grupo-personas">{{ g.conflicto.personaA.nombres }} · {{ g.conflicto.personaB.nombres }}</span>
-                  <app-badge class="grupo-riesgo" [tono]="tonoRiesgo(g.conflicto.riesgo)" [texto]="'Riesgo ' + textoRiesgo(g.conflicto.riesgo).toLowerCase()" />
-                  <span class="grupo-plan">{{ tituloPlan(g.plan) }}</span>
-                  <app-badge class="grupo-estado" [tono]="tonoEstadoPlan(g.plan.estado)" [texto]="textoEstadoPlan(g.plan.estado)" />
-                  <span class="grupo-avance">{{ avance(g.plan) }}</span>
-                </div>
+              <td>
+                <a class="grupo-conflicto" [routerLink]="rutaPlan(g)" title="Abrir el plan actual en Plan de Acción">#{{ g.conflicto.id }}</a>
               </td>
+              <td class="grupo-personas">
+                <span class="persona">{{ g.conflicto.personaA.nombres }}</span>
+                <span class="persona persona--b">{{ g.conflicto.personaB.nombres }}</span>
+              </td>
+              <td class="grupo-parentesco">{{ parentesco(g.conflicto) }}</td>
+              <td><app-badge class="grupo-riesgo" [tono]="tonoRiesgo(g.conflicto.riesgo)" [texto]="textoRiesgo(g.conflicto.riesgo)" /></td>
+              <td class="grupo-planes sin-salto">{{ textoPlanes(g) }}</td>
+              <td class="col-avance"><app-barra-avance class="grupo-avance" [actividades]="g.plan.actividades" /></td>
+              <td><app-badge class="grupo-estado" [tono]="tonoEstadoPlan(g.plan.estado)" [texto]="textoEstadoPlan(g.plan.estado)" /></td>
             </tr>
             @if (estaExpandido(g.conflicto.id)) {
-              @for (a of g.actividades; track a.id) {
-                <tr class="fila-actividad" [id]="$first ? 'actividades-' + g.conflicto.id : null">
-                  <td class="col-chevron"></td>
-                  <td class="actividad-descripcion">{{ a.descripcion }}</td>
-                  <td>{{ a.responsableNombre }}</td>
-                  <td class="sin-salto">{{ plazo(a) }}</td>
-                  <td class="sin-salto" [class.vencida]="vencida(a)">{{ fecha(a.fechaLimite) || '—' }}</td>
-                  <td><app-badge [tono]="tonoEstadoActividad(a)" [texto]="textoEstadoActividad(a)" /></td>
-                  <td class="sin-salto">{{ a.evidencia ? fecha(a.evidencia.fechaSubida) : '—' }}</td>
-                </tr>
-              } @empty {
-                <tr class="fila-actividad">
-                  <td class="col-chevron"></td>
-                  <td colspan="6" class="sin-actividades">El plan no tiene actividades.</td>
-                </tr>
-              }
+              <tr class="fila-planes" [id]="'planes-' + g.conflicto.id">
+                <td colspan="8">
+                  @for (b of g.bloques; track b.plan.id) {
+                    <section class="bloque-plan" [attr.data-plan]="b.plan.id">
+                      <header class="bloque-cabecera">
+                        <span class="bloque-titulo">{{ tituloPlan(b.plan) }}</span>
+                        <app-badge [tono]="tonoEstadoPlan(b.plan.estado)" [texto]="textoEstadoPlan(b.plan.estado)" />
+                        @if (b.plan.fechaInicio) {
+                          <span class="bloque-dato">Inicio: {{ fecha(b.plan.fechaInicio) }}</span>
+                        }
+                        <span class="bloque-dato bloque-avance">{{ avance(b.plan) }}</span>
+                      </header>
+                      <table class="tabla-actividades">
+                        <thead>
+                          <tr>
+                            <th scope="col">Actividad</th>
+                            <th scope="col">Responsable</th>
+                            <th scope="col">Plazo</th>
+                            <th scope="col">Fecha límite</th>
+                            <th scope="col">Estado</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          @for (a of b.actividades; track a.id) {
+                            <tr class="fila-actividad">
+                              <td class="actividad-descripcion">{{ a.descripcion }}</td>
+                              <td>{{ a.responsableNombre }}</td>
+                              <td class="sin-salto">{{ plazo(a) }}</td>
+                              <td class="sin-salto" [class.vencida]="vencida(a)">{{ fecha(a.fechaLimite) || '—' }}</td>
+                              <td><app-badge [tono]="tonoEstadoActividad(a)" [texto]="textoEstadoActividad(a)" /></td>
+                            </tr>
+                          } @empty {
+                            <tr><td colspan="5" class="sin-actividades">El plan no tiene actividades.</td></tr>
+                          }
+                        </tbody>
+                      </table>
+                    </section>
+                  }
+                </td>
+              </tr>
             }
           </tbody>
         }

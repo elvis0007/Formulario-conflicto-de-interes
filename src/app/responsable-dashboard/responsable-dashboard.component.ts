@@ -1,13 +1,19 @@
 import { Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router, RouterLink } from '@angular/router';
+import { Observable, forkJoin, map, of } from 'rxjs';
 import { PARAMETRO_ESTADO, RUTAS, rutaPlanResponsable } from '../app.paths';
-import { PlanDeResponsable } from '../models';
+import { Actividad, Conflicto, PlanAccion, PlanDeResponsable } from '../models';
+import { ConflictosMockService } from '../services/conflictos-mock.service';
 import { PerfilUsuarioService } from '../services/perfil-usuario.service';
+import { PersonasMockService } from '../services/personas-mock.service';
 import { PlanesMockService } from '../services/planes-mock.service';
 import { BadgeComponent } from '../shared/badge/badge.component';
+import { BarraAvanceComponent } from '../shared/barra-avance/barra-avance.component';
 import { EmptyStateComponent } from '../shared/empty-state/empty-state.component';
+import { ExpandArrowButtonComponent } from '../shared/expand-arrow-button/expand-arrow-button.component';
 import { KpiCardComponent } from '../shared/kpi-card/kpi-card.component';
+import { DiasRestantes, calcularDiasRestantes } from '../utils/fechas.util';
 import { RELOJ } from '../utils/reloj';
 import {
   ActividadProxima,
@@ -29,27 +35,61 @@ export interface IndicadorResponsable {
   tono: Tono;
 }
 
+/** Una actividad abierta (sin aprobar) con su contexto. */
+export interface ActividadAbierta {
+  actividad: Actividad;
+  plan: PlanAccion;
+  conflicto: Conflicto | null;
+  /** Dias para la fecha limite; no se muestran si esta en revision. */
+  dias: DiasRestantes | null;
+  /** Texto del boton: «Subir evidencia», «Volver a subir» o «Ver plan». */
+  accion: string;
+}
+
+/** Un conflicto del acordeon «Avance por conflicto». */
+export interface AvanceConflicto {
+  conflictoId: string;
+  conflicto: Conflicto | null;
+  /** Sus planes, cada uno con solo las actividades del responsable. */
+  planes: PlanAccion[];
+  /** Todas sus actividades en ese conflicto (para la barra). */
+  actividades: Actividad[];
+}
+
 /** Meses abreviados para la cajita de fecha. */
 const MESES_CORTOS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+
+/** Orden de «Mis actividades abiertas»: lo que hay que corregir primero. */
+const ORDEN_ABIERTAS: readonly Actividad['estado'][] = ['rechazada', 'vencida', 'pendiente', 'en_revision'];
 
 /**
  * Dashboard del Responsable (especificacion §6.11).
  *
- * - Saludo con su nombre y acceso a la Bandeja de Tareas.
+ * - Saludo con su nombre (en la sesion simulada, el del empleado elegido
+ *   con `SISCI-DEV-EMPLEADO`) y «Ir a mi bandeja».
  * - Alerta si tiene actividades vencidas.
  * - Indicadores (pendientes, en revisión, rechazadas, vencidas,
  *   aprobadas): cada uno abre la Bandeja con ese filtro (`?estado=`).
- * - «Próximas a vencer»: sus actividades pendientes o rechazadas por fecha
- *   limite, con los dias restantes y el enlace a su plan.
+ * - «Avance general»: barra segmentada de todas sus actividades.
+ * - «Mis actividades abiertas»: conflicto, personas, plan, estado, dias y
+ *   «Subir evidencia» / «Volver a subir».
+ * - «Próximas a vencer» (los «Próximos vencimientos» de la §6.11).
+ * - «Avance por conflicto»: acordeon conflicto › plan › actividades.
  *
- * Solo cuenta las actividades del empleado actual
- * (`PerfilUsuarioService.obtenerEmpleadoActualId()`) en planes enviados.
+ * Solo cuenta sus actividades en planes enviados.
  *
  * @author Elvis Flores
  */
 @Component({
   selector: 'app-responsable-dashboard',
-  imports: [BadgeComponent, EmptyStateComponent, KpiCardComponent, RouterLink],
+  imports: [
+    BadgeComponent,
+    BarraAvanceComponent,
+    EmptyStateComponent,
+    ExpandArrowButtonComponent,
+    KpiCardComponent,
+    RouterLink
+  ],
   templateUrl: './responsable-dashboard.component.html',
   styleUrl: './responsable-dashboard.component.scss'
 })
@@ -69,19 +109,33 @@ export class ResponsableDashboardComponent implements OnInit {
   /** Indicadores clicables. */
   indicadores: IndicadorResponsable[] = [];
 
+  /** Todas sus actividades (barra de avance general). */
+  actividades: Actividad[] = [];
+
+  /** «Mis actividades abiertas». */
+  abiertas: ActividadAbierta[] = [];
+
   /** «Próximas a vencer». */
   proximas: ActividadProxima[] = [];
 
+  /** «Avance por conflicto». */
+  porConflicto: AvanceConflicto[] = [];
+
   readonly rutaBandeja = RUTAS.responsable.planes;
 
+  /** Conflictos desplegados en el acordeon. */
+  private readonly desplegados = new Set<string>();
+
   private readonly planesServicio = inject(PlanesMockService);
+  private readonly conflictosServicio = inject(ConflictosMockService);
+  private readonly personasServicio = inject(PersonasMockService);
   private readonly perfil = inject(PerfilUsuarioService);
   private readonly router = inject(Router);
   private readonly reloj = inject(RELOJ);
   private readonly destroyRef = inject(DestroyRef);
 
   /**
-   * Carga los planes del responsable y calcula indicadores y vencimientos.
+   * Carga sus planes, los conflictos y el nombre del saludo.
    */
   ngOnInit(): void {
     const empleadoId = this.perfil.obtenerEmpleadoActualId();
@@ -92,12 +146,17 @@ export class ResponsableDashboardComponent implements OnInit {
       return;
     }
 
-    this.planesServicio.obtenerPlanesDeResponsable(empleadoId)
+    forkJoin({
+      planes: this.planesServicio.obtenerPlanesDeResponsable(empleadoId),
+      conflictos: this.conflictosServicio.obtenerConflictos(),
+      nombre: this.nombreDelSaludo(empleadoId)
+    })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (planes) => {
+        next: ({ planes, conflictos, nombre }) => {
           this.cargando = false;
-          this.calcular(planes);
+          this.nombre = nombre;
+          this.calcular(planes, new Map(conflictos.map((c) => [c.id, c])));
         },
         error: (err: unknown) => {
           this.cargando = false;
@@ -122,6 +181,30 @@ export class ResponsableDashboardComponent implements OnInit {
    */
   rutaPlan(planId: string): string {
     return rutaPlanResponsable(planId);
+  }
+
+  /** @param conflictoId Conflicto. @returns `true` si esta desplegado. */
+  estaDesplegado(conflictoId: string): boolean {
+    return this.desplegados.has(conflictoId);
+  }
+
+  /** @param conflictoId Conflicto a desplegar o plegar. */
+  alternar(conflictoId: string): void {
+    if (this.desplegados.has(conflictoId)) {
+      this.desplegados.delete(conflictoId);
+    } else {
+      this.desplegados.add(conflictoId);
+    }
+  }
+
+  /** @param a Actividad. @returns Texto del estado (vista del Responsable). */
+  textoEstadoDe(a: Actividad): string {
+    return textoEstadoActividad(a.estado, true);
+  }
+
+  /** @param a Actividad. @returns Tono de su estado. */
+  tonoEstadoDe(a: Actividad): Tono {
+    return mapearEstadoActividadATono(a.estado, true);
   }
 
   /**
@@ -158,15 +241,38 @@ export class ResponsableDashboardComponent implements OnInit {
     return 'Plan ' + String(plan.numero).padStart(2, '0') + ' · ' + plan.nombre;
   }
 
+  /** @param c Conflicto. @returns «Persona A y Persona B», o vacio. */
+  personas(c: Conflicto | null): string {
+    return c ? c.personaA.nombres + ' y ' + c.personaB.nombres : '';
+  }
+
+  /**
+   * Nombre del saludo: en la sesion simulada, el del empleado elegido
+   * (`SISCI-DEV-EMPLEADO`), no el de la sesion («Usuario Desarrollo»).
+   *
+   * @param empleadoId Empleado actual.
+   * @returns El nombre a mostrar.
+   */
+  private nombreDelSaludo(empleadoId: string): Observable<string> {
+    const deSesion = this.perfil.obtenerNombreUsuario();
+
+    if (!this.perfil.esSesionSimulada()) {
+      return of(deSesion);
+    }
+    return this.personasServicio.obtenerPersonaPorId(empleadoId).pipe(map((p) => p?.nombres ?? deSesion));
+  }
+
   /**
    * @param planes Planes del responsable.
+   * @param conflictos Conflictos por id.
    */
-  private calcular(planes: PlanDeResponsable[]): void {
-    const actividades = actividadesDe(planes);
+  private calcular(planes: PlanDeResponsable[], conflictos: Map<string, Conflicto>): void {
+    const hoy = this.reloj();
 
-    this.totalActividades = actividades.length;
-    this.conteo = contarEstados(actividades);
-    this.proximas = proximasAVencer(planes, this.reloj());
+    this.actividades = actividadesDe(planes);
+    this.totalActividades = this.actividades.length;
+    this.conteo = contarEstados(this.actividades);
+    this.proximas = proximasAVencer(planes, hoy);
     this.indicadores = [
       { filtro: 'pendiente', titulo: 'Pendientes', valor: this.conteo.pendiente, tono: 'ambar' },
       { filtro: 'en_revision', titulo: 'En revisión', valor: this.conteo.en_revision, tono: 'azul' },
@@ -174,5 +280,46 @@ export class ResponsableDashboardComponent implements OnInit {
       { filtro: 'vencida', titulo: 'Vencidas', valor: this.conteo.vencida, tono: 'rojo' },
       { filtro: 'aprobada', titulo: 'Aprobadas', valor: this.conteo.aprobada, tono: 'verde' }
     ];
+    this.abiertas = planes
+      .flatMap(({ plan }) => plan.actividades
+        .filter((a) => a.estado !== 'aprobada')
+        .map((actividad): ActividadAbierta => ({
+          actividad,
+          plan,
+          conflicto: conflictos.get(plan.conflictoId) ?? null,
+          dias: actividad.estado === 'en_revision' ? null : this.dias(actividad, hoy),
+          accion: actividad.estado === 'rechazada' ? 'Volver a subir'
+            : actividad.estado === 'en_revision' ? 'Ver plan' : 'Subir evidencia'
+        })))
+      .sort((a, b) => ORDEN_ABIERTAS.indexOf(a.actividad.estado) - ORDEN_ABIERTAS.indexOf(b.actividad.estado)
+        || (a.dias?.dias ?? 0) - (b.dias?.dias ?? 0));
+
+    const porId = new Map<string, AvanceConflicto>();
+    for (const { plan } of planes) {
+      const grupo = porId.get(plan.conflictoId)
+        ?? { conflictoId: plan.conflictoId, conflicto: conflictos.get(plan.conflictoId) ?? null, planes: [], actividades: [] };
+
+      grupo.planes.push(plan);
+      grupo.actividades.push(...plan.actividades);
+      porId.set(plan.conflictoId, grupo);
+    }
+    this.porConflicto = [...porId.values()];
+  }
+
+  /**
+   * @param actividad Actividad.
+   * @param hoy Hoy.
+   * @returns Dias para su fecha limite, o `null` si no tiene.
+   */
+  private dias(actividad: Actividad, hoy: Date): DiasRestantes | null {
+    if (!actividad.fechaLimite) {
+      return null;
+    }
+    try {
+      return calcularDiasRestantes(actividad.fechaLimite, hoy);
+    } catch (err) {
+      console.error('[ResponsableDashboardComponent.dias]', err);
+      return null;
+    }
   }
 }
