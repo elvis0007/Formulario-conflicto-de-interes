@@ -1,91 +1,138 @@
-// Estilo tomado de «Formularios recibidos» de la app host (admin-table):
-// cabecera en mayusculas de 11px, filas alternas, hover azul claro y
-// paginacion en una banda blanca bajo la tabla.
+/* ============================================================
+   TOKENS DE DISEÑO — mismos que el formulario
+   ============================================================ */
 :host {
+  /* Colores base */
+  --ci-ink: #163b5f;
+  --ci-accent: #1a5490;
+  --ci-accent-bright: #6fc0ec;
+  --ci-muted: #5c6b84;
+  --ci-text: #22314f;
+  --ci-line: #d3dae4;
+  --ci-paper: #ffffff;
+  --ci-canvas: #f1f4f8;
+  --ci-field: #fbfcfe;
+  --ci-danger: #a4342c;
+  --ci-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* Alto de la cabecera fija de la app */
+  --ci-cabecera: 64px;
+
+  /* El host se comporta como bloque */
   display: block;
 }
 
+/* ============================================================
+   MARCO / CONTENEDOR DE LA TABLA
+   ============================================================ */
 .marco {
   overflow: hidden;
-  border: 1px solid var(--hairline);
+  border: 1px solid var(--ci-line);
   border-radius: 10px;
-  background-color: var(--paper);
+  background-color: var(--ci-paper);
+  box-shadow: 0 1px 3px rgba(27, 43, 94, 0.06);
 }
 
 .desplazable {
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
+/* ============================================================
+   TABLA
+   ============================================================ */
 .tabla {
   width: 100%;
   min-width: 820px;
   border-collapse: collapse;
+  background-color: var(--ci-paper);
 
+  /* Cabecera: banda oscura idéntica a las secciones del formulario */
   th {
     padding: 12px 14px;
-    background-color: var(--surface);
-    color: var(--text2);
+    background-color: var(--ci-ink);
+    color: var(--ci-paper);
     font-size: 11px;
-    font-weight: 700;
+    font-weight: 600;
     letter-spacing: 0.08em;
     text-align: left;
     text-transform: uppercase;
     white-space: nowrap;
+    border-bottom: 1px solid var(--ci-ink);
   }
 
-  // Las celdas las pone cada pantalla en su plantilla (otro componente):
-  // se necesita ::ng-deep, acotado a esta tabla.
+  /* Celdas: cada pantalla las pinta en su plantilla */
   ::ng-deep td {
     padding: 11px 14px;
-    border-bottom: 1px solid var(--hairline);
-    color: var(--ink);
+    border-bottom: 1px solid var(--ci-line);
+    color: var(--ci-text);
     font-size: 13px;
     vertical-align: middle;
   }
 }
 
+/* Variante con cabecera navy (misma que la principal, por si se usa sola) */
 .tabla--navy th {
-  background-color: var(--navy-form);
-  color: var(--paper);
+  background-color: var(--ci-ink);
+  color: var(--ci-paper);
 }
 
+/* ============================================================
+   FILAS
+   ============================================================ */
 .fila {
   transition: background-color 0.15s ease;
 
   &:hover {
-    background-color: var(--accent-100);
+    background-color: #eaf2fa;
   }
 }
 
-// Mitad de camino entre el blanco y el fondo gris: mas sutil que --bg.
+/* Mitad de camino entre el blanco y el fondo gris,
+   igual al estilo utilizado en las tablas de la aplicación. */
 .fila--par {
-  background-color: color-mix(in srgb, var(--bg) 55%, var(--paper));
+  background-color: color-mix(
+    in srgb,
+    var(--ci-canvas) 55%,
+    var(--ci-paper)
+  );
 }
 
+/* Fila expandida */
 .fila--expandida,
 .fila--expandida:hover {
-  background-color: var(--accent-100);
+  background-color: #eaf2fa;
 }
 
 .fila-detalle > td {
   padding: 14px 18px 18px;
-  background-color: var(--bg);
+  background-color: var(--ci-canvas);
 }
 
+/* Fila vacía (sin datos) */
 .vacio {
-  border-bottom: 1px solid var(--hairline);
+  border-bottom: 1px solid var(--ci-line);
 }
 
+/* ============================================================
+   PAGINACIÓN
+   ============================================================ */
 .paginacion {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   padding: 12px 14px;
-  color: var(--text2);
+
+  color: var(--ci-muted);
   font-size: 12.5px;
+
+  background-color: var(--ci-paper);
+  border-top: 1px solid var(--ci-line);
+  border-radius: 0 0 10px 10px;
 }
 
+/* Selector de tamaño de página */
 .tamano {
   display: flex;
   align-items: center;
@@ -93,19 +140,32 @@
 
   select {
     padding: 5px 8px;
-    border: 1px solid var(--border);
+    border: 1px solid var(--ci-line);
     border-radius: 6px;
-    background-color: var(--paper);
-    color: var(--ink);
+    background-color: var(--ci-field);
+    color: var(--ci-text);
     font: inherit;
+    font-size: 13px;
+    cursor: pointer;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+    &:focus {
+      outline: none;
+      border-color: var(--ci-accent);
+      box-shadow: 0 0 0 3px rgba(26, 84, 144, 0.14);
+    }
   }
 }
 
+/* Info de página */
 .pagina {
   flex: 1;
   text-align: center;
+  font-size: 12.5px;
+  color: var(--ci-muted);
 }
 
+/* Controles de navegación */
 .controles {
   display: flex;
   gap: 6px;
@@ -113,19 +173,31 @@
 
 .boton-pagina {
   padding: 6px 12px;
-  border: 1px solid var(--hairline);
+  border: 1px solid var(--ci-line);
   border-radius: 8px;
-  background-color: var(--paper);
-  color: var(--accent-700);
-  font-family: var(--font-sans);
+  background-color: var(--ci-paper);
+  color: var(--ci-accent);
+  font-family: inherit;
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
 
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+
   &:hover:enabled {
-    border-color: var(--accent);
-    background-color: var(--accent);
-    color: var(--paper);
+    border-color: var(--ci-accent);
+    background-color: var(--ci-accent);
+    color: var(--ci-paper);
+    box-shadow: 0 4px 12px rgba(22, 59, 95, 0.22);
+  }
+
+  &:active:enabled {
+    transform: translateY(1px);
+    box-shadow: none;
   }
 
   &:disabled {
@@ -134,7 +206,143 @@
   }
 
   &:focus-visible {
-    outline: 2px solid var(--accent);
+    outline: 2px solid var(--ci-accent);
     outline-offset: 2px;
+  }
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 768px) {
+  .marco {
+    border-radius: 6px;
+  }
+
+  .tabla {
+    min-width: 100%;
+
+    th {
+      padding: 8px 10px;
+      font-size: 10px;
+    }
+
+    ::ng-deep td {
+      padding: 8px 10px;
+      font-size: 12px;
+    }
+  }
+
+  .paginacion {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .tamano,
+  .pagina,
+  .controles {
+    width: 100%;
+  }
+
+  .pagina {
+    text-align: left;
+  }
+
+  .controles {
+    justify-content: space-between;
+  }
+
+  .boton-pagina {
+    font-size: 11px;
+    padding: 4px 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .tabla {
+    th {
+      padding: 8px 10px;
+      font-size: 9.5px;
+    }
+
+    ::ng-deep td {
+      padding: 7px 8px;
+      font-size: 11.5px;
+    }
+  }
+
+  .pagina,
+  .tamano span {
+    font-size: 12px;
+  }
+}
+
+/* ============================================================
+   MODO OSCURO (coherente con el resto de la app)
+   ============================================================ */
+:host-context(body.dark-mode) {
+  .marco {
+    background-color: #8a8a8a;
+    border-color: #888;
+  }
+
+  .tabla {
+    background-color: #8a8a8a;
+
+    th {
+      background-color: #163b5f;
+      color: #ffffff;
+    }
+
+    ::ng-deep td {
+      color: #ffffff;
+      border-bottom-color: #999;
+    }
+  }
+
+  .fila:hover {
+    background-color: #999;
+  }
+
+  .fila--par {
+    background-color: #7a7a7a;
+  }
+
+  .fila--expandida,
+  .fila--expandida:hover {
+    background-color: #999;
+  }
+
+  .fila-detalle > td {
+    background-color: #6b6b6b;
+    color: #ffffff;
+  }
+
+  .paginacion {
+    background-color: #7a7a7a;
+    color: #ffffff;
+    border-top-color: #999;
+  }
+
+  .pagina {
+    color: #ddd;
+  }
+
+  .tamano select {
+    background-color: #8a8a8a;
+    border-color: #999;
+    color: #ffffff;
+  }
+
+  .boton-pagina {
+    background-color: #7a7a7a;
+    border-color: #999;
+    color: #ffffff;
+
+    &:hover:enabled {
+      background-color: var(--ci-accent);
+      border-color: var(--ci-accent);
+      color: #ffffff;
+    }
   }
 }

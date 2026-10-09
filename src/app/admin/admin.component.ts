@@ -10,6 +10,18 @@ import { ManageRrhhModalComponent } from '../manage-rrhh-modal/manage-rrhh-modal
 import * as XLSX from 'xlsx';
 import { AuthService } from '../services/auth.service';
 import { SidebarMenuComponent } from '../sidebar-menu/sidebar-menu.component';
+import { concatMap, from, of, tap, toArray } from 'rxjs';
+
+/** Columna por la que está ordenada una tabla; sin campo se respeta el orden en que llegó. */
+interface OrdenTabla {
+  campo: string;
+  asc: boolean;
+}
+
+interface ColumnaTabla {
+  campo: string;
+  titulo: string;
+}
 
 @Component({
   selector: 'app-admin',
@@ -61,6 +73,39 @@ export class AdminComponent implements OnInit {
   historyByActiveId: Record<number, PlantillaTemporalDto[]> = {};
   loadingHistory: Record<number, boolean> = {};
   sinArchivoList: SinArchivoConflictoItem[] = [];
+  /** Lo que se ve en "No han llenado formulario" tras buscar, filtrar y ordenar. */
+  sinArchivoFiltrados: SinArchivoConflictoItem[] = [];
+  /** La página visible de sinArchivoFiltrados. La lista entera ya está en memoria: se pagina aquí. */
+  sinArchivoPagina: SinArchivoConflictoItem[] = [];
+  sinArchivoPageSizeOptions: number[] = [10, 25, 50, 100];
+  sinArchivoPageSize = 25;
+  sinArchivoCurrentPage = 1;
+  sinArchivoTotalPages = 1;
+  /** "3 de 12" mientras se envía uno por uno a los filtrados. */
+  sinArchivoProgreso: string | null = null;
+  sinArchivoSearch = '';
+  sinArchivoDepto = 'ALL';
+  departamentosSinArchivo: string[] = [];
+  sinArchivoSort: OrdenTabla = { campo: 'nombre', asc: true };
+  readonly sinArchivoColumnas: ColumnaTabla[] = [
+    { campo: 'nombre', titulo: 'Nombre' },
+    { campo: 'departamento', titulo: 'Departamento' },
+    { campo: 'cargo', titulo: 'Cargo' },
+    { campo: 'correo', titulo: 'Correo' }
+  ];
+
+  /** Orden de "Formularios recibidos". Sin campo se muestra como llega del servidor. */
+  formsSort: OrdenTabla = { campo: '', asc: true };
+  readonly formsColumnas: ColumnaTabla[] = [
+    { campo: 'nombre', titulo: 'Nombre' },
+    { campo: 'cedula', titulo: 'Cédula' },
+    { campo: 'origen', titulo: 'Origen' },
+    { campo: 'tipo', titulo: 'Tipo' },
+    { campo: 'contrato', titulo: 'Tipo de contrato' },
+    { campo: 'fecha', titulo: 'Fecha' }
+  ];
+
+  private readonly comparador = new Intl.Collator('es', { numeric: true, sensitivity: 'base' });
   loadingSinArchivo = false;
   sendingAllSinArchivo = false;
   sendingSinArchivoByKey: Record<string, boolean> = {};
@@ -105,14 +150,6 @@ export class AdminComponent implements OnInit {
         this.showList = true;
         this.openManageRRHHModal();
       }
-      // [PNIP-CI] Elvis Flores - 30/09/2026
-      // Qué hace: con ?vista=formulario (lo usa el menú lateral fuera de
-      // /admin) abre directo el formulario.
-      if (params.get('vista') === 'formulario') {
-        this.showForm = true;
-        this.showList = false;
-      }
-      // [FIN PNIP-CI]
     });
   }
 
@@ -125,22 +162,191 @@ export class AdminComponent implements OnInit {
     this.backendService.getSinArchivoConflicto().subscribe({
       next: (items) => {
         this.sinArchivoList = items || [];
+        this.departamentosSinArchivo = Array.from(
+          new Set(this.sinArchivoList.map((i) => this.getSinArchivoDepartamento(i)))
+        ).sort(this.comparador.compare);
+        // Si el departamento elegido ya no tiene pendientes, el filtro dejaría la tabla vacía sin explicación.
+        if (!this.departamentosSinArchivo.includes(this.sinArchivoDepto)) {
+          this.sinArchivoDepto = 'ALL';
+        }
+        this.aplicarFiltrosSinArchivo();
         this.loadingSinArchivo = false;
       },
       error: () => {
         this.sinArchivoList = [];
+        this.sinArchivoFiltrados = [];
+        this.departamentosSinArchivo = [];
         this.loadingSinArchivo = false;
-        this.sinArchivoError = 'Could not load pending users list.';
+        this.sinArchivoError = 'No se pudo cargar la lista de personal pendiente.';
       }
     });
   }
 
   getSinArchivoNombre(item: SinArchivoConflictoItem): string {
-    return (item.NOMBRES || item['nombres'] || item['NOMBRE'] || 'No name').toString();
+    return (item.NOMBRES || item['nombres'] || item['NOMBRE'] || 'Sin nombre').toString();
   }
 
   getSinArchivoCorreo(item: SinArchivoConflictoItem): string {
-    return (item.EMAIL || item['email'] || item['CORREO'] || 'No email').toString();
+    return (item.EMAIL || item['email'] || item['CORREO'] || 'Sin correo').toString();
+  }
+
+  /** Partes de la ruta que manda nómina: "DEPARTAMENTO X\DIRECCION Y\SECCION Z". */
+  private rutaSinArchivo(item: SinArchivoConflictoItem): string[] {
+    return (item['DEPARTAMENTO'] || '')
+      .toString()
+      .split('\\')
+      .map((parte: string) => parte.trim())
+      .filter((parte: string) => !!parte);
+  }
+
+  /** El departamento es el primer tramo de la ruta; por él se filtra. */
+  getSinArchivoDepartamento(item: SinArchivoConflictoItem): string {
+    return this.rutaSinArchivo(item)[0] || 'Sin departamento';
+  }
+
+  /** Dirección, sección y área: el resto de la ruta, para ubicar a la persona dentro del departamento. */
+  getSinArchivoUnidad(item: SinArchivoConflictoItem): string {
+    return this.rutaSinArchivo(item).slice(1).join(' › ');
+  }
+
+  getSinArchivoCargo(item: SinArchivoConflictoItem): string {
+    return (item['CARGO'] || '').toString().trim() || 'Sin registro';
+  }
+
+  aplicarFiltrosSinArchivo(): void {
+    const texto = this.normalizar(this.sinArchivoSearch);
+    const visibles = this.sinArchivoList.filter((item) => {
+      if (this.sinArchivoDepto !== 'ALL' && this.getSinArchivoDepartamento(item) !== this.sinArchivoDepto) {
+        return false;
+      }
+      if (!texto) {
+        return true;
+      }
+      return this.normalizar(
+        [
+          this.getSinArchivoNombre(item),
+          this.rutaSinArchivo(item).join(' '),
+          this.getSinArchivoCargo(item),
+          this.getSinArchivoCorreo(item)
+        ].join(' ')
+      ).includes(texto);
+    });
+
+    this.sinArchivoFiltrados = this.ordenarFilas(visibles, this.sinArchivoSort, (item, campo) => {
+      switch (campo) {
+        case 'departamento':
+          // Dentro del departamento, por unidad: así quedan juntos los de una misma sección.
+          return this.getSinArchivoDepartamento(item) + ' ' + this.getSinArchivoUnidad(item);
+        case 'cargo':
+          return this.getSinArchivoCargo(item);
+        case 'correo':
+          return this.getSinArchivoCorreo(item);
+        default:
+          return this.getSinArchivoNombre(item);
+      }
+    });
+    this.sinArchivoCurrentPage = 1;
+    this.paginarSinArchivo();
+  }
+
+  private paginarSinArchivo(): void {
+    const total = this.sinArchivoFiltrados.length;
+    this.sinArchivoTotalPages = total === 0 ? 1 : Math.ceil(total / this.sinArchivoPageSize);
+    if (this.sinArchivoCurrentPage > this.sinArchivoTotalPages) {
+      this.sinArchivoCurrentPage = this.sinArchivoTotalPages;
+    }
+    const inicio = (this.sinArchivoCurrentPage - 1) * this.sinArchivoPageSize;
+    this.sinArchivoPagina = this.sinArchivoFiltrados.slice(inicio, inicio + Number(this.sinArchivoPageSize));
+  }
+
+  onSinArchivoPageSizeChange(): void {
+    this.sinArchivoPageSize = Number(this.sinArchivoPageSize);
+    this.sinArchivoCurrentPage = 1;
+    this.paginarSinArchivo();
+  }
+
+  cambiarPaginaSinArchivo(delta: number): void {
+    const destino = this.sinArchivoCurrentPage + delta;
+    if (destino < 1 || destino > this.sinArchivoTotalPages) {
+      return;
+    }
+    this.sinArchivoCurrentPage = destino;
+    this.paginarSinArchivo();
+  }
+
+  get hayFiltroSinArchivo(): boolean {
+    return !!this.sinArchivoSearch.trim() || this.sinArchivoDepto !== 'ALL';
+  }
+
+  /** "128" si se ve todo, "12 de 128" si hay un filtro puesto. */
+  conteo(visibles: number, total: number): string {
+    return visibles === total ? `${total}` : `${visibles} de ${total}`;
+  }
+
+  limpiarFiltrosSinArchivo(): void {
+    this.sinArchivoSearch = '';
+    this.sinArchivoDepto = 'ALL';
+    this.aplicarFiltrosSinArchivo();
+  }
+
+  ordenarSinArchivo(campo: string): void {
+    this.cambiarOrden(this.sinArchivoSort, campo);
+    this.aplicarFiltrosSinArchivo();
+  }
+
+  ordenarForms(campo: string): void {
+    this.cambiarOrden(this.formsSort, campo);
+    this.filterForms();
+  }
+
+  /** Primer clic: ascendente. Segundo clic sobre la misma columna: descendente. */
+  private cambiarOrden(orden: OrdenTabla, campo: string): void {
+    if (orden.campo === campo) {
+      orden.asc = !orden.asc;
+    } else {
+      orden.campo = campo;
+      orden.asc = true;
+    }
+  }
+
+  indicadorOrden(orden: OrdenTabla, campo: string): string {
+    if (orden.campo !== campo) {
+      return '↕';
+    }
+    return orden.asc ? '▲' : '▼';
+  }
+
+  ariaOrden(orden: OrdenTabla, campo: string): string {
+    if (orden.campo !== campo) {
+      return 'none';
+    }
+    return orden.asc ? 'ascending' : 'descending';
+  }
+
+  /** Minúsculas y sin tildes, para que "garcia" encuentre "García". */
+  private normalizar(texto: string | null | undefined): string {
+    return (texto || '')
+      .toString()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .trim();
+  }
+
+  /** Copia ordenada. Los vacíos van siempre al final, en cualquiera de los dos sentidos. */
+  private ordenarFilas<T>(filas: T[], orden: OrdenTabla, valor: (fila: T, campo: string) => string): T[] {
+    if (!orden.campo) {
+      return filas;
+    }
+    const sentido = orden.asc ? 1 : -1;
+    return [...filas].sort((a, b) => {
+      const va = (valor(a, orden.campo) || '').trim();
+      const vb = (valor(b, orden.campo) || '').trim();
+      if (!va || !vb) {
+        return va ? -1 : vb ? 1 : 0;
+      }
+      return sentido * this.comparador.compare(va, vb);
+    });
   }
 
   getSinArchivoDmper(item: SinArchivoConflictoItem): string {
@@ -151,7 +357,7 @@ export class AdminComponent implements OnInit {
     const dmperCodigo = this.getSinArchivoDmper(item);
     const key = dmperCodigo || this.getSinArchivoCorreo(item);
     if (!dmperCodigo) {
-      this.sinArchivoError = 'This record does not include DMPER code.';
+      this.sinArchivoError = 'Este registro no tiene código de personal.';
       return;
     }
     this.sendingSinArchivoByKey[key] = true;
@@ -161,35 +367,90 @@ export class AdminComponent implements OnInit {
       next: (ok) => {
         this.sendingSinArchivoByKey[key] = false;
         this.sinArchivoMessage = ok
-          ? `Email sent to ${this.getSinArchivoNombre(item)}.`
-          : `Could not send email to ${this.getSinArchivoNombre(item)}.`;
+          ? `Correo enviado a ${this.getSinArchivoNombre(item)}.`
+          : `No se pudo enviar el correo a ${this.getSinArchivoNombre(item)}.`;
       },
       error: () => {
         this.sendingSinArchivoByKey[key] = false;
-        this.sinArchivoError = `Could not send email to ${this.getSinArchivoNombre(item)}.`;
+        this.sinArchivoError = `No se pudo enviar el correo a ${this.getSinArchivoNombre(item)}.`;
       }
     });
   }
 
+  /**
+   * Envío masivo. Sin filtros usa el envío del servidor a todo el personal
+   * pendiente. Con un filtro puesto envía solo a quienes se ven en la tabla
+   * (en todas sus páginas), uno por uno, porque el servidor no conoce los
+   * filtros de la pantalla.
+   */
   sendCorreoSinArchivoTodos(): void {
-    if (!this.sinArchivoList.length) {
+    const filtrado = this.hayFiltroSinArchivo;
+    const destinatarios = filtrado ? this.sinArchivoFiltrados : this.sinArchivoList;
+    if (!destinatarios.length) {
       return;
     }
+    const alcance = filtrado
+      ? `las ${destinatarios.length} persona(s) que coinciden con el filtro`
+      : `todo el personal pendiente (${destinatarios.length} persona(s))`;
+    if (!window.confirm(`Se enviará el correo de recordatorio a ${alcance}. ¿Continuar?`)) {
+      return;
+    }
+
     this.sendingAllSinArchivo = true;
     this.sinArchivoMessage = null;
     this.sinArchivoError = null;
-    this.backendService.enviarCorreoSinArchivoTodos().subscribe({
-      next: (ok) => {
-        this.sendingAllSinArchivo = false;
-        this.sinArchivoMessage = ok
-          ? 'Bulk notification sent.'
-          : 'Could not send bulk notification.';
-      },
-      error: () => {
-        this.sendingAllSinArchivo = false;
-        this.sinArchivoError = 'Could not send bulk notification.';
-      }
-    });
+
+    if (!filtrado) {
+      this.backendService.enviarCorreoSinArchivoTodos().subscribe({
+        next: (ok) => {
+          this.sendingAllSinArchivo = false;
+          this.sinArchivoMessage = ok
+            ? 'Se envió la notificación a todo el personal pendiente.'
+            : 'No se pudo enviar la notificación masiva.';
+        },
+        error: () => {
+          this.sendingAllSinArchivo = false;
+          this.sinArchivoError = 'No se pudo enviar la notificación masiva.';
+        }
+      });
+      return;
+    }
+
+    // De uno en uno y en orden: no satura el servidor de correo y permite mostrar el avance.
+    let hechos = 0;
+    this.sinArchivoProgreso = `0 de ${destinatarios.length}`;
+    from(destinatarios)
+      .pipe(
+        concatMap((item) => {
+          const dmper = this.getSinArchivoDmper(item);
+          // enviarCorreoSinArchivoIndividual ya convierte un error en false.
+          return dmper ? this.backendService.enviarCorreoSinArchivoIndividual(dmper) : of(false);
+        }),
+        tap(() => {
+          hechos++;
+          this.sinArchivoProgreso = `${hechos} de ${destinatarios.length}`;
+        }),
+        toArray()
+      )
+      .subscribe({
+        next: (resultados) => {
+          const enviados = resultados.filter((ok) => ok).length;
+          const fallidos = resultados.length - enviados;
+          this.sendingAllSinArchivo = false;
+          this.sinArchivoProgreso = null;
+          if (enviados > 0) {
+            this.sinArchivoMessage = `Correo enviado a ${enviados} de ${resultados.length} persona(s) filtradas.`;
+          }
+          if (fallidos > 0) {
+            this.sinArchivoError = `No se pudo enviar a ${fallidos} persona(s). Intente de nuevo más tarde.`;
+          }
+        },
+        error: () => {
+          this.sendingAllSinArchivo = false;
+          this.sinArchivoProgreso = null;
+          this.sinArchivoError = 'El envío se interrumpió. Revise la conexión e intente de nuevo.';
+        }
+      });
   }
 
   @HostListener('window:resize')
@@ -259,6 +520,8 @@ export class AdminComponent implements OnInit {
       next: (history) => {
         // History must include only inactive records (state 0/INACTIVO).
         const inactive = (history || []).filter((h) => this.isEstadoInactivo((h as any).ESTADO));
+        // Del más reciente al más antiguo; las fechas ISO se ordenan bien como texto.
+        inactive.sort((a, b) => (b.FECHA_GENERACION || '').localeCompare(a.FECHA_GENERACION || ''));
         this.historyByActiveId[id] = inactive;
         this.loadingHistory[id] = false;
       },
@@ -580,7 +843,22 @@ export class AdminComponent implements OnInit {
       });
     }
 
-    this.filteredForms = result;
+    this.filteredForms = this.ordenarFilas(result, this.formsSort, (form, campo) => {
+      switch (campo) {
+        case 'cedula':
+          return form.CEDULA || '';
+        case 'origen':
+          return this.getOrigenLabel(form);
+        case 'tipo':
+          return this.getStatusLabel(form.ESTADO_PLANTILLA || '');
+        case 'contrato':
+          return form.employmentType || '';
+        case 'fecha':
+          return form.FECHA_GENERACION || '';
+        default:
+          return form.NOMBRE || '';
+      }
+    });
     this.currentPage = 1;
     this.updatePagination();
   }

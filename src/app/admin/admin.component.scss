@@ -454,6 +454,7 @@ app-sidebar-menu {
 }
 
 .btn-send-one {
+  white-space: nowrap;
   background-color: var(--ci-paper);
   border-color: var(--ci-accent);
   color: var(--ci-accent);
@@ -462,6 +463,120 @@ app-sidebar-menu {
     background-color: var(--ci-accent);
     color: #ffffff;
   }
+}
+
+/* Total de registros junto al título de cada tabla */
+.conteo {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background-color: rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.sin-archivo-filtros {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.filtro-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+
+  .filter-select {
+    min-width: 240px;
+    max-width: 100%;
+  }
+}
+
+.filtro-busqueda {
+  flex: 1;
+  min-width: 220px;
+  max-width: 420px;
+}
+
+.filtro-etiqueta {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ci-muted);
+}
+
+.btn-limpiar {
+  padding: 9px 12px;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  color: var(--ci-accent);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+/* Encabezado ordenable: es un botón para que se pueda usar con teclado */
+.th-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+
+  &:hover .th-sort-icono,
+  &:focus-visible .th-sort-icono {
+    opacity: 1;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--ci-accent-bright);
+    outline-offset: 3px;
+    border-radius: 3px;
+  }
+}
+
+.th-sort-icono {
+  font-size: 10px;
+  opacity: 0.45;
+
+  &.activo {
+    opacity: 1;
+  }
+}
+
+.celda-secundaria {
+  display: block;
+  margin-top: 2px;
+  font-size: 11.5px;
+  color: var(--ci-muted);
+}
+
+/* El correo nunca se parte: un correo en dos líneas se lee y se copia mal.
+   El ancho que necesita lo ceden Nombre, Departamento y Cargo, que sí pueden
+   ocupar dos líneas sin perder legibilidad. */
+.celda-correo {
+  white-space: nowrap;
 }
 
 .sin-archivo-message {
@@ -485,9 +600,11 @@ app-sidebar-menu {
 
 .sin-archivo-table {
   width: 100%;
+  /* Por debajo de este ancho la tabla se desplaza dentro de su contenedor en vez de apretarse */
+  min-width: 920px;
   border-collapse: collapse;
   border: 1px solid var(--ci-line);
-  border-radius: 10px;
+  border-radius: 10px 10px 0 0;
   overflow: hidden;
 
   thead {
@@ -510,6 +627,32 @@ app-sidebar-menu {
     border-bottom: 1px solid var(--ci-line);
     font-size: 13px;
     color: var(--ci-text);
+    vertical-align: middle;
+  }
+
+  /* Reparto del ancho: el correo y la acción toman lo justo (no se parten);
+     el resto se divide entre las tres columnas de texto. */
+  th:nth-child(1),
+  td:nth-child(1) {
+    width: 24%;
+  }
+
+  th:nth-child(2),
+  td:nth-child(2) {
+    width: 30%;
+  }
+
+  th:nth-child(3),
+  td:nth-child(3) {
+    width: 20%;
+  }
+
+  th:nth-child(4),
+  td:nth-child(4),
+  th:nth-child(5),
+  td:nth-child(5) {
+    width: 1%;
+    white-space: nowrap;
   }
 }
 
@@ -561,6 +704,46 @@ app-sidebar-menu {
     font-weight: 600;
     letter-spacing: 0.07em;
     text-transform: uppercase;
+  }
+}
+
+/* Banda azul del listado: título a la izquierda y Exportar a la derecha,
+   para que el panel de filtros de abajo quede solo con campos alineados. */
+.list-header-banda {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 9px 22px;
+  background-color: var(--ci-ink);
+  border-radius: 10px 10px 0 0;
+
+  h2 {
+    padding: 4px 0;
+    background: none;
+    border-radius: 0;
+  }
+}
+
+/* Exportar sobre la banda oscura: mismo aspecto que "Enviar a todos" */
+.btn-export.btn-export-banda {
+  padding: 7px 14px;
+  background-color: #ffffff;
+  border-color: #ffffff;
+  color: var(--ci-ink);
+  font-size: 12px;
+
+  .btn-export-icon,
+  .btn-export-icon svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  &:hover:enabled {
+    background-color: var(--ci-accent-bright);
+    border-color: var(--ci-accent-bright);
+    box-shadow: none;
   }
 }
 
@@ -1115,6 +1298,10 @@ app-sidebar-menu {
 
   .btn-export {
     width: 100%;
+  }
+
+  .btn-export.btn-export-banda {
+    width: auto;
   }
 
   .search-container {

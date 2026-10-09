@@ -49,47 +49,35 @@
     <section id="s1" class="form-section section-card">
       <div class="section-header">
         <h3 class="section-title"><span class="section-num">01</span>Información Personal</h3>
-        <!-- Selector de tipo de declaración oculto a petición. El control `status`
-             sigue existiendo y el sistema lo resuelve solo (Inicial / Actualización
-             según exista una declaración previa), así que el envío no cambia; lo
-             único que se pierde es poder marcar "Final" a mano.
+        <!-- Tipo de declaración, solo para el personal interno.
 
-             Inicial vs Actualización lo determina el sistema según exista o no
-             una declaración previa enviada; sólo "Final" se marca a mano.
-             Se usan dos radios con value estático y *ngIf en vez de un [value]
+             Inicial o Actualización lo decide el sistema según exista o no una
+             declaración previa enviada; lo único que se elige a mano es
+             "Final" (salida de la empresa). Por eso se ven dos opciones: la
+             que corresponde y Final.
+
+             A los externos no se les muestra: no pueden marcar Final y el
+             control `status` se resuelve solo.
+
+             Se usan radios con value estático y *ngIf en vez de un [value]
              dinámico: RadioControlValueAccessor lee "value" una sola vez al
              registrarse, así que cambiarlo en caliente dejaría el radio sin
-             marcar aunque el control tuviera el valor correcto.
-
-        <div class="status-group">
+             marcar aunque el control tuviera el valor correcto. -->
+        <div class="status-group" *ngIf="esUsuarioInterno" role="radiogroup" aria-label="Tipo de declaración">
           <span class="status-label">Declaración:</span>
-          Los usuarios externos no eligen: su declaración es Inicial o
-               Actualización según exista o no una previa, y "Final" no aplica
-               porque corresponde a la salida de la empresa. Se les muestra el
-               valor como texto y no como radio deshabilitado: un control que no
-               se puede usar invita a intentarlo, y además deshabilitar un
-               control reactivo lo saca de form.value, con lo que el estado no
-               se guardaría.
-          <span class="status-fijo" *ngIf="!esUsuarioInterno">
-            {{ tipoDeclaracionAutomatico }}
-          </span>
-
-          <ng-container *ngIf="esUsuarioInterno">
-            <label class="status-option" *ngIf="!hasExistingForm">
-              <input type="radio" formControlName="status" value="Inicial">
-              Inicial
-            </label>
-            <label class="status-option" *ngIf="hasExistingForm">
-              <input type="radio" formControlName="status" value="Actualización">
-              Actualización
-            </label>
-            <label class="status-option">
-              <input type="radio" formControlName="status" value="Final">
-              Final
-            </label>
-          </ng-container>
+          <label class="status-option" *ngIf="!hasExistingForm">
+            <input type="radio" formControlName="status" value="Inicial">
+            Inicial
+          </label>
+          <label class="status-option" *ngIf="hasExistingForm">
+            <input type="radio" formControlName="status" value="Actualización">
+            Actualización
+          </label>
+          <label class="status-option">
+            <input type="radio" formControlName="status" value="Final">
+            Final
+          </label>
         </div>
-        -->
       </div>
       <div formGroupName="personalInfo" class="form-grid form-grid-personal">
         <!-- Al personal interno el nombre le llega completo desde nómina.

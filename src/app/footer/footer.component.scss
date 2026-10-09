@@ -1,128 +1,27 @@
+/* Pie de una aplicación interna: una sola línea discreta al final de la página.
+   Queda abajo aunque el contenido sea corto porque .app-container es una
+   columna de alto mínimo 100vh y .app-main ocupa el espacio libre. */
 .footer {
+  width: 100%;
+  padding: 10px 16px;
   background-color: #163b5f;
-  color: white;
-  padding: 40px;
-  margin-top: auto;
-  width: 100%;
-}
-
-.footer-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  gap: 30px;
-  width: 100%;
-}
-
-.footer-content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: 15px;
-}
-
-.footer-logo-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-}
-
-.footer-logo {
-  height: 64px;
-  width: auto;
-}
-
-.footer-logo-text {
-  font-size: 18px;
-  font-weight: 600;
-  letter-spacing: 1px;
+  color: rgba(255, 255, 255, 0.82);
 }
 
 .footer-text {
-  p {
-    margin: 0;
-    line-height: 1.6;
-    font-size: 14px;
-  }
-}
-
-.footer-nav {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
   text-align: center;
 }
 
-.footer-title {
-  font-size: 14px;
-  font-weight: 500;
-  margin: 0 0 12px 0;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: rgba(255, 255, 255, 0.9);
+.footer-sep {
+  margin: 0 6px;
+  opacity: 0.55;
 }
 
-.footer-social {
-  display: flex;
-  justify-content: center;
-  gap: 16px;
-}
-
-.social-link {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  transition: transform 0.3s;
-  color: white;
-  width: 32px;
-  height: 32px;
-
-  &:hover {
-    transform: scale(1.25);
-  }
-
-  svg {
-    fill: currentColor;
-    width: 24px;
-    height: 24px;
-  }
-}
-
-@media (min-width: 768px) {
-  .footer {
-    padding: 40px 60px;
-  }
-
-  .footer-container {
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-    gap: 40px;
-  }
-
-  .footer-content {
-    flex-direction: row;
-    align-items: center;
-    text-align: left;
-    gap: 20px;
-    flex: 1;
-  }
-
-  .footer-logo-container {
-    align-items: center;
-    flex-shrink: 0;
-  }
-
+@media (max-width: 480px) {
   .footer-text {
-    flex: 1;
-  }
-
-  .footer-nav {
-    text-align: right;
-    flex-shrink: 0;
-  }
-
-  .footer-social {
-    justify-content: flex-end;
+    font-size: 11px;
   }
 }

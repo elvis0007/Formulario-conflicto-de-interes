@@ -34,6 +34,7 @@ export class AuthService {
 
   private _tokenIntranet = signal<string | null>(
     localStorage.getItem('TOKEN-INTRANET')
+    //traer el token del localStorage
   );
   private _tokenSistec = signal<string | null>(
     localStorage.getItem('TOKEN-SISTEC')
@@ -54,6 +55,7 @@ export class AuthService {
 
   private cargarUsuarioDesdeStorage(): IUsuario | null {
     try {
+      //const usuarioStr = localStorage.getItem('USUARIO-SISTEC');
       const usuarioStr = localStorage.getItem('USUARIO-SISTEC');
       if (usuarioStr) {
         return JSON.parse(usuarioStr);

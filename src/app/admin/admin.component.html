@@ -44,7 +44,10 @@
 
       <div *ngIf="isAdminOrRrhh && listSection === 'missing'" class="sin-archivo-panel">
         <div class="sin-archivo-header">
-          <h3>Personal sin archivo de conflicto ({{ sinArchivoList.length }})</h3>
+          <h3>
+            Personal sin formulario
+            <span class="conteo">{{ conteo(sinArchivoFiltrados.length, sinArchivoList.length) }}</span>
+          </h3>
           <div class="sin-archivo-actions">
             <button type="button" class="btn-refresh" (click)="loadSinArchivoConflicto()" [disabled]="loadingSinArchivo">
               {{ loadingSinArchivo ? 'CARGANDO...' : 'ACTUALIZAR' }}
@@ -53,49 +56,156 @@
               type="button"
               class="btn-send-all"
               (click)="sendCorreoSinArchivoTodos()"
-              [disabled]="loadingSinArchivo || sendingAllSinArchivo || sinArchivoList.length === 0"
+              [disabled]="loadingSinArchivo || sendingAllSinArchivo
+                || (hayFiltroSinArchivo ? sinArchivoFiltrados.length : sinArchivoList.length) === 0"
+              [title]="hayFiltroSinArchivo
+                ? 'Envía el correo solo a las personas que coinciden con el filtro'
+                : 'Envía el correo a todo el personal pendiente'"
             >
-              {{ sendingAllSinArchivo ? 'ENVIANDO...' : 'ENVIAR A TODOS' }}
+              <ng-container *ngIf="sendingAllSinArchivo">
+                ENVIANDO{{ sinArchivoProgreso ? ' ' + sinArchivoProgreso : '' }}...
+              </ng-container>
+              <ng-container *ngIf="!sendingAllSinArchivo">
+                {{ hayFiltroSinArchivo ? 'ENVIAR A LOS ' + sinArchivoFiltrados.length + ' FILTRADOS' : 'ENVIAR A TODOS' }}
+              </ng-container>
             </button>
           </div>
+        </div>
+
+        <div class="sin-archivo-filtros" *ngIf="sinArchivoList.length > 0">
+          <label class="filtro-campo">
+            <span class="filtro-etiqueta">Departamento</span>
+            <select class="filter-select" [(ngModel)]="sinArchivoDepto" (change)="aplicarFiltrosSinArchivo()">
+              <option value="ALL">Todos los departamentos</option>
+              <option *ngFor="let d of departamentosSinArchivo" [value]="d">{{ d }}</option>
+            </select>
+          </label>
+          <label class="filtro-campo filtro-busqueda">
+            <span class="filtro-etiqueta">Buscar</span>
+            <input
+              type="search"
+              class="search-input"
+              [(ngModel)]="sinArchivoSearch"
+              (input)="aplicarFiltrosSinArchivo()"
+              placeholder="Nombre, sección, cargo o correo"
+            />
+          </label>
+          <button
+            type="button"
+            class="btn-limpiar"
+            *ngIf="sinArchivoSearch || sinArchivoDepto !== 'ALL'"
+            (click)="limpiarFiltrosSinArchivo()"
+          >
+            Quitar filtros
+          </button>
         </div>
 
         <div *ngIf="sinArchivoMessage" class="sin-archivo-message">{{ sinArchivoMessage }}</div>
         <div *ngIf="sinArchivoError" class="sin-archivo-error">{{ sinArchivoError }}</div>
         <div *ngIf="loadingSinArchivo" class="sin-archivo-loading">Cargando lista...</div>
-        <div *ngIf="!loadingSinArchivo && sinArchivoList.length === 0" class="sin-archivo-empty">
-          No hay registros pendientes.
+        <div *ngIf="!loadingSinArchivo && !sinArchivoError && sinArchivoList.length === 0" class="sin-archivo-empty">
+          No hay personal pendiente: todos han llenado el formulario.
+        </div>
+        <div
+          *ngIf="!loadingSinArchivo && sinArchivoList.length > 0 && sinArchivoFiltrados.length === 0"
+          class="sin-archivo-empty"
+        >
+          Nadie coincide con la búsqueda o el departamento elegido.
         </div>
 
-        <table *ngIf="!loadingSinArchivo && sinArchivoList.length > 0" class="sin-archivo-table">
-          <thead>
-            <tr>
-              <th>Nombre</th>
-              <th>Correo</th>
-              <th style="width: 170px;">Acción</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let item of sinArchivoList">
-              <td>{{ getSinArchivoNombre(item) }}</td>
-              <td>{{ getSinArchivoCorreo(item) }}</td>
-              <td>
-                <button
-                  type="button"
-                  class="btn-send-one"
-                  (click)="sendCorreoSinArchivoIndividual(item)"
-                  [disabled]="sendingSinArchivoByKey[getSinArchivoDmper(item) || getSinArchivoCorreo(item)]"
-                >
-                  {{ sendingSinArchivoByKey[getSinArchivoDmper(item) || getSinArchivoCorreo(item)] ? 'ENVIANDO...' : 'ENVIAR CORREO' }}
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <div class="table-responsive" *ngIf="!loadingSinArchivo && sinArchivoFiltrados.length > 0">
+          <table class="sin-archivo-table">
+            <thead>
+              <tr>
+                <th *ngFor="let col of sinArchivoColumnas" [attr.aria-sort]="ariaOrden(sinArchivoSort, col.campo)">
+                  <button type="button" class="th-sort" (click)="ordenarSinArchivo(col.campo)">
+                    {{ col.titulo }}
+                    <span class="th-sort-icono" [class.activo]="sinArchivoSort.campo === col.campo" aria-hidden="true">
+                      {{ indicadorOrden(sinArchivoSort, col.campo) }}
+                    </span>
+                  </button>
+                </th>
+                <th>Acción</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of sinArchivoPagina">
+                <td>{{ getSinArchivoNombre(item) }}</td>
+                <td>
+                  {{ getSinArchivoDepartamento(item) }}
+                  <span class="celda-secundaria" *ngIf="getSinArchivoUnidad(item)">{{ getSinArchivoUnidad(item) }}</span>
+                </td>
+                <td>{{ getSinArchivoCargo(item) }}</td>
+                <td class="celda-correo">{{ getSinArchivoCorreo(item) }}</td>
+                <td>
+                  <button
+                    type="button"
+                    class="btn-send-one"
+                    (click)="sendCorreoSinArchivoIndividual(item)"
+                    [disabled]="sendingSinArchivoByKey[getSinArchivoDmper(item) || getSinArchivoCorreo(item)]"
+                  >
+                    {{ sendingSinArchivoByKey[getSinArchivoDmper(item) || getSinArchivoCorreo(item)] ? 'ENVIANDO...' : 'ENVIAR CORREO' }}
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="table-pagination" *ngIf="!loadingSinArchivo && sinArchivoFiltrados.length > 0">
+          <div class="page-size">
+            <label for="sinArchivoPageSize">Mostrar</label>
+            <select id="sinArchivoPageSize" [(ngModel)]="sinArchivoPageSize" (change)="onSinArchivoPageSizeChange()">
+              <option *ngFor="let size of sinArchivoPageSizeOptions" [value]="size">{{ size }}</option>
+            </select>
+            <span>registros</span>
+          </div>
+
+          <div class="page-info">
+            Página {{ sinArchivoCurrentPage }} de {{ sinArchivoTotalPages }} · {{ sinArchivoFiltrados.length }}
+            {{ sinArchivoFiltrados.length === 1 ? 'registro' : 'registros' }}
+          </div>
+
+          <div class="page-controls">
+            <button type="button" class="page-btn" (click)="cambiarPaginaSinArchivo(-1)" [disabled]="sinArchivoCurrentPage === 1">
+              « Anterior
+            </button>
+            <button
+              type="button"
+              class="page-btn"
+              (click)="cambiarPaginaSinArchivo(1)"
+              [disabled]="sinArchivoCurrentPage === sinArchivoTotalPages"
+            >
+              Siguiente »
+            </button>
+          </div>
+        </div>
       </div>
 
       <div *ngIf="listSection === 'forms'" class="list-header">
-        <h2>Formularios Recibidos ({{ filteredForms.length }})</h2>
+        <div class="list-header-banda">
+          <h2>
+            Formularios recibidos
+            <span class="conteo">{{ conteo(filteredForms.length, forms.length) }}</span>
+          </h2>
+          <button
+            class="btn-export btn-export-banda"
+            type="button"
+            (click)="generateExcelReport()"
+            [disabled]="generatingReport"
+            title="Generar reporte en Excel con relaciones personales y proveedores"
+          >
+            <span class="btn-export-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="1.5em" height="1.5em" viewBox="0 0 24 24">
+                <path fill="currentColor"
+                  d="M2.859 2.877l12.57-1.795a.5.5 0 0 1 .571.494v20.848a.5.5 0 0 1-.57.494L2.858 21.123a1 1 0 0 1-.859-.99V3.867a1 1 0 0 1 .859-.99M17 3h4a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1h-4zm-6.8 9L13 8h-2.4L9 10.286L7.4 8H5l2.8 4L5 16h2.4L9 13.714L10.6 16H13z" />
+              </svg>
+            </span>
+            <span class="btn-export-text">
+              {{ generatingReport ? 'EXPORTANDO...' : 'EXPORTAR' }}
+            </span>
+          </button>
+        </div>
         <div class="list-header-actions">
           <div class="filters-container">
             <select
@@ -155,23 +265,6 @@
                 placeholder="Ingrese una palabra para iniciar la busqueda"
                 (input)="onSearchChange()">
             </div>
-            <button
-              class="btn-export"
-              type="button"
-              (click)="generateExcelReport()"
-              [disabled]="generatingReport"
-              title="Generar reporte en Excel con relaciones personales y proveedores"
-            >
-              <span class="btn-export-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" width="1.5em" height="1.5em" viewBox="0 0 24 24">
-                  <path fill="currentColor"
-                    d="M2.859 2.877l12.57-1.795a.5.5 0 0 1 .571.494v20.848a.5.5 0 0 1-.57.494L2.858 21.123a1 1 0 0 1-.859-.99V3.867a1 1 0 0 1 .859-.99M17 3h4a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1h-4zm-6.8 9L13 8h-2.4L9 10.286L7.4 8H5l2.8 4L5 16h2.4L9 13.714L10.6 16H13z" />
-                </svg>
-              </span>
-              <span class="btn-export-text">
-                {{ generatingReport ? 'EXPORTANDO...' : 'EXPORTAR' }}
-              </span>
-            </button>
           </div>
         </div>
       </div>
@@ -193,12 +286,14 @@
           <table class="admin-table">
             <thead>
               <tr>
-                <th>Nombre</th>
-                <th>Cédula</th>
-                <th>Origen</th>
-                <th>Tipo</th>
-                <th>Tipo de contrato</th>
-                <th>Fecha</th>
+                <th *ngFor="let col of formsColumnas" [attr.aria-sort]="ariaOrden(formsSort, col.campo)">
+                  <button type="button" class="th-sort" (click)="ordenarForms(col.campo)">
+                    {{ col.titulo }}
+                    <span class="th-sort-icono" [class.activo]="formsSort.campo === col.campo" aria-hidden="true">
+                      {{ indicadorOrden(formsSort, col.campo) }}
+                    </span>
+                  </button>
+                </th>
                 <th style="width: 80px; text-align: center;">Acciones</th>
               </tr>
             </thead>
@@ -299,7 +394,8 @@
 
           <div class="page-info">
             <span>
-              Página {{ currentPage }} de {{ totalPages }}
+              Página {{ currentPage }} de {{ totalPages }} · {{ filteredForms.length }}
+              {{ filteredForms.length === 1 ? 'registro' : 'registros' }}
             </span>
           </div>
 
