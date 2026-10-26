@@ -31,7 +31,7 @@
         type="button"
         class="barra-boton barra-boton--texto"
         [class.barra-boton--hecho]="descargado.activa"
-        [attr.aria-disabled]="descargado.activa"
+        [attr.aria-disabled]="descargado.activa || descargaNoDisponible"
         (click)="descargar()">
         <app-icono [nombre]="descargado.activa ? 'check' : 'descargar'" [tamano]="15" />
         {{ descargado.activa ? 'Descargado ✓' : 'Descargar' }}
@@ -46,6 +46,13 @@
         <app-icono nombre="documento" [tamano]="40" />
         <p>Vista previa no disponible (archivo de ejemplo)</p>
       </div>
+    } @else if (cargandoArchivo) {
+      <p class="sin-vista" role="status">Cargando el archivo…</p>
+    } @else if (errorArchivo) {
+      <div class="sin-vista" role="alert">
+        <app-icono nombre="documento" [tamano]="40" />
+        <p>{{ errorArchivo }}</p>
+      </div>
     } @else if (esPdf && urlPdf) {
       <iframe
         class="pdf"
@@ -53,8 +60,8 @@
         [title]="archivo.nombre"
         [style.width.%]="zoom"
         [style.height.px]="altoPdf"></iframe>
-    } @else {
-      <img class="imagen" [src]="archivo.url" [alt]="archivo.nombre" [style.width.%]="zoom" />
+    } @else if (urlArchivo) {
+      <img class="imagen" [src]="urlArchivo" [alt]="archivo.nombre" [style.width.%]="zoom" />
     }
   </div>
 </section>

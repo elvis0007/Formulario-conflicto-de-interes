@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
+import { ConflictosMockService } from '../services/conflictos-mock.service';
 import { LATENCIA_SIMULADA_MS } from '../services/mock-data/simular-respuesta';
 import { PerfilUsuarioFalso, proveerPerfilFalso } from '../testing/perfil-usuario-falso';
 import { RELOJ } from '../utils/reloj';
@@ -65,10 +66,12 @@ describe('ResponsableDashboardComponent', () => {
     ]);
 
     expect(filas).toEqual([
-      ['16 ago', 'Activar el registro', 'Conflicto #C-001 · Plan 02 · Rotación del técnico de compras', 'Rechazada',
-        'Vencida hace 47 días', '/responsable/planes/PL-002'],
+      ['01 sep', 'Entregar el inventa', 'Conflicto #C-001 · Plan 02 · Rotación del técnico de compras', 'Pendiente',
+        'Vencida hace 31 días', '/responsable/planes/PL-002'],
       ['26 oct', 'Capacitar al person', 'Conflicto #C-001 · Plan 02 · Rotación del técnico de compras', 'Pendiente',
-        'Vence en 24 días', '/responsable/planes/PL-002']
+        'Vence en 24 días', '/responsable/planes/PL-002'],
+      ['01 nov', 'Activar el registro', 'Conflicto #C-001 · Plan 02 · Rotación del técnico de compras', 'Rechazada',
+        'Vence en 30 días', '/responsable/planes/PL-002']
     ]);
     expect(raiz.querySelector('.proxima .dias--vencida')).not.toBeNull();
   }));
@@ -78,10 +81,10 @@ describe('ResponsableDashboardComponent', () => {
     const navegar = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
 
     raiz.querySelectorAll<HTMLButtonElement>('app-kpi-card button')[2].click();
-    expect(navegar).toHaveBeenCalledWith(['/responsable/planes'], { queryParams: { estado: 'rechazada' } });
+    expect(navegar).toHaveBeenCalledWith(['/responsable/planes'], { queryParams: { estado: 'RECHAZADA' } });
 
     Array.from(raiz.querySelectorAll<HTMLButtonElement>('.alerta button'))[0].click();
-    expect(navegar).toHaveBeenCalledWith(['/responsable/planes'], { queryParams: { estado: 'vencida' } });
+    expect(navegar).toHaveBeenCalledWith(['/responsable/planes'], { queryParams: { estado: 'VENCIDA' } });
   }));
 
   it('sin actividades muestra el estado vacío', fakeAsync(() => {
@@ -136,9 +139,18 @@ describe('ResponsableDashboardComponent', () => {
     expect(filas.map((f) => f[0])).toEqual(['A-015', 'A-018', 'A-017', 'A-008']);
     expect(filas[0]).toEqual(['A-015',
       'Conflicto #C-001 · Carlos Andrés Mayorga Sánchez y Jorge Luis Mayorga Sánchez · Plan 02 · Rotación del técnico de compras',
-      'Rechazada', 'Vencida hace 47 días', 'Volver a subir', '/responsable/planes/PL-002']);
+      'Rechazada', 'Vence en 30 días', 'Volver a subir', '/responsable/planes/PL-002']);
     expect(filas[1].slice(2, 5)).toEqual(['Pendiente', 'Vencida hace 31 días', 'Subir evidencia']);
     expect(filas[3].slice(2, 5)).toEqual(['En revisión de RRHH', '', 'Ver plan']);
+  }));
+
+  it('los nombres del caso salen de la bandeja: no pide /conflictos (403 para el rol P)', fakeAsync(() => {
+    const conflictos = spyOn(TestBed.inject(ConflictosMockService), 'obtenerConflictos').and.callThrough();
+    crear();
+
+    expect(conflictos).not.toHaveBeenCalled();
+    expect(limpio(raiz.querySelector('.acordeon-personas')?.textContent))
+      .toBe('Carlos Andrés Mayorga Sánchez y Jorge Luis Mayorga Sánchez');
   }));
 
   it('«Avance por conflicto»: acordeón conflicto › plan › actividades', fakeAsync(() => {

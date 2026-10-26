@@ -2,11 +2,14 @@ import { Conflicto } from '../models';
 import { CONFLICTOS } from '../services/mock-data/conflictos.data';
 import {
   contarPendientes,
+  cumpleFiltroClasificacion,
+  esFiltroClasificacion,
   contarPorRiesgo,
   filtrarPorRiesgo,
   rolesInvolucrados,
   textoClasificacion,
   textoEstadoAnalisis,
+  textoFiltroClasificacion,
   textoGrado,
   textoParentesco,
   textoRiesgo
@@ -35,31 +38,33 @@ describe('analisis.util', () => {
   });
 
   it('textos de riesgo, clasificación y estado', () => {
-    expect(textoRiesgo('medio')).toBe('Moderado');
-    expect(textoRiesgo('ninguno')).toBe('Ninguno');
-    expect(textoClasificacion('pendiente')).toBe('Pendiente de revisión');
-    expect(textoClasificacion('homonimo')).toBe('Homónimo');
-    expect(textoEstadoAnalisis('borrador')).toBe('Borrador');
-    expect(textoEstadoAnalisis('validado')).toBe('Validado');
+    expect(textoRiesgo('MEDIO')).toBe('Moderado');
+    expect(textoRiesgo('CRITICO')).toBe('Crítico');
+    expect(textoClasificacion(null)).toBe('Pendiente de revisión');
+    expect(textoClasificacion('D')).toBe('Declarado');
+    expect(textoClasificacion('N')).toBe('No declarado (omisión)');
+    expect(textoClasificacion('H')).toBe('Homónimo');
+    expect(textoEstadoAnalisis('BORRADOR')).toBe('Borrador');
+    expect(textoEstadoAnalisis('VALIDADO')).toBe('Validado');
   });
 
   describe('contarPorRiesgo', () => {
     it('cuenta cada nivel y el total', () => {
       expect(contarPorRiesgo(CONFLICTOS))
-        .toEqual({ alto: 2, medio: 3, bajo: 3, ninguno: 1, total: 9 });
+        .toEqual({ CRITICO: 1, ALTO: 1, MEDIO: 3, BAJO: 4, total: 9 });
     });
 
     it('sin casos, todo en cero', () => {
       expect(contarPorRiesgo([]))
-        .toEqual({ alto: 0, medio: 0, bajo: 0, ninguno: 0, total: 0 });
+        .toEqual({ CRITICO: 0, ALTO: 0, MEDIO: 0, BAJO: 0, total: 0 });
     });
 
     it('los conteos son de todos los casos, no de los filtrados', () => {
       const conteoTodos = contarPorRiesgo(CONFLICTOS);
 
-      filtrarPorRiesgo(CONFLICTOS, 'alto');
+      filtrarPorRiesgo(CONFLICTOS, 'ALTO');
       expect(contarPorRiesgo(CONFLICTOS)).toEqual(conteoTodos);
-      expect(filtrarPorRiesgo(CONFLICTOS, 'alto').length).toBe(conteoTodos.alto);
+      expect(filtrarPorRiesgo(CONFLICTOS, 'ALTO').length).toBe(conteoTodos.ALTO);
     });
   });
 
@@ -69,16 +74,46 @@ describe('analisis.util', () => {
     });
 
     it('un nivel devuelve solo los de ese nivel', () => {
-      const bajos = filtrarPorRiesgo(CONFLICTOS, 'bajo');
+      const bajos = filtrarPorRiesgo(CONFLICTOS, 'BAJO');
 
-      expect(bajos.length).toBe(3);
-      expect(bajos.every((c) => c.riesgo === 'bajo')).toBeTrue();
+      expect(bajos.length).toBe(4);
+      expect(bajos.every((c) => c.riesgo === 'BAJO')).toBeTrue();
     });
   });
 
   it('contarPendientes', () => {
     expect(contarPendientes(CONFLICTOS)).toBe(3);
     expect(contarPendientes([])).toBe(0);
+  });
+
+  describe('filtro por clasificación', () => {
+    it('esFiltroClasificacion acepta solo los valores conocidos', () => {
+      expect(['SIN_CLASIFICAR', 'D_O_N', 'D', 'N', 'H'].every(esFiltroClasificacion)).toBeTrue();
+      expect(esFiltroClasificacion('pendiente')).toBeFalse();
+      expect(esFiltroClasificacion(null)).toBeFalse();
+    });
+
+    it('cumpleFiltroClasificacion', () => {
+      const d = conflicto('C-001');
+      const n = conflicto('C-003');
+      const h = conflicto('C-006');
+      const sin = conflicto('C-005');
+
+      expect(cumpleFiltroClasificacion(sin, 'SIN_CLASIFICAR')).toBeTrue();
+      expect(cumpleFiltroClasificacion(d, 'SIN_CLASIFICAR')).toBeFalse();
+      expect(cumpleFiltroClasificacion(d, 'D_O_N')).toBeTrue();
+      expect(cumpleFiltroClasificacion(n, 'D_O_N')).toBeTrue();
+      expect(cumpleFiltroClasificacion(h, 'D_O_N')).toBeFalse();
+      expect(cumpleFiltroClasificacion(n, 'D')).toBeFalse();
+      expect(cumpleFiltroClasificacion(n, 'N')).toBeTrue();
+      expect(cumpleFiltroClasificacion(h, 'H')).toBeTrue();
+    });
+
+    it('textoFiltroClasificacion', () => {
+      expect(textoFiltroClasificacion('SIN_CLASIFICAR')).toBe('Pendiente de revisión');
+      expect(textoFiltroClasificacion('D_O_N')).toBe('Declarado o no declarado');
+      expect(textoFiltroClasificacion('H')).toBe('Homónimo');
+    });
   });
 
   describe('rolesInvolucrados', () => {

@@ -93,8 +93,8 @@ describe('RrhhDashboardComponent', () => {
 
     const esperados: [string, string, object][] = [
       ['detectados', '/rrhh/analisis-conflictos', {}],
-      ['pendientes', '/rrhh/analisis-conflictos', { clasificacion: 'pendiente' }],
-      ['confirmadosSinPlan', '/rrhh/analisis-conflictos', { clasificacion: 'confirmado', plan: 'sin-plan' }],
+      ['pendientes', '/rrhh/analisis-conflictos', { clasificacion: 'SIN_CLASIFICAR' }],
+      ['confirmadosSinPlan', '/rrhh/analisis-conflictos', { clasificacion: 'D_O_N', plan: 'sin-plan' }],
       ['planesActivos', '/rrhh/informe-general', { estado: 'en-ejecucion' }],
       ['actividadesVencidas', '/rrhh/informe-general', { estado: 'con-vencidas' }],
       ['evidenciasPorRevisar', '/rrhh/revision-evidencias', {}],
@@ -112,16 +112,16 @@ describe('RrhhDashboardComponent', () => {
 
     const riesgo = Array.from(raiz.querySelectorAll<HTMLButtonElement>('[data-riesgo]'));
     expect(riesgo.map((b) => b.getAttribute('aria-label'))).toEqual([
-      'Alto: 2 conflictos. Ver en Análisis', 'Moderado: 3 conflictos. Ver en Análisis',
-      'Bajo: 3 conflictos. Ver en Análisis', 'Ninguno: 1 conflicto. Ver en Análisis'
+      'Crítico: 1 conflicto. Ver en Análisis', 'Alto: 1 conflicto. Ver en Análisis',
+      'Moderado: 3 conflictos. Ver en Análisis', 'Bajo: 4 conflictos. Ver en Análisis'
     ]);
-    expect(limpio(riesgo[0].querySelector('.barra-valor')?.textContent)).toBe('2');
+    expect(limpio(riesgo[0].querySelector('.barra-valor')?.textContent)).toBe('1');
     riesgo[0].click();
-    expect(navegar).toHaveBeenCalledWith(['/rrhh/analisis-conflictos'], { queryParams: { riesgo: 'alto' } });
+    expect(navegar).toHaveBeenCalledWith(['/rrhh/analisis-conflictos'], { queryParams: { riesgo: 'CRITICO' } });
 
-    raiz.querySelector<HTMLButtonElement>('button[data-estado-plan="cerrado"]')?.click();
+    raiz.querySelector<HTMLButtonElement>('button[data-estado-plan="CERRADO"]')?.click();
     expect(navegar).toHaveBeenCalledWith(['/rrhh/informe-general'], { queryParams: { estado: 'cerrados' } });
-    expect(raiz.querySelector('button[data-estado-plan="borrador"]')).withContext('borrador no filtra').toBeNull();
+    expect(raiz.querySelector('button[data-estado-plan="BORRADOR"]')).withContext('borrador no filtra').toBeNull();
 
     expect(Array.from(raiz.querySelectorAll('.leyenda-item')).map((l) =>
       limpio(l.querySelector('.leyenda-texto')?.textContent) + ' ' + limpio(l.querySelector('.leyenda-valor')?.textContent))).toEqual([

@@ -30,25 +30,27 @@
     }
   </header>
 
-  @if (conflicto) {
+  @if (hayCaso) {
     <section class="caso" aria-label="Caso">
       <div class="caso-persona">
-        <span class="caso-rol">{{ conflicto.rolA }}</span>
-        <span class="caso-nombre">{{ conflicto.personaA.nombres }}</span>
-        <span class="caso-cargo">{{ conflicto.personaA.cargo }} · {{ conflicto.personaA.departamento }}</span>
+        <span class="caso-rol">Empleado</span>
+        <span class="caso-nombre">{{ datos.nombreA || 'No disponible' }}</span>
       </div>
       <div class="caso-persona">
-        <span class="caso-rol">{{ conflicto.rolB }}</span>
-        <span class="caso-nombre">{{ conflicto.personaB.nombres }}</span>
-        <span class="caso-cargo">{{ conflicto.personaB.cargo }} · {{ conflicto.personaB.departamento }}</span>
+        <span class="caso-rol">Familiar</span>
+        <span class="caso-nombre">{{ datos.nombreB || 'No disponible' }}</span>
       </div>
       <div class="caso-dato">
         <span class="caso-etiqueta">Parentesco</span>
-        <span class="caso-parentesco">{{ parentesco }}</span>
+        <span class="caso-parentesco">{{ parentesco || 'No disponible' }}</span>
       </div>
       <div class="caso-dato">
         <span class="caso-etiqueta">Riesgo</span>
-        <app-badge [tono]="tonoRiesgo" [texto]="textoRiesgo" />
+        @if (textoRiesgo) {
+          <app-badge [tono]="tonoRiesgo" [texto]="textoRiesgo" />
+        } @else {
+          <span class="caso-parentesco">No disponible</span>
+        }
       </div>
     </section>
   }
@@ -57,7 +59,10 @@
     Solo ves las actividades que te corresponden ({{ plan.actividades.length }} de {{ datos.totalActividades }}).
   </p>
   @if (soloLectura) {
-    <p class="aviso aviso--cerrado" role="status">Plan cerrado: todas las actividades fueron aprobadas. Solo lectura.</p>
+    <p class="aviso aviso--cerrado" role="status">{{ avisoCerrado }}</p>
+    @if (plan.motivoCierre) {
+      <p class="aviso aviso--info">Motivo del cierre: {{ plan.motivoCierre }}</p>
+    }
   }
 
   <input
@@ -91,7 +96,7 @@
         </dl>
 
         @switch (v.actividad.estado) {
-          @case ('en_revision') {
+          @case ('EN_REVISION') {
             @if (v.actividad.evidencia; as evidencia) {
               <div class="evidencia">
                 <span class="archivo">
@@ -106,7 +111,7 @@
               </div>
             }
           }
-          @case ('aprobada') {
+          @case ('ACEPTADA') {
             @if (v.actividad.evidencia; as evidencia) {
               <div class="evidencia">
                 <span class="archivo">
@@ -123,7 +128,7 @@
               </div>
             }
           }
-          @case ('rechazada') {
+          @case ('RECHAZADA') {
             @if (v.actividad.evidencia?.motivoRechazo; as motivo) {
               <p class="motivo">
                 <strong>Motivo del rechazo:</strong> {{ motivo }}
@@ -143,10 +148,10 @@
               @if (subiendoId === v.actividad.id) {
                 Subiendo…
               } @else {
-                {{ v.actividad.estado === 'rechazada' ? 'Volver a subir' : 'Subir evidencia' }}
+                {{ v.actividad.estado === 'RECHAZADA' ? 'Volver a subir' : 'Subir evidencia' }}
               }
             </button>
-            <span class="ayuda">PDF, PNG o JPG · máximo 10 MB</span>
+            <span class="ayuda">PDF, PNG o JPG · máximo 5 MB</span>
           </div>
         }
 
@@ -165,6 +170,8 @@
     @if (documento) {
       <app-document-viewer
         [archivo]="documento.archivo"
+        [planId]="documento.planId"
+        [evidenciaId]="documento.evidenciaId"
         [subidoPor]="documento.subidoPor"
         [fechaSubida]="documento.fechaSubida"
         (cerrar)="documento = null" />

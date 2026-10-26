@@ -3,7 +3,14 @@ import { Observable } from 'rxjs';
 import { PlanAccion } from '../models';
 import { LATENCIA_SIMULADA_MS } from './mock-data/simular-respuesta';
 import { NotificacionesMockService } from './notificaciones-mock.service';
-import { PlanesMockService, ResultadoDocumento } from './planes-mock.service';
+import {
+  ERROR_CIERRE_EN_REVISION,
+  ERROR_CIERRE_NO_FIRMADO,
+  ERROR_CIERRE_SIN_VENCIDAS,
+  ERROR_MOTIVO_CIERRE,
+  PlanesMockService,
+  ResultadoDocumento
+} from './planes-mock.service';
 import { ERROR_DOCUMENTO_GRANDE, ERROR_DOCUMENTO_NO_PDF } from '../utils/documento.util';
 import { RELOJ } from '../utils/reloj';
 import { PerfilUsuarioFalso, proveerPerfilFalso } from '../testing/perfil-usuario-falso';
@@ -33,7 +40,7 @@ describe('PlanesMockService', () => {
       numero: 0,
       nombre: 'Plan de prueba',
       conflictoId,
-      estado: 'borrador',
+      estado: 'BORRADOR',
       actividades: [{
         id: '',
         descripcion: 'Actividad de prueba',
@@ -41,7 +48,7 @@ describe('PlanesMockService', () => {
         responsableNombre: 'Carlos Andrés Mayorga Sánchez',
         plazoMeses: 0,
         plazoDias: 15,
-        estado: 'pendiente'
+        estado: 'PENDIENTE'
       }]
     };
   }
@@ -91,7 +98,7 @@ describe('PlanesMockService', () => {
     const activo = esperar(servicio.obtenerPlanPorId('PL-003')) as PlanAccion;
 
     expect(esperar(servicio.guardarBorrador({ ...activo, nombre: 'Cambio' }))).toBeNull();
-    expect(esperar(servicio.guardarBorrador({ ...activo, estado: 'borrador', nombre: 'Cambio' })))
+    expect(esperar(servicio.guardarBorrador({ ...activo, estado: 'BORRADOR', nombre: 'Cambio' })))
       .withContext('el guardado no puede convertir un activo en borrador').toBeNull();
     expect(esperar(servicio.obtenerPlanPorId('PL-003'))?.nombre).toBe(activo.nombre);
   }));
@@ -156,10 +163,10 @@ describe('PlanesMockService: documento firmado y envío', () => {
     });
   }));
 
-  it('rechaza lo que no es PDF y lo que supera 10 MB', fakeAsync(() => {
+  it('rechaza lo que no es PDF y lo que supera 5 MB', fakeAsync(() => {
     const noPdf = esperar(servicio.subirDocumentoFirmado('PL-004', archivo('foto.png', 'image/png')));
     const grande = esperar(servicio.subirDocumentoFirmado(
-      'PL-004', archivo('grande.pdf', 'application/pdf', 10 * 1024 * 1024 + 1)));
+      'PL-004', archivo('grande.pdf', 'application/pdf', 5 * 1024 * 1024 + 1)));
 
     expect(noPdf).toEqual({ plan: null, error: ERROR_DOCUMENTO_NO_PDF } as ResultadoDocumento);
     expect(grande).toEqual({ plan: null, error: ERROR_DOCUMENTO_GRANDE } as ResultadoDocumento);
@@ -196,7 +203,7 @@ describe('PlanesMockService: documento firmado y envío', () => {
   describe('enviarYNotificar', () => {
     it('no envía sin documento firmado', fakeAsync(() => {
       expect(esperar(servicio.enviarYNotificar('PL-004'))).toBeNull();
-      expect(esperar(servicio.obtenerPlanPorId('PL-004'))?.estado).toBe('borrador');
+      expect(esperar(servicio.obtenerPlanPorId('PL-004'))?.estado).toBe('BORRADOR');
     }));
 
     it('no envía con actividades incompletas o sin actividades', fakeAsync(() => {
@@ -221,13 +228,13 @@ describe('PlanesMockService: documento firmado y envío', () => {
       esperar(servicio.subirDocumentoFirmado('PL-004', archivo('plan.pdf')));
       const activo = esperar(servicio.enviarYNotificar('PL-004'));
 
-      expect(activo?.estado).toBe('activo');
+      expect(activo?.estado).toBe('FIRMADO');
       expect(activo?.fechaInicio).toBe('2026-10-02');
       expect(activo?.actividades.map((a) => [a.plazoMeses, a.plazoDias, a.fechaLimite, a.estado])).toEqual([
-        [1, 0, '2026-11-02', 'pendiente'],
-        [3, 0, '2027-01-02', 'pendiente']
+        [1, 0, '2026-11-02', 'PENDIENTE'],
+        [3, 0, '2027-01-02', 'PENDIENTE']
       ]);
-      expect(esperar(servicio.obtenerPlanPorId('PL-004'))?.estado).toBe('activo');
+      expect(esperar(servicio.obtenerPlanPorId('PL-004'))?.estado).toBe('FIRMADO');
     }));
 
     it('agrega una notificación por responsable distinto, con su id', fakeAsync(() => {
@@ -311,13 +318,13 @@ describe('PlanesMockService: revisión de evidencias', () => {
     const plan = esperar(servicio.aprobarEvidencia('PL-002', 'A-005'));
     const a = actividad(plan, 'A-005');
 
-    expect(a.estado).toBe('aprobada');
+    expect(a.estado).toBe('ACEPTADA');
     expect(a.evidencia).toEqual(jasmine.objectContaining({
-      estado: 'aprobada',
+      estado: 'APROBADA',
       revisadoPor: REVISOR,
       fechaRevision: HOY.toISOString()
     }));
-    expect(plan?.estado).toBe('activo_vencidas');
+    expect(plan?.estado).toBe('FIRMADO');
     expect(avisosEnviados()).toEqual([jasmine.objectContaining({
       titulo: 'Evidencia aprobada',
       tipo: 'ok',
@@ -335,14 +342,14 @@ describe('PlanesMockService: revisión de evidencias', () => {
 
   it('rechazar exige motivo; con motivo guarda el rechazo y avisa con el motivo', fakeAsync(() => {
     expect(esperar(servicio.rechazarEvidencia('PL-002', 'A-016', '   '))).toBeNull();
-    expect(actividad(esperar(servicio.obtenerPlanPorId('PL-002')), 'A-016').estado).toBe('en_revision');
+    expect(actividad(esperar(servicio.obtenerPlanPorId('PL-002')), 'A-016').estado).toBe('EN_REVISION');
 
     const plan = esperar(servicio.rechazarEvidencia('PL-002', 'A-016', '  El acta no está firmada.  '));
     const a = actividad(plan, 'A-016');
 
-    expect(a.estado).toBe('rechazada');
+    expect(a.estado).toBe('RECHAZADA');
     expect(a.evidencia).toEqual(jasmine.objectContaining({
-      estado: 'rechazada',
+      estado: 'RECHAZADA',
       motivoRechazo: 'El acta no está firmada.',
       revisadoPor: REVISOR,
       fechaRevision: HOY.toISOString()
@@ -354,44 +361,82 @@ describe('PlanesMockService: revisión de evidencias', () => {
     })]);
   }));
 
-  it('deshacer vuelve a «en revisión» y borra los datos de la revisión', fakeAsync(() => {
+  it('la revisión es definitiva: una evidencia ya revisada no se vuelve a revisar', fakeAsync(() => {
     esperar(servicio.rechazarEvidencia('PL-002', 'A-016', 'Falta firma.'));
-    const a = actividad(esperar(servicio.deshacerRevision('PL-002', 'A-016')), 'A-016');
 
-    expect(a.estado).toBe('en_revision');
-    expect(a.evidencia?.estado).toBe('pendiente');
-    expect(a.evidencia?.motivoRechazo).toBeUndefined();
-    expect(a.evidencia?.revisadoPor).toBeUndefined();
-    expect(a.evidencia?.fechaRevision).toBeUndefined();
+    expect(esperar(servicio.aprobarEvidencia('PL-002', 'A-016'))).toBeNull();
+    expect(servicio.ultimoError).toContain('no está en revisión');
+    expect(actividad(esperar(servicio.obtenerPlanPorId('PL-002')), 'A-016').estado).toBe('RECHAZADA');
   }));
 
-  it('no deshace lo que no fue revisado', fakeAsync(() => {
-    expect(esperar(servicio.deshacerRevision('PL-002', 'A-005'))).toBeNull();
-    expect(esperar(servicio.deshacerRevision('PL-002', 'A-003'))).toBeNull();
-  }));
-
-  it('aprobar la última cierra el plan con fecha de hoy y avisa a RRHH; deshacer lo reabre', fakeAsync(() => {
+  it('aprobar la última cierra el plan (cumplido) con fecha de hoy y avisa a RRHH', fakeAsync(() => {
     const cerrado = esperar(servicio.aprobarEvidencia('PL-003', 'A-008'));
 
-    expect(cerrado?.estado).toBe('cerrado');
+    expect(cerrado?.estado).toBe('CERRADO');
     expect(cerrado?.fechaCierre).toBe('2026-10-02');
     expect(avisosEnviados().map((n) => [n.titulo, n.destinatarioId])).toEqual([
       ['Evidencia aprobada', 'EMP-010'],
       ['Plan cerrado', undefined]
     ]);
-    expect(esperar(servicio.obtenerPlanPorId('PL-003'))?.estado).toBe('cerrado');
-
-    const reabierto = esperar(servicio.deshacerRevision('PL-003', 'A-008'));
-
-    expect(reabierto?.estado).toBe('activo');
-    expect(reabierto?.fechaCierre).toBeUndefined();
-    expect('fechaCierre' in (reabierto ?? {})).toBeFalse();
+    expect(esperar(servicio.obtenerPlanPorId('PL-003'))?.estado).toBe('CERRADO');
+    expect(cerrado?.tipoCierre).toBe('CUMPLIDO');
   }));
 
   it('rechazar no cierra el plan aunque sea la última pendiente', fakeAsync(() => {
     const plan = esperar(servicio.rechazarEvidencia('PL-003', 'A-008', 'No se ve el usuario.'));
 
-    expect(plan?.estado).toBe('activo');
+    expect(plan?.estado).toBe('FIRMADO');
     expect(plan?.fechaCierre).toBeUndefined();
+  }));
+
+  it('una acción que falla deja su motivo en ultimoError; la siguiente que sale bien lo limpia', fakeAsync(() => {
+    expect(esperar(servicio.rechazarEvidencia('PL-002', 'A-005', '  '))).toBeNull();
+    expect(servicio.ultimoError).toBe('El motivo del rechazo es obligatorio.');
+
+    esperar(servicio.aprobarEvidencia('PL-002', 'A-005'));
+    expect(servicio.ultimoError).toBeNull();
+  }));
+
+  describe('cerrarPlan (cierre anticipado)', () => {
+    it('valida motivo, plan firmado y evidencias por revisar, como el backend', fakeAsync(() => {
+      expect(esperar(servicio.cerrarPlan('PL-002', ' '))?.error).toBe(ERROR_MOTIVO_CIERRE);
+      expect(esperar(servicio.cerrarPlan('PL-004', 'Motivo'))?.error).toBe(ERROR_CIERRE_NO_FIRMADO);
+      expect(esperar(servicio.cerrarPlan('PL-002', 'Motivo'))?.error)
+        .withContext('A-005 y A-016 están en revisión').toBe(ERROR_CIERRE_EN_REVISION);
+    }));
+
+    it('exige al menos una actividad vencida', fakeAsync(() => {
+      esperar(servicio.rechazarEvidencia('PL-003', 'A-008', 'Ilegible.'));
+
+      expect(esperar(servicio.cerrarPlan('PL-003', 'Motivo'))?.error).toBe(ERROR_CIERRE_SIN_VENCIDAS);
+    }));
+
+    it('cierra: no aceptadas a NO_CUMPLIDA, plan CERRADO ANTICIPADO con motivo y fecha de hoy', fakeAsync(() => {
+      esperar(servicio.aprobarEvidencia('PL-002', 'A-005'));
+      esperar(servicio.rechazarEvidencia('PL-002', 'A-016', 'Incompleta.'));
+
+      const resultado = esperar(servicio.cerrarPlan('PL-002', '  No se cumplió a tiempo. '));
+      const plan = resultado?.plan ?? null;
+
+      expect(resultado?.error).toBeNull();
+      expect(plan?.estado).toBe('CERRADO');
+      expect(plan?.tipoCierre).toBe('ANTICIPADO');
+      expect(plan?.motivoCierre).toBe('No se cumplió a tiempo.');
+      expect(plan?.fechaCierre).toBe('2026-10-02');
+      expect(actividad(plan, 'A-004').estado).toBe('ACEPTADA');
+      expect(actividad(plan, 'A-005').estado).toBe('ACEPTADA');
+      expect(['A-003', 'A-015', 'A-016', 'A-017', 'A-018'].map((id) => actividad(plan, id).estado))
+        .toEqual(['NO_CUMPLIDA', 'NO_CUMPLIDA', 'NO_CUMPLIDA', 'NO_CUMPLIDA', 'NO_CUMPLIDA']);
+      expect(esperar(servicio.obtenerPlanPorId('PL-002'))?.estado).toBe('CERRADO');
+      expect(esperar(servicio.cerrarPlan('PL-002', 'Otra vez'))?.error).toBe(ERROR_CIERRE_NO_FIRMADO);
+    }));
+  });
+
+  it('descargas: texto de relleno para los archivos de ejemplo y null si no hay archivo', fakeAsync(() => {
+    const documento = esperar(servicio.obtenerDocumentoPlan('PL-001'));
+
+    expect(documento).toEqual(jasmine.any(Blob));
+    expect(esperar(servicio.obtenerDocumentoPlan('PL-004'))).toBeNull();
+    expect(esperar(servicio.obtenerArchivoEvidencia('NO-EXISTE'))).toBeNull();
   }));
 });

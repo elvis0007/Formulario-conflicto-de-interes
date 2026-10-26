@@ -96,6 +96,7 @@
               </td>
               <td>
                 <a class="grupo-conflicto" [routerLink]="rutaPlan(g)" title="Abrir el plan actual en Plan de Acción">#{{ g.conflicto.id }}</a>
+                <app-badge class="grupo-seguimiento" [tono]="tonoSeguimiento(g.conflicto)" [texto]="textoSeguimiento(g.conflicto)" />
               </td>
               <td class="grupo-personas">
                 <span class="persona">{{ g.conflicto.personaA.nombres }}</span>
@@ -105,7 +106,7 @@
               <td><app-badge class="grupo-riesgo" [tono]="tonoRiesgo(g.conflicto.riesgo)" [texto]="textoRiesgo(g.conflicto.riesgo)" /></td>
               <td class="grupo-planes sin-salto">{{ textoPlanes(g) }}</td>
               <td class="col-avance"><app-barra-avance class="grupo-avance" [actividades]="g.plan.actividades" /></td>
-              <td><app-badge class="grupo-estado" [tono]="tonoEstadoPlan(g.plan.estado)" [texto]="textoEstadoPlan(g.plan.estado)" /></td>
+              <td><app-badge class="grupo-estado" [tono]="tonoEstadoPlan(g.plan)" [texto]="textoEstadoPlan(g.plan)" /></td>
             </tr>
             @if (estaExpandido(g.conflicto.id)) {
               <tr class="fila-planes" [id]="'planes-' + g.conflicto.id">
@@ -114,12 +115,15 @@
                     <section class="bloque-plan" [attr.data-plan]="b.plan.id">
                       <header class="bloque-cabecera">
                         <span class="bloque-titulo">{{ tituloPlan(b.plan) }}</span>
-                        <app-badge [tono]="tonoEstadoPlan(b.plan.estado)" [texto]="textoEstadoPlan(b.plan.estado)" />
+                        <app-badge [tono]="tonoEstadoPlan(b.plan)" [texto]="textoEstadoPlan(b.plan)" />
                         @if (b.plan.fechaInicio) {
                           <span class="bloque-dato">Inicio: {{ fecha(b.plan.fechaInicio) }}</span>
                         }
                         <span class="bloque-dato bloque-avance">{{ avance(b.plan) }}</span>
                       </header>
+                      @if (b.plan.motivoCierre) {
+                        <p class="bloque-motivo">Motivo del cierre: {{ b.plan.motivoCierre }}</p>
+                      }
                       <table class="tabla-actividades">
                         <thead>
                           <tr>

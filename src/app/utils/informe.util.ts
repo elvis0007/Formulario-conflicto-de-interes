@@ -1,6 +1,6 @@
 import { Actividad, Conflicto, PlanAccion, Riesgo } from '../models';
 import { TODOS } from './filtros-listados.util';
-import { obtenerPlanActual } from './planes.util';
+import { obtenerPlanActual, tieneActividadesVencidas } from './planes.util';
 import { contieneTexto } from './texto.util';
 
 /**
@@ -11,8 +11,8 @@ import { contieneTexto } from './texto.util';
 
 /**
  * Filtro por estado del plan actual (§6.7):
- * - `en-ejecucion`: activo, con o sin vencidas;
- * - `con-vencidas`: activo con actividades vencidas;
+ * - `en-ejecucion`: firmado, con o sin vencidas;
+ * - `con-vencidas`: firmado con actividades vencidas;
  * - `cerrados`: cerrado.
  */
 export type EstadoInforme = 'en-ejecucion' | 'con-vencidas' | 'cerrados';
@@ -73,17 +73,22 @@ export function esEstadoInforme(valor: string | null): valor is EstadoInforme {
 /**
  * @param plan Plan.
  * @param estado Filtro.
+ * @param hoy Fecha de hoy, para el filtro «con vencidas».
  * @returns `true` si el plan cumple el filtro de estado.
  * @author Elvis Flores
  */
-export function cumpleEstado(plan: PlanAccion, estado: EstadoInforme | typeof TODOS): boolean {
+export function cumpleEstado(
+  plan: PlanAccion,
+  estado: EstadoInforme | typeof TODOS,
+  hoy: Date = new Date()
+): boolean {
   switch (estado) {
     case 'en-ejecucion':
-      return plan.estado === 'activo' || plan.estado === 'activo_vencidas';
+      return plan.estado === 'FIRMADO';
     case 'con-vencidas':
-      return plan.estado === 'activo_vencidas';
+      return tieneActividadesVencidas(plan, hoy);
     case 'cerrados':
-      return plan.estado === 'cerrado';
+      return plan.estado === 'CERRADO';
     default:
       return true;
   }
@@ -107,7 +112,7 @@ export function armarGruposInforme(
 
   for (const conflicto of conflictos) {
     const enviados = planes
-      .filter((p) => p.conflictoId === conflicto.id && p.estado !== 'borrador')
+      .filter((p) => p.conflictoId === conflicto.id && p.estado !== 'BORRADOR')
       .sort((a, b) => a.numero - b.numero);
     const plan = obtenerPlanActual(enviados);
 
@@ -130,12 +135,17 @@ export function armarGruposInforme(
  *
  * @param grupos Grupos del informe.
  * @param filtros Filtros elegidos.
+ * @param hoy Fecha de hoy, para el filtro «con vencidas».
  * @returns Grupos que pasan, con sus bloques visibles.
  * @author Elvis Flores
  */
-export function filtrarInforme(grupos: readonly GrupoInforme[], filtros: FiltrosInforme): GrupoInforme[] {
+export function filtrarInforme(
+  grupos: readonly GrupoInforme[],
+  filtros: FiltrosInforme,
+  hoy: Date = new Date()
+): GrupoInforme[] {
   return grupos
-    .filter((g) => cumpleEstado(g.plan, filtros.estado))
+    .filter((g) => cumpleEstado(g.plan, filtros.estado, hoy))
     .filter((g) => filtros.riesgo === TODOS || g.conflicto.riesgo === filtros.riesgo)
     .filter((g) => contieneTexto([
       g.conflicto.id,

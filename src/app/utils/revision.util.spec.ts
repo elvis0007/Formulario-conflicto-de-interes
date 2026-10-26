@@ -24,7 +24,7 @@ describe('revision.util', () => {
       responsableNombre: 'Nombre ' + responsableId,
       plazoMeses: 0,
       plazoDias: 15,
-      estado: 'pendiente',
+      estado: 'PENDIENTE',
       ...cambios
     };
   }
@@ -34,10 +34,11 @@ describe('revision.util', () => {
    * @param fechaRevision Fecha de revision.
    * @returns Campos de una actividad revisada.
    */
-  function revisada(estado: 'aprobada' | 'rechazada', fechaRevision: string): Partial<Actividad> {
+  function revisada(estado: 'APROBADA' | 'RECHAZADA', fechaRevision: string): Partial<Actividad> {
     return {
-      estado,
+      estado: estado === 'APROBADA' ? 'ACEPTADA' : 'RECHAZADA',
       evidencia: {
+        id: 'EV-1',
         archivo: { nombre: 'x.pdf', url: '/mock/archivos/x.pdf', tipo: 'pdf' },
         fechaSubida: '2026-09-30T10:00:00',
         estado,
@@ -56,17 +57,18 @@ describe('revision.util', () => {
   }
 
   it('textos de estado para RRHH y para el Responsable', () => {
-    expect(textoEstadoActividad('pendiente', false)).toBe('Pendiente de evidencia');
-    expect(textoEstadoActividad('aprobada', false)).toBe('Aprobada · Cumplida');
-    expect(textoEstadoActividad('en_revision', true)).toBe('En revisión de RRHH');
-    expect(textoEstadoActividad('vencida', true)).toBe('Pendiente');
+    expect(textoEstadoActividad('PENDIENTE', false)).toBe('Pendiente de evidencia');
+    expect(textoEstadoActividad('ACEPTADA', false)).toBe('Aprobada · Cumplida');
+    expect(textoEstadoActividad('NO_CUMPLIDA', false)).toBe('No cumplida');
+    expect(textoEstadoActividad('EN_REVISION', true)).toBe('En revisión de RRHH');
+    expect(textoEstadoActividad('VENCIDA', false)).toBe('Vencida');
+    expect(textoEstadoActividad('VENCIDA', true)).toBe('Pendiente');
   });
 
-  it('esPlanActivo: activo y activo con vencidas', () => {
-    expect(esPlanActivo(plan('activo', []))).toBeTrue();
-    expect(esPlanActivo(plan('activo_vencidas', []))).toBeTrue();
-    expect(esPlanActivo(plan('cerrado', []))).toBeFalse();
-    expect(esPlanActivo(plan('borrador', []))).toBeFalse();
+  it('esPlanActivo: solo el plan firmado', () => {
+    expect(esPlanActivo(plan('FIRMADO', []))).toBeTrue();
+    expect(esPlanActivo(plan('CERRADO', []))).toBeFalse();
+    expect(esPlanActivo(plan('BORRADOR', []))).toBeFalse();
   });
 
   it('iniciales: primer nombre y primer apellido', () => {
@@ -78,14 +80,14 @@ describe('revision.util', () => {
 
   it('contarResumen: por revisar solo en planes activos; revisadas hoy en cualquier plan', () => {
     const resumen = contarResumen([
-      plan('activo', [
-        act('1', 'E1', { estado: 'en_revision' }),
-        act('2', 'E1', revisada('aprobada', '2026-10-02T09:00:00')),
-        act('3', 'E2', revisada('rechazada', '2026-10-02T08:00:00')),
-        act('4', 'E2', revisada('aprobada', '2026-10-01T18:00:00'))
+      plan('FIRMADO', [
+        act('1', 'E1', { estado: 'EN_REVISION' }),
+        act('2', 'E1', revisada('APROBADA', '2026-10-02T09:00:00')),
+        act('3', 'E2', revisada('RECHAZADA', '2026-10-02T08:00:00')),
+        act('4', 'E2', revisada('APROBADA', '2026-10-01T18:00:00'))
       ]),
-      plan('cerrado', [act('5', 'E3', revisada('aprobada', '2026-10-02T09:30:00'))]),
-      plan('borrador', [act('6', 'E3', { estado: 'en_revision' })])
+      plan('CERRADO', [act('5', 'E3', revisada('APROBADA', '2026-10-02T09:30:00'))]),
+      plan('BORRADOR', [act('6', 'E3', { estado: 'EN_REVISION' })])
     ], HOY);
 
     expect(resumen).toEqual({ porRevisar: 1, aprobadasHoy: 2, rechazadasHoy: 1 });

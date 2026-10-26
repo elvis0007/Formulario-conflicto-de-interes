@@ -1,22 +1,18 @@
-import { Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { Component, DestroyRef, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import {
-  AbstractControl,
-  FormControl,
-  FormGroup,
-  ReactiveFormsModule,
-  ValidationErrors,
-  ValidatorFn,
-  Validators
-} from '@angular/forms';
+import { AbstractControl, FormControl, FormGroup, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { CoincidenciaCandidato, ConsultaPrevia, DatosCandidato } from '../models';
-import { FechaLargaPipe } from '../pipes/fecha-larga.pipe';
 import { ConsultaPreviaMockService } from '../services/consulta-previa-mock.service';
 import { BadgeComponent } from '../shared/badge/badge.component';
 import { EmptyStateComponent } from '../shared/empty-state/empty-state.component';
 import { IconoComponent } from '../shared/icono/icono.component';
 import { textoGrado, textoRiesgo } from '../utils/analisis.util';
-import { ERROR_CEDULA, ERROR_DATOS_MINIMOS } from '../utils/consulta-previa.util';
+import {
+  ERROR_APELLIDOS_OBLIGATORIOS,
+  ERROR_CEDULA,
+  ERROR_CEDULA_OBLIGATORIA,
+  ERROR_NOMBRES_OBLIGATORIOS
+} from '../utils/consulta-previa.util';
 import { Tono, mapearRiesgoATono } from '../utils/tono.util';
 
 /** Mensaje si la consulta falla. */
@@ -24,6 +20,17 @@ const ERROR_CONSULTA = 'No se pudo hacer la consulta. Inténtalo de nuevo.';
 
 /** Aviso permanente de la pantalla. */
 export const AVISO_INFORMATIVO = 'Consulta informativa. No crea un registro en el análisis ni un plan de acción.';
+
+/**
+ * El campo debe tener algo mas que espacios.
+ *
+ * @param control Campo de texto.
+ * @returns `{ vacio: true }` si esta vacio o solo tiene espacios.
+ * @author Elvis Flores
+ */
+export function sinEspacios(control: AbstractControl): ValidationErrors | null {
+  return String(control.value ?? '').trim() === '' ? { vacio: true } : null;
+}
 
 /** Formulario de la consulta. */
 type FormularioConsulta = FormGroup<{
@@ -33,50 +40,34 @@ type FormularioConsulta = FormGroup<{
 }>;
 
 /**
- * Exige la cedula, o los nombres y los apellidos.
- *
- * @returns Validador del grupo: `{ datosMinimos: true }` si falta.
- * @author Elvis Flores
- */
-export function datosMinimosValidator(): ValidatorFn {
-  return (grupo: AbstractControl): ValidationErrors | null => {
-    const valor = grupo.value as Partial<DatosCandidato>;
-    const cedula = (valor.cedula ?? '').trim();
-    const completos = (valor.nombres ?? '').trim() !== '' && (valor.apellidos ?? '').trim() !== '';
-
-    return cedula !== '' || completos ? null : { datosMinimos: true };
-  };
-}
-
-/**
  * Consulta Previa a Contratación (especificacion §6.10): antes de
  * contratar a alguien, muestra si tiene posibles parientes entre los
  * empleados actuales.
  *
- * - Formulario: cedula (10 digitos), nombres y apellidos; «Consultar» exige
- *   la cedula o nombres y apellidos.
+ * - Formulario: cedula (10 digitos), nombres y apellidos; el backend exige
+ *   los tres, asi que «Consultar» los valida antes de enviar y avisa cual
+ *   falta.
  * - Resultado: una tarjeta por coincidencia (empleado, cargo y
  *   departamento, parentesco y grado estimados, riesgo) o «Sin
  *   coincidencias con empleados actuales».
  * - Aviso: la consulta es informativa.
  * - «Nueva consulta» limpia el formulario y el resultado.
- * - «Consultas recientes» de la sesion.
  *
  * @author Elvis Flores
  */
 @Component({
   selector: 'app-consulta-previa',
-  imports: [BadgeComponent, EmptyStateComponent, FechaLargaPipe, IconoComponent, ReactiveFormsModule],
+  imports: [BadgeComponent, EmptyStateComponent, IconoComponent, ReactiveFormsModule],
   templateUrl: './consulta-previa.component.html',
   styleUrl: './consulta-previa.component.scss'
 })
-export class ConsultaPreviaComponent implements OnInit {
+export class ConsultaPreviaComponent {
   /** Formulario. */
   readonly formulario: FormularioConsulta = new FormGroup({
-    cedula: new FormControl('', { nonNullable: true, validators: [Validators.pattern(/^\s*(\d{10})?\s*$/)] }),
-    nombres: new FormControl('', { nonNullable: true }),
-    apellidos: new FormControl('', { nonNullable: true })
-  }, { validators: datosMinimosValidator() });
+    cedula: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.pattern(/^\s*\d{10}\s*$/)] }),
+    nombres: new FormControl('', { nonNullable: true, validators: [sinEspacios] }),
+    apellidos: new FormControl('', { nonNullable: true, validators: [sinEspacios] })
+  });
 
   /** Se pulso «Consultar» (muestra los errores). */
   intentado = false;
@@ -90,31 +81,33 @@ export class ConsultaPreviaComponent implements OnInit {
   /** Error de la ultima consulta. */
   errorConsulta: string | null = null;
 
-  /** Consultas de la sesion. */
-  recientes: ConsultaPrevia[] = [];
-
   readonly aviso = AVISO_INFORMATIVO;
   readonly errorCedula = ERROR_CEDULA;
-  readonly errorDatosMinimos = ERROR_DATOS_MINIMOS;
+  readonly errorCedulaObligatoria = ERROR_CEDULA_OBLIGATORIA;
+  readonly errorNombres = ERROR_NOMBRES_OBLIGATORIOS;
+  readonly errorApellidos = ERROR_APELLIDOS_OBLIGATORIOS;
 
   private readonly servicio = inject(ConsultaPreviaMockService);
   private readonly destroyRef = inject(DestroyRef);
 
-  /** @returns `true` si se debe mostrar el error de la cedula. */
+  /** @returns `true` si se debe mostrar que falta la cedula. */
+  get cedulaVacia(): boolean {
+    return this.intentado && this.formulario.controls.cedula.hasError('required');
+  }
+
+  /** @returns `true` si se debe mostrar que la cedula no tiene 10 digitos. */
   get cedulaInvalida(): boolean {
     return this.intentado && this.formulario.controls.cedula.hasError('pattern');
   }
 
-  /** @returns `true` si faltan los datos minimos. */
-  get faltanDatos(): boolean {
-    return this.intentado && this.formulario.hasError('datosMinimos');
+  /** @returns `true` si se debe mostrar que falta un nombre. */
+  get faltanNombres(): boolean {
+    return this.intentado && this.formulario.controls.nombres.invalid;
   }
 
-  /**
-   * Carga las consultas recientes.
-   */
-  ngOnInit(): void {
-    this.cargarRecientes();
+  /** @returns `true` si se debe mostrar que falta un apellido. */
+  get faltanApellidos(): boolean {
+    return this.intentado && this.formulario.controls.apellidos.invalid;
   }
 
   /**
@@ -135,11 +128,10 @@ export class ConsultaPreviaComponent implements OnInit {
         next: (consulta) => {
           this.consultando = false;
           if (consulta === null) {
-            this.errorConsulta = ERROR_CONSULTA;
+            this.errorConsulta = this.servicio.ultimoError ?? ERROR_CONSULTA;
             return;
           }
           this.resultado = consulta;
-          this.cargarRecientes();
         },
         error: (err: unknown) => {
           this.consultando = false;
@@ -186,17 +178,5 @@ export class ConsultaPreviaComponent implements OnInit {
   /** @param c Coincidencia. @returns Tono del riesgo. */
   tonoRiesgo(c: CoincidenciaCandidato): Tono {
     return mapearRiesgoATono(c.riesgo);
-  }
-
-  /**
-   * Vuelve a pedir las consultas de la sesion.
-   */
-  private cargarRecientes(): void {
-    this.servicio.obtenerConsultasRecientes()
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (consultas) => this.recientes = consultas,
-        error: (err: unknown) => console.error('[ConsultaPreviaComponent.cargarRecientes]', err)
-      });
   }
 }

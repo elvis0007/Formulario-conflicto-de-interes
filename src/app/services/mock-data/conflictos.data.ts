@@ -8,17 +8,17 @@ type ConflictoSinPlanes = Omit<Conflicto, 'planes'>;
 /**
  * Conflictos de ejemplo, sin planes. Cubren:
  *
- * | Id    | Vinculo        | Relacion       | Grado | Riesgo  | Clasif.    | Planes |
- * |-------|----------------|----------------|-------|---------|------------|--------|
- * | C-001 | Hermanos       | Consanguinidad | 2     | alto    | confirmado | 2      |
- * | C-002 | Tío/Sobrino    | Consanguinidad | 3     | medio   | confirmado | 1      |
- * | C-003 | Suegro/Yerno   | Afinidad       | 1     | alto    | confirmado | 1      |
- * | C-004 | Primas         | Consanguinidad | 4     | bajo    | confirmado | 1      |
- * | C-005 | Cuñados        | Afinidad       | 2     | medio   | pendiente  | 0      |
- * | C-006 | Hermanos       | Consanguinidad | 2     | ninguno | homonimo   | 0      |
- * | C-007 | Padre/Hija     | Consanguinidad | 1     | bajo    | pendiente  | 0      |
- * | C-008 | Suegro/Nuera   | Afinidad       | 1     | medio   | confirmado | 2      |
- * | C-009 | Cónyuges       | Afinidad       | —     | bajo    | pendiente  | 0      |
+ * | Id    | Vinculo        | Relacion       | Grado | Riesgo  | Clasif. | Estado           | Planes |
+ * |-------|----------------|----------------|-------|---------|---------|------------------|--------|
+ * | C-001 | Hermanos       | Consanguinidad | 2     | ALTO    | D       | EN_EJECUCION     | 2      |
+ * | C-002 | Tío/Sobrino    | Consanguinidad | 3     | MEDIO   | D       | EN_EJECUCION     | 1      |
+ * | C-003 | Suegro/Yerno   | Afinidad       | 1     | CRITICO | N       | EN_PLANIFICACION | 1      |
+ * | C-004 | Primas         | Consanguinidad | 4     | BAJO    | D       | FINALIZADO       | 1      |
+ * | C-005 | Cuñados        | Afinidad       | 2     | MEDIO   | null    | DETECTADO        | 0      |
+ * | C-006 | Hermanos       | Consanguinidad | 2     | BAJO    | H       | DESCARTADO       | 0      |
+ * | C-007 | Padre/Hija     | Consanguinidad | 1     | BAJO    | null    | DETECTADO        | 0      |
+ * | C-008 | Suegro/Nuera   | Afinidad       | 1     | MEDIO   | D       | EN_PLANIFICACION | 2      |
+ * | C-009 | Cónyuges       | Afinidad       | —     | BAJO    | null    | DETECTADO        | 0      |
  *
  * Vinculos simetricos (una sola etiqueta): Hermanos, Primas, Cuñados y
  * Cónyuges. Con roles distintos: Tío/Sobrino, Suegro/Yerno, Padre/Hija y
@@ -38,8 +38,9 @@ const CONFLICTOS_SIN_PLANES: readonly ConflictoSinPlanes[] = [
     etiquetaSimetrica: 'Hermanos',
     relacion: 'Consanguinidad',
     grado: 2,
-    riesgo: 'alto',
-    clasificacion: 'confirmado',
+    riesgo: 'ALTO',
+    clasificacion: 'D',
+    estado: 'EN_EJECUCION',
     motivoRiesgo: 'Relación jerárquica directa: el técnico depende del '
       + 'jefe de Adquisiciones y participa en procesos que él aprueba.',
     evidenciasDeteccion: [
@@ -56,8 +57,9 @@ const CONFLICTOS_SIN_PLANES: readonly ConflictoSinPlanes[] = [
     rolB: 'Sobrino',
     relacion: 'Consanguinidad',
     grado: 3,
-    riesgo: 'medio',
-    clasificacion: 'confirmado',
+    riesgo: 'MEDIO',
+    clasificacion: 'D',
+    estado: 'EN_EJECUCION',
     motivoRiesgo: 'Mismo departamento; el superintendente aprueba las '
       + 'horas extra de la cuadrilla del liniero.',
     evidenciasDeteccion: [
@@ -74,8 +76,9 @@ const CONFLICTOS_SIN_PLANES: readonly ConflictoSinPlanes[] = [
     rolB: 'Yerno',
     relacion: 'Afinidad',
     grado: 1,
-    riesgo: 'alto',
-    clasificacion: 'confirmado',
+    riesgo: 'CRITICO',
+    clasificacion: 'N',
+    estado: 'EN_PLANIFICACION',
     motivoRiesgo: 'El director financiero es jefe inmediato del contador '
       + 'general, que registra los pagos que él aprueba.',
     evidenciasDeteccion: [
@@ -92,8 +95,9 @@ const CONFLICTOS_SIN_PLANES: readonly ConflictoSinPlanes[] = [
     etiquetaSimetrica: 'Primas',
     relacion: 'Consanguinidad',
     grado: 4,
-    riesgo: 'bajo',
-    clasificacion: 'confirmado',
+    riesgo: 'BAJO',
+    clasificacion: 'D',
+    estado: 'FINALIZADO',
     motivoRiesgo: 'Departamentos distintos, pero la analista de Talento '
       + 'Humano participa en la selección de personal de '
       + 'Comercialización.',
@@ -111,8 +115,9 @@ const CONFLICTOS_SIN_PLANES: readonly ConflictoSinPlanes[] = [
     etiquetaSimetrica: 'Cuñados',
     relacion: 'Afinidad',
     grado: 2,
-    riesgo: 'medio',
-    clasificacion: 'pendiente',
+    riesgo: 'MEDIO',
+    clasificacion: null,
+    estado: 'DETECTADO',
     motivoRiesgo: 'La analista de presupuesto valida los contratos de '
       + 'tecnología que solicita el ingeniero de sistemas.',
     evidenciasDeteccion: [
@@ -129,8 +134,9 @@ const CONFLICTOS_SIN_PLANES: readonly ConflictoSinPlanes[] = [
     etiquetaSimetrica: 'Hermanos',
     relacion: 'Consanguinidad',
     grado: 2,
-    riesgo: 'ninguno',
-    clasificacion: 'homonimo',
+    riesgo: 'BAJO',
+    clasificacion: 'H',
+    estado: 'DESCARTADO',
     motivoRiesgo: 'Coincidencia de apellidos; los padres son distintos, '
       + 'no hay parentesco.',
     evidenciasDeteccion: [
@@ -146,8 +152,9 @@ const CONFLICTOS_SIN_PLANES: readonly ConflictoSinPlanes[] = [
     rolB: 'Hija',
     relacion: 'Consanguinidad',
     grado: 1,
-    riesgo: 'bajo',
-    clasificacion: 'pendiente',
+    riesgo: 'BAJO',
+    clasificacion: null,
+    estado: 'DETECTADO',
     motivoRiesgo: 'Departamentos distintos y sin relación jerárquica.',
     evidenciasDeteccion: [
       'El padre registrado de EMP-011 coincide con EMP-006.'
@@ -162,8 +169,9 @@ const CONFLICTOS_SIN_PLANES: readonly ConflictoSinPlanes[] = [
     rolB: 'Nuera',
     relacion: 'Afinidad',
     grado: 1,
-    riesgo: 'medio',
-    clasificacion: 'confirmado',
+    riesgo: 'MEDIO',
+    clasificacion: 'D',
+    estado: 'EN_PLANIFICACION',
     motivoRiesgo: 'La analista de Talento Humano tramita expedientes del '
       + 'personal de Distribución, que dirige su suegro.',
     evidenciasDeteccion: [
@@ -181,8 +189,9 @@ const CONFLICTOS_SIN_PLANES: readonly ConflictoSinPlanes[] = [
     etiquetaSimetrica: 'Cónyuges',
     relacion: 'Afinidad',
     grado: null,
-    riesgo: 'bajo',
-    clasificacion: 'pendiente',
+    riesgo: 'BAJO',
+    clasificacion: null,
+    estado: 'DETECTADO',
     motivoRiesgo: 'Departamentos distintos (Financiero y Comercialización) '
       + 'y sin relación jerárquica entre ellos.',
     evidenciasDeteccion: [

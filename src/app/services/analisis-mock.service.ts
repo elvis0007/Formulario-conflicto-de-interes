@@ -1,5 +1,5 @@
 import { Injectable, Injector, inject } from '@angular/core';
-import { Observable, defer, forkJoin, map, throwError } from 'rxjs';
+import { MonoTypeOperatorFunction, Observable, catchError, defer, forkJoin, map, of, pipe, tap, throwError } from 'rxjs';
 import {
   AnalisisConflictos,
   Clasificacion,
@@ -19,6 +19,9 @@ import { PlanesMockService } from './planes-mock.service';
  * estado de carga del boton.
  */
 export const LATENCIA_GENERACION_MS = 1200;
+
+/** Mensaje si una accion falla sin un motivo concreto. */
+const ERROR_ACCION = 'No se pudo completar la acción. Inténtalo de nuevo.';
 
 /**
  * Analisis vacio: el que hay antes de generar el primero, y el valor que
@@ -44,8 +47,13 @@ const ANALISIS_VACIO: AnalisisConflictos = {
  * Reglas:
  * - Generar crea un analisis nuevo en Borrador. El actual (Borrador o
  *   Validado) pasa al historial sin modificarse.
- * - Solo se clasifica un caso mientras el analisis esta en Borrador.
+ * - Solo se clasifica un caso mientras el analisis esta en Borrador, y solo
+ *   si el caso sigue en `DETECTADO`: como en el backend, clasificar es
+ *   definitivo (no hay vuelta a «sin clasificar» ni cambio de D a N...).
+ * - Homonimo (H) exige observacion.
  * - Solo se valida si no quedan casos pendientes de clasificar.
+ * - Cuando una accion falla deja el motivo en `ultimoError`, con los mismos
+ *   textos que el backend.
  *
  * Guarda todo en memoria durante la sesion: si se sale de la pantalla y
  * se vuelve, los cambios siguen ahi. Al iniciar la app no hay ningun
@@ -61,6 +69,12 @@ const ANALISIS_VACIO: AnalisisConflictos = {
   providedIn: 'root'
 })
 export class AnalisisMockService {
+  /**
+   * Motivo del ultimo fallo de `generarAnalisis`, `actualizarClasificacion`
+   * o `validarAnalisis`. `null` si la ultima salio bien.
+   */
+  ultimoError: string | null = null;
+
   /** Analisis vigente en memoria. */
   private analisis: AnalisisConflictos = structuredClone(ANALISIS_VACIO);
 
@@ -109,16 +123,13 @@ export class AnalisisMockService {
     this.correlativo++;
     this.analisis = {
       id: 'AN-' + String(this.correlativo).padStart(3, '0'),
-      estado: 'borrador',
+      estado: 'BORRADOR',
       fechaGeneracion: this.reloj().toISOString(),
       conflictos: structuredClone([...CONFLICTOS])
     };
 
     return this.conPlanesVigentes(simularRespuesta(this.analisis, LATENCIA_GENERACION_MS)).pipe(
-      manejarError<AnalisisConflictos>(
-        'AnalisisMockService.generarAnalisis',
-        structuredClone(ANALISIS_VACIO)
-      )
+      this.fallar<AnalisisConflictos>('AnalisisMockService.generarAnalisis', structuredClone(ANALISIS_VACIO))
     );
   }
 
@@ -132,9 +143,9 @@ export class AnalisisMockService {
     const resumenes = [...this.historial].reverse().map((a): ResumenAnalisis => ({
       id: a.id ?? '',
       fechaGeneracion: a.fechaGeneracion ?? '',
-      estado: a.estado ?? 'borrador',
+      estado: a.estado ?? 'BORRADOR',
       totalCasos: a.conflictos.length,
-      confirmados: a.conflictos.filter((c) => c.clasificacion === 'confirmado').length
+      confirmados: a.conflictos.filter((c) => (c.clasificacion === 'D' || c.clasificacion === 'N')).length
     }));
 
     return simularRespuesta(resumenes).pipe(
@@ -146,33 +157,50 @@ export class AnalisisMockService {
    * Clasifica un caso del analisis vigente.
    *
    * @param conflictoId Id del caso.
-   * @param clasificacion Nueva clasificacion.
-   * @param observacion Observacion opcional (se guarda recortada).
-   * @returns `true` si se guardo; `false` si el caso no existe, el
-   * analisis no esta en Borrador o la operacion falla.
+   * @param clasificacion Nueva clasificacion. `null` (volver a «sin
+   * clasificar») se rechaza: el backend no lo permite.
+   * @param observacion Observacion (se guarda recortada); obligatoria para H.
+   * @returns `true` si se guardo; `false` si el caso no existe, ya no esta
+   * en `DETECTADO`, el analisis no esta en Borrador, falta la observacion de
+   * un homonimo o la operacion falla (el motivo queda en `ultimoError`).
    */
   actualizarClasificacion(
     conflictoId: string,
-    clasificacion: Clasificacion,
+    clasificacion: Clasificacion | null,
     observacion: string
   ): Observable<boolean> {
     return defer(() => {
       const caso = this.analisis.conflictos.find((c) => c.id === conflictoId);
 
-      if (this.analisis.estado !== 'borrador') {
-        return throwError(() => new Error('El análisis no está en borrador.'));
+      if (this.analisis.estado !== 'BORRADOR') {
+        return throwError(() => new Error(this.analisis.estado === null
+          ? 'El análisis no existe'
+          : 'El análisis ya está validado: la clasificación no se puede cambiar.'));
       }
       if (caso === undefined) {
-        return throwError(() => new Error('No existe el caso ' + conflictoId + '.'));
+        return throwError(() => new Error('El conflicto no existe'));
+      }
+      if (caso.estado !== 'DETECTADO') {
+        return throwError(() => new Error(
+          'El conflicto ya no está en DETECTADO (' + caso.estado + '): su clasificación es definitiva.'));
+      }
+      if (clasificacion === null) {
+        return throwError(() => new Error('Elige una clasificación: un caso no puede volver a «Pendiente de revisión».'));
+      }
+      if (clasificacion === 'H' && observacion.trim() === '') {
+        return throwError(() => new Error('El comentario es obligatorio para descartar un homónimo.'));
       }
 
+      // Lo que el backend hace en cascada desde DETECTADO: D/N pasan a
+      // planificacion y H se descarta.
       caso.clasificacion = clasificacion;
+      caso.estado = clasificacion === 'H' ? 'DESCARTADO' : 'EN_PLANIFICACION';
       caso.observacionClasificacion = observacion.trim() || undefined;
       caso.fechaClasificacion = this.reloj().toISOString();
       caso.clasificadoPor = this.nombreUsuario();
       return simularRespuesta(true);
     }).pipe(
-      manejarError<boolean>('AnalisisMockService.actualizarClasificacion', false)
+      this.fallar<boolean>('AnalisisMockService.actualizarClasificacion', false)
     );
   }
 
@@ -180,23 +208,29 @@ export class AnalisisMockService {
    * Valida el analisis vigente: desde ahi ya no se puede reclasificar.
    *
    * @returns `true` si se valido; `false` si no esta en Borrador, quedan
-   * casos pendientes o la operacion falla.
+   * casos pendientes o la operacion falla (el motivo queda en `ultimoError`).
    */
   validarAnalisis(): Observable<boolean> {
     return defer(() => {
-      if (this.analisis.estado !== 'borrador') {
-        return throwError(() => new Error('El análisis no está en borrador.'));
-      }
-      if (contarPendientes(this.analisis.conflictos) > 0) {
-        return throwError(() => new Error('Quedan casos pendientes de clasificar.'));
+      if (this.analisis.estado !== 'BORRADOR') {
+        return throwError(() => new Error(this.analisis.estado === null
+          ? 'El análisis no existe'
+          : 'El análisis ' + this.analisis.id + ' ya está validado'));
       }
 
-      this.analisis.estado = 'validado';
+      const pendientes = contarPendientes(this.analisis.conflictos);
+
+      if (pendientes > 0) {
+        return throwError(() => new Error(
+          'No se puede validar el análisis: quedan ' + pendientes + ' conflicto(s) sin clasificar'));
+      }
+
+      this.analisis.estado = 'VALIDADO';
       this.analisis.fechaValidacion = this.reloj().toISOString();
       this.analisis.validadoPor = this.nombreUsuario();
       return simularRespuesta(true);
     }).pipe(
-      manejarError<boolean>('AnalisisMockService.validarAnalisis', false)
+      this.fallar<boolean>('AnalisisMockService.validarAnalisis', false)
     );
   }
 
@@ -226,6 +260,25 @@ export class AnalisisMockService {
   /** @returns Nombre del usuario actual (quien clasifica o valida). */
   private nombreUsuario(): string {
     return this.injector.get(PerfilUsuarioService).obtenerNombreUsuario();
+  }
+
+  /**
+   * Manejo de error de las acciones: guarda el motivo en `ultimoError` (o lo
+   * limpia si salio bien), lo registra y emite `valor`.
+   *
+   * @param origen `Clase.metodo`, para el log.
+   * @param valor Valor que se emite si falla.
+   * @returns Operador.
+   */
+  private fallar<T>(origen: string, valor: T): MonoTypeOperatorFunction<T> {
+    return pipe(
+      tap(() => this.ultimoError = null),
+      catchError((err: unknown) => {
+        this.ultimoError = err instanceof Error && err.message !== '' ? err.message : ERROR_ACCION;
+        console.error('[' + origen + ']', this.ultimoError, err);
+        return of(valor);
+      })
+    );
   }
 
   private conPlanesVigentes(analisis$: Observable<AnalisisConflictos>): Observable<AnalisisConflictos> {

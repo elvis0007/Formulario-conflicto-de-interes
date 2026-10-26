@@ -1,6 +1,13 @@
 import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
+import { of } from 'rxjs';
 import { LATENCIA_SIMULADA_MS } from '../services/mock-data/simular-respuesta';
-import { ERROR_CEDULA, ERROR_DATOS_MINIMOS } from '../utils/consulta-previa.util';
+import { ConsultaPreviaMockService } from '../services/consulta-previa-mock.service';
+import {
+  ERROR_APELLIDOS_OBLIGATORIOS,
+  ERROR_CEDULA,
+  ERROR_CEDULA_OBLIGATORIA,
+  ERROR_NOMBRES_OBLIGATORIOS
+} from '../utils/consulta-previa.util';
 import { RELOJ } from '../utils/reloj';
 import { AVISO_INFORMATIVO, ConsultaPreviaComponent } from './consulta-previa.component';
 
@@ -65,16 +72,40 @@ describe('ConsultaPreviaComponent', () => {
     expect(limpio(raiz.querySelector('.aviso')?.textContent)).toBe(AVISO_INFORMATIVO);
     expect(limpio(raiz.querySelector('app-empty-state')?.textContent)).toContain('Aún no se ha consultado');
     expect(raiz.querySelector('.recientes')).toBeNull();
+    expect(raiz.querySelector('.reciente')).toBeNull();
   }));
 
-  it('exige la cédula o nombres y apellidos, y valida los 10 dígitos', fakeAsync(() => {
+  it('exige cédula, nombre y apellido antes de enviar, con un mensaje por campo', fakeAsync(() => {
     crear();
+    const servicio = TestBed.inject(ConsultaPreviaMockService);
+    const espia = spyOn(servicio, 'consultarCandidato').and.callThrough();
 
-    consultar('', 'Ana', '');
-    expect(errores()).toEqual([ERROR_DATOS_MINIMOS]);
-    consultar('12345', '', '');
-    expect(errores()).toEqual([ERROR_CEDULA]);
+    consultar('', '', '');
+    expect(errores()).toEqual([ERROR_CEDULA_OBLIGATORIA, ERROR_NOMBRES_OBLIGATORIOS, ERROR_APELLIDOS_OBLIGATORIOS]);
+    consultar('12345', '  ', 'Mora');
+    expect(errores()).toEqual([ERROR_CEDULA, ERROR_NOMBRES_OBLIGATORIOS]);
+    consultar('1712345678', 'Ana', '');
+    expect(errores()).toEqual([ERROR_APELLIDOS_OBLIGATORIOS]);
+    expect(raiz.querySelector('[formcontrolname="apellidos"]')?.getAttribute('aria-invalid')).toBe('true');
+    expect(espia).not.toHaveBeenCalled();
     expect(raiz.querySelector('.coincidencia')).toBeNull();
+  }));
+
+  it('si el servicio devuelve null muestra el motivo que dejó en ultimoError', fakeAsync(() => {
+    crear();
+    const servicio = TestBed.inject(ConsultaPreviaMockService);
+
+    spyOn(servicio, 'consultarCandidato').and.callFake(() => {
+      servicio.ultimoError = 'La cédula no es válida';
+      return of(null);
+    });
+    consultar('1712345678', 'Ana', 'Mora');
+    expect(errores()).toEqual(['La cédula no es válida']);
+
+    servicio.ultimoError = null;
+    (servicio.consultarCandidato as jasmine.Spy).and.returnValue(of(null));
+    consultar('1712345678', 'Ana', 'Mora');
+    expect(errores()).toEqual(['No se pudo hacer la consulta. Inténtalo de nuevo.']);
   }));
 
   it('con coincidencias: una tarjeta por empleado con su riesgo', fakeAsync(() => {
@@ -105,24 +136,16 @@ describe('ConsultaPreviaComponent', () => {
     expect(limpio(raiz.querySelector('.sin-coincidencias')?.textContent)).toBe('Sin coincidencias con empleados actuales');
   }));
 
-  it('«Nueva consulta» limpia el formulario y el resultado; las recientes quedan', fakeAsync(() => {
+  it('«Nueva consulta» limpia el formulario y el resultado; no hay consultas recientes', fakeAsync(() => {
     crear();
 
     consultar('1800000318', 'Fausto', 'Tamayo Guevara');
-    consultar('1712345678', 'Juan Carlos', 'Vásconez Mora');
     Array.from(raiz.querySelectorAll('button')).find((b) => limpio(b.textContent) === 'Nueva consulta')?.click();
     fixture.detectChanges();
 
     expect((raiz.querySelector('[formcontrolname="cedula"]') as HTMLInputElement).value).toBe('');
     expect(raiz.querySelector('.coincidencia, .sin-coincidencias')).toBeNull();
     expect(errores()).toEqual([]);
-    expect(Array.from(raiz.querySelectorAll('.reciente')).map((r) => [
-      limpio(r.querySelector('.reciente-datos')?.textContent),
-      limpio(r.querySelector('.reciente-conteo')?.textContent)
-    ])).toEqual([
-      ['Juan Carlos Vásconez Mora · C.I. 1712345678', '0 coincidencias'],
-      ['Fausto Tamayo Guevara · C.I. 1800000318', '2 coincidencias']
-    ]);
-    expect(limpio(raiz.querySelector('.reciente-fecha')?.textContent)).toBe('2 de octubre de 2026 a las 10:00 a. m.');
+    expect(raiz.querySelector('.reciente')).toBeNull();
   }));
 });

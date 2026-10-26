@@ -194,13 +194,13 @@ function eventosDelConflicto(conflicto: Conflicto, analisis: readonly AnalisisCo
       clasificadoEnSesion = true;
       eventos.push(eventoClasificacion(caso, caso.fechaClasificacion, caso.clasificadoPor ?? AUTOR_RRHH, evento));
     }
-    if (a.estado === 'validado' && a.fechaValidacion) {
+    if (a.estado === 'VALIDADO' && a.fechaValidacion) {
       eventos.push(evento(a.fechaValidacion, a.validadoPor ?? AUTOR_RRHH, 'Análisis ' + a.id + ' validado.', 'ok'));
     }
   }
 
   // Dato de ejemplo ya clasificado, sin fecha: se toma la de deteccion.
-  if (!clasificadoEnSesion && conflicto.clasificacion !== 'pendiente') {
+  if (!clasificadoEnSesion && conflicto.clasificacion !== null) {
     eventos.push(eventoClasificacion(conflicto, conflicto.fechaDeteccion, AUTOR_RRHH, evento));
   }
 
@@ -222,10 +222,10 @@ function eventoClasificacion(
 ): EventoHistorial {
   const observacion = caso.observacionClasificacion ? ' Observación: ' + caso.observacionClasificacion : '';
 
-  if (caso.clasificacion === 'homonimo') {
+  if (caso.clasificacion === 'H') {
     return evento(fecha, autor, 'Clasificado como Homónimo: se archiva.' + observacion, 'cierre');
   }
-  if (caso.clasificacion === 'pendiente') {
+  if (caso.clasificacion === null) {
     return evento(fecha, autor, 'Vuelve a Pendiente de revisión.' + observacion, 'info');
   }
   return evento(fecha, autor, 'Clasificado como ' + textoClasificacion(caso.clasificacion) + '.' + observacion, 'ok');
@@ -283,9 +283,9 @@ function eventosDeActividad(actividad: Actividad, plan: PlanAccion, hoy: Date): 
 
   for (const e of evidencias) {
     eventos.push(evento(e.fechaSubida, actividad.responsableNombre, 'Evidencia subida: ' + e.archivo.nombre + '.', 'info'));
-    if (e.estado === 'aprobada') {
+    if (e.estado === 'APROBADA') {
       eventos.push(evento(e.fechaRevision ?? e.fechaSubida, e.revisadoPor ?? AUTOR_RRHH, 'Evidencia aprobada.', 'ok'));
-    } else if (e.estado === 'rechazada') {
+    } else if (e.estado === 'RECHAZADA') {
       eventos.push(evento(e.fechaRevision ?? e.fechaSubida, e.revisadoPor ?? AUTOR_RRHH,
         'Evidencia rechazada: ' + (e.motivoRechazo ?? 'sin motivo') , 'rechazo'));
     }
@@ -320,7 +320,7 @@ function fechaDeVencimiento(actividad: Actividad, hoy: Date): string | null {
   }
   siguiente.setDate(siguiente.getDate() + 1);
 
-  const aprobada = actividad.evidencia?.estado === 'aprobada'
+  const aprobada = actividad.evidencia?.estado === 'APROBADA'
     ? instanteDe(actividad.evidencia.fechaRevision ?? actividad.evidencia.fechaSubida)
     : Number.NaN;
   const vencioAntesDeAprobar = Number.isNaN(aprobada) || aprobada >= siguiente.getTime();
@@ -342,10 +342,10 @@ function fechaCorta(fecha: string): string {
 
 /**
  * Estado de un conflicto en el Historial:
- * - `activo`: tiene un plan activo (con o sin vencidas);
+ * - `activo`: tiene un plan firmado, en ejecucion (con o sin vencidas);
  * - `borrador`: su plan vigente esta en borrador;
  * - `cerrado`: todos sus planes estan cerrados;
- * - `sin-plan`: confirmado o pendiente, sin ningun plan;
+ * - `sin-plan`: declarado, no declarado o pendiente, sin ningun plan;
  * - `archivado`: homonimo.
  */
 export type EstadoConflictoHistorial = 'activo' | 'borrador' | 'cerrado' | 'sin-plan' | 'archivado';
@@ -393,13 +393,13 @@ export interface EventoReciente {
  * @author Elvis Flores
  */
 export function estadoDeConflicto(conflicto: Conflicto, planes: readonly PlanAccion[]): EstadoConflictoHistorial {
-  if (conflicto.clasificacion === 'homonimo') {
+  if (conflicto.clasificacion === 'H') {
     return 'archivado';
   }
-  if (planes.some((p) => p.estado === 'activo' || p.estado === 'activo_vencidas')) {
+  if (planes.some((p) => p.estado === 'FIRMADO')) {
     return 'activo';
   }
-  if (planes.some((p) => p.estado === 'borrador')) {
+  if (planes.some((p) => p.estado === 'BORRADOR')) {
     return 'borrador';
   }
   return planes.length > 0 ? 'cerrado' : 'sin-plan';

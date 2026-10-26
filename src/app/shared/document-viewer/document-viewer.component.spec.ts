@@ -1,6 +1,13 @@
 import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
+import { of } from 'rxjs';
 import { Archivo } from '../../models';
-import { DocumentViewerComponent, ZOOM_MAXIMO, ZOOM_MINIMO } from './document-viewer.component';
+import { PlanesMockService } from '../../services/planes-mock.service';
+import {
+  DocumentViewerComponent,
+  ERROR_CARGA_ARCHIVO,
+  ZOOM_MAXIMO,
+  ZOOM_MINIMO
+} from './document-viewer.component';
 
 describe('DocumentViewerComponent', () => {
   let fixture: ComponentFixture<DocumentViewerComponent>;
@@ -108,6 +115,81 @@ describe('DocumentViewerComponent', () => {
     expect(descarga).toBe('foto.png');
     tick(5000);
   }));
+
+  describe('archivo del backend (ruta de la API con token)', () => {
+    let planes: PlanesMockService;
+    let crearUrl: jasmine.Spy;
+    let revocar: jasmine.Spy;
+
+    beforeEach(() => {
+      planes = TestBed.inject(PlanesMockService);
+      crearUrl = spyOn(URL, 'createObjectURL').and.returnValue('blob:http://localhost/descargado');
+      revocar = spyOn(URL, 'revokeObjectURL');
+    });
+
+    /**
+     * @param archivo Archivo.
+     * @param ids `planId` y/o `evidenciaId`.
+     */
+    function crearConId(archivo: Archivo, ids: { planId?: string; evidenciaId?: string }): void {
+      fixture = TestBed.createComponent(DocumentViewerComponent);
+      fixture.componentRef.setInput('archivo', archivo);
+      for (const [clave, valor] of Object.entries(ids)) {
+        fixture.componentRef.setInput(clave, valor);
+      }
+      fixture.detectChanges();
+      raiz = fixture.nativeElement;
+    }
+
+    it('evidencia: pide el archivo, lo muestra con una URL local y la libera al destruir', () => {
+      const contenido = new Blob(['png'], { type: 'image/png' });
+      const pedir = spyOn(planes, 'obtenerArchivoEvidencia').and.returnValue(of(contenido));
+
+      crearConId({ nombre: 'foto.png', url: '/evidencias/7/archivo', tipo: 'png' }, { evidenciaId: '7' });
+
+      expect(pedir).toHaveBeenCalledOnceWith('7');
+      expect(crearUrl).toHaveBeenCalledOnceWith(contenido);
+      expect(raiz.querySelector('img')?.getAttribute('src')).toBe('blob:http://localhost/descargado');
+
+      fixture.destroy();
+      expect(revocar).toHaveBeenCalledOnceWith('blob:http://localhost/descargado');
+    });
+
+    it('documento del plan: lo pide con obtenerDocumentoPlan y lo muestra en el <iframe>', () => {
+      const pedir = spyOn(planes, 'obtenerDocumentoPlan')
+        .and.returnValue(of(new Blob(['%PDF'], { type: 'application/pdf' })));
+
+      crearConId({ nombre: 'plan.pdf', url: '/planes/41/documento', tipo: 'pdf' }, { planId: '41' });
+
+      expect(pedir).toHaveBeenCalledOnceWith('41');
+      expect(raiz.querySelector('iframe')?.getAttribute('src')).toBe('blob:http://localhost/descargado');
+    });
+
+    it('si no llega (null): avisa y «Descargar» no hace nada', () => {
+      spyOn(planes, 'obtenerArchivoEvidencia').and.returnValue(of(null));
+      const clic = spyOn(HTMLAnchorElement.prototype, 'click');
+
+      crearConId({ nombre: 'acta.pdf', url: '/evidencias/9/archivo', tipo: 'pdf' }, { evidenciaId: '9' });
+      boton('Descargar').click();
+      fixture.detectChanges();
+
+      expect(raiz.querySelector('[role="alert"]')?.textContent).toContain(ERROR_CARGA_ARCHIVO);
+      expect(raiz.querySelector('iframe')).toBeNull();
+      expect(boton('Descargar').getAttribute('aria-disabled')).toBe('true');
+      expect(clic).not.toHaveBeenCalled();
+      expect(raiz.textContent).not.toContain('Descargado ✓');
+    });
+
+    it('la URL local del archivo recién subido se muestra directo, sin pedir nada ni liberarla', () => {
+      const pedir = spyOn(planes, 'obtenerArchivoEvidencia');
+
+      crearConId({ nombre: 'foto.png', url: 'blob:http://localhost/local', tipo: 'png' }, { evidenciaId: '7' });
+      fixture.destroy();
+
+      expect(pedir).not.toHaveBeenCalled();
+      expect(revocar).not.toHaveBeenCalled();
+    });
+  });
 
   it('cerrar emite el evento', () => {
     crear({ nombre: 'x.pdf', url: '/mock/archivos/x.pdf', tipo: 'pdf' });

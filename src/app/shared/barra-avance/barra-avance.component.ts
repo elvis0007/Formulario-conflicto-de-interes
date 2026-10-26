@@ -1,6 +1,7 @@
-import { Component, Input, OnChanges } from '@angular/core';
+import { Component, Input, OnChanges, inject } from '@angular/core';
 import { Actividad } from '../../models';
-import { calcularAvance } from '../../utils/planes.util';
+import { calcularAvance, estadoVistaActividad } from '../../utils/planes.util';
+import { RELOJ } from '../../utils/reloj';
 import { textoEstadoActividad } from '../../utils/revision.util';
 import { Tono, mapearEstadoActividadATono } from '../../utils/tono.util';
 
@@ -37,6 +38,8 @@ export class BarraAvanceComponent implements OnChanges {
   /** Muestra «x de y cumplidas» junto a la barra. */
   @Input() mostrarTexto = true;
 
+  private readonly reloj = inject(RELOJ);
+
   /** «3 de 5 cumplidas» o «Sin actividades». */
   texto = '';
 
@@ -48,12 +51,13 @@ export class BarraAvanceComponent implements OnChanges {
    */
   ngOnChanges(): void {
     const avance = calcularAvance(this.actividades);
+    const hoy = this.reloj();
 
     this.texto = avance.total === 0 ? 'Sin actividades' : avance.cumplidas + ' de ' + avance.total + ' cumplidas';
     this.segmentos = this.actividades.map((a) => ({
       id: a.id,
-      tono: mapearEstadoActividadATono(a.estado, this.vistaResponsable),
-      titulo: a.descripcion + ' · ' + textoEstadoActividad(a.estado, this.vistaResponsable)
+      tono: mapearEstadoActividadATono(estadoVistaActividad(a, hoy), this.vistaResponsable),
+      titulo: a.descripcion + ' · ' + textoEstadoActividad(estadoVistaActividad(a, hoy), this.vistaResponsable)
     }));
   }
 }

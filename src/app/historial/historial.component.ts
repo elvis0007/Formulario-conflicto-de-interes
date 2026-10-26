@@ -4,7 +4,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
 import { Subject, switchMap } from 'rxjs';
 import { PARAMETRO_CONFLICTO } from '../app.paths';
-import { Conflicto, EventoHistorial, PlanAccion } from '../models';
+import { Actividad, Conflicto, EventoHistorial, PlanAccion } from '../models';
 import { FechaLargaPipe } from '../pipes/fecha-larga.pipe';
 import { HistorialMockService } from '../services/historial-mock.service';
 import { BadgeComponent } from '../shared/badge/badge.component';
@@ -27,14 +27,22 @@ import {
   tonoEstadoConflicto,
   tonoTipoEvento
 } from '../utils/historial.util';
-import { obtenerPlanActual, textoEstadoPlan } from '../utils/planes.util';
+import {
+  estadoVistaActividad,
+  obtenerPlanActual,
+  textoEstadoPlan,
+  tieneActividadesVencidas
+} from '../utils/planes.util';
+import { RELOJ } from '../utils/reloj';
 import { textoEstadoActividad } from '../utils/revision.util';
 import { contieneTexto } from '../utils/texto.util';
 import {
   Tono,
   mapearEstadoActividadATono,
   mapearEstadoPlanATono,
-  mapearRiesgoATono
+  mapearEstadoSeguimientoATono,
+  mapearRiesgoATono,
+  textoEstadoSeguimiento
 } from '../utils/tono.util';
 
 /** Filtro por tipo de evento (dentro del modal). */
@@ -50,7 +58,10 @@ const NODO_CONFLICTO = 'conflicto';
  * Historial (especificacion §6.9).
  *
  * - Tarjetas en 4 columnas, una por conflicto: numero, estado, personas,
- *   parentesco, riesgo, numero de planes y fecha de deteccion.
+ *   parentesco, riesgo, estado de seguimiento, numero de planes y fecha de
+ *   deteccion.
+ * - Los planes cerrados dicen como se cerraron (cumplido o anticipado) y,
+ *   si lo hay, el motivo.
  * - Buscador (numero o nombre) y filtro Todos / Activos / Cerrados.
  * - Al hacer clic se abre un modal con el arbol de eventos: los del
  *   conflicto, los de cada plan y los de cada actividad. Cada nivel se
@@ -123,6 +134,7 @@ export class HistorialComponent implements OnInit, OnDestroy {
   private readonly servicio = inject(HistorialMockService);
   private readonly ruta = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly reloj = inject(RELOJ);
 
   /** @returns Tarjetas que pasan el buscador y el filtro. */
   get visibles(): ResumenHistorial[] {
@@ -353,24 +365,34 @@ export class HistorialComponent implements OnInit, OnDestroy {
     return 'Plan ' + String(plan.numero).padStart(2, '0') + ' · ' + plan.nombre;
   }
 
-  /** @param plan Plan. @returns Texto de su estado. */
+  /** @param plan Plan. @returns Texto de su estado (con el tipo de cierre). */
   textoEstadoPlan(plan: PlanAccion): string {
-    return textoEstadoPlan(plan.estado);
+    return textoEstadoPlan(plan.estado, tieneActividadesVencidas(plan, this.reloj()), plan.tipoCierre);
   }
 
   /** @param plan Plan. @returns Tono de su estado. */
   tonoEstadoPlan(plan: PlanAccion): Tono {
-    return mapearEstadoPlanATono(plan.estado);
+    return mapearEstadoPlanATono(plan.estado, tieneActividadesVencidas(plan, this.reloj()), plan.tipoCierre);
   }
 
-  /** @param estado Estado. @returns Texto con la vista de RRHH. */
-  textoEstadoActividad(estado: Parameters<typeof textoEstadoActividad>[0]): string {
-    return textoEstadoActividad(estado, false);
+  /** @param c Conflicto. @returns Texto de su estado de seguimiento. */
+  textoSeguimiento(c: Conflicto): string {
+    return textoEstadoSeguimiento(c.estado);
   }
 
-  /** @param estado Estado. @returns Tono. */
-  tonoEstadoActividad(estado: Parameters<typeof mapearEstadoActividadATono>[0]): Tono {
-    return mapearEstadoActividadATono(estado, false);
+  /** @param c Conflicto. @returns Tono de su estado de seguimiento. */
+  tonoSeguimiento(c: Conflicto): Tono {
+    return mapearEstadoSeguimientoATono(c.estado);
+  }
+
+  /** @param actividad Actividad. @returns Texto de su estado con la vista de RRHH. */
+  textoEstadoActividad(actividad: Actividad): string {
+    return textoEstadoActividad(estadoVistaActividad(actividad, this.reloj()), false);
+  }
+
+  /** @param actividad Actividad. @returns Tono de su estado. */
+  tonoEstadoActividad(actividad: Actividad): Tono {
+    return mapearEstadoActividadATono(estadoVistaActividad(actividad, this.reloj()), false);
   }
 
   /**

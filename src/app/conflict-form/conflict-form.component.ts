@@ -1672,7 +1672,7 @@ export class ConflictFormComponent implements OnInit {
     }
 
     if (!this.authService.isAuthenticated()) {
-      const tieneToken = this.authService.tokenSistec() !== null || this.authService.tokenIntranet() !== null;
+      const tieneToken = this.authService.tokenSisci() !== null || this.authService.tokenIntranet() !== null;
 
       if (tieneToken && !this.authService.getCurrentUser()) {
         this.showMessage('Su sesión está siendo validada. Por favor espere un momento e intente nuevamente.', 'info');

@@ -168,12 +168,35 @@ describe('RevisionEvidenciasComponent', () => {
     expect(boton(vencida, 'Aprobar')).toBeUndefined();
   }));
 
-  it('aprobar, rechazar (motivo obligatorio) y deshacer actualizan el modal, la tarjeta y el resumen', fakeAsync(() => {
+  /**
+   * «Aprobar» y luego «Confirmar aprobación».
+   *
+   * @param descripcion Comienzo de la descripcion de la actividad.
+   */
+  function aprobarConfirmando(descripcion: string): void {
+    pulsar(actividad(descripcion), 'Aprobar');
+    pulsar(actividad(descripcion), 'Confirmar aprobación');
+    esperar();
+  }
+
+  it('aprobar pide confirmación (la revisión es definitiva) y se puede cancelar', fakeAsync(() => {
     crear();
     abrir('C-001');
 
     pulsar(actividad('Presentar el informe'), 'Aprobar');
-    esperar();
+    expect(limpio(actividad('Presentar el informe').textContent)).toContain('La revisión es definitiva: no se puede deshacer.');
+    expect(resumen()[0]).withContext('aún no se aprobó').toBe('3 por revisar');
+
+    pulsar(actividad('Presentar el informe'), 'Cancelar');
+    expect(boton(actividad('Presentar el informe'), 'Confirmar aprobación')).toBeUndefined();
+    expect(boton(actividad('Presentar el informe'), 'Aprobar')).toBeDefined();
+  }));
+
+  it('aprobar y rechazar (motivo obligatorio) actualizan el modal, la tarjeta y el resumen; sin «Deshacer»', fakeAsync(() => {
+    crear();
+    abrir('C-001');
+
+    aprobarConfirmando('Presentar el informe');
     expect(limpio(actividad('Presentar el informe').querySelector('app-badge')?.textContent)).toBe('Aprobada · Cumplida');
     expect(limpio(actividad('Presentar el informe').textContent)).toContain('Revisada por Lucía Fernanda Paredes Cando el 02/10/2026');
     expect(resumen()).toEqual(['2 por revisar', '1 aprobadas hoy', '0 rechazadas hoy']);
@@ -192,23 +215,44 @@ describe('RevisionEvidenciasComponent', () => {
     expect(limpio(actividad('Entregar el acta').querySelector('.motivo')?.textContent))
       .toBe('Motivo del rechazo: El acta no tiene firmas.');
     expect(resumen()).toEqual(['1 por revisar', '1 aprobadas hoy', '1 rechazadas hoy']);
-
-    pulsar(actividad('Entregar el acta'), 'Deshacer');
-    esperar();
-    expect(boton(actividad('Entregar el acta'), 'Aprobar')).toBeDefined();
-    expect(resumen()).toEqual(['2 por revisar', '1 aprobadas hoy', '0 rechazadas hoy']);
+    expect(Array.from(raiz.querySelectorAll('.actividad button')).map((b) => limpio(b.textContent)))
+      .not.toContain('Deshacer');
+    expect(boton(actividad('Entregar el acta'), 'Aprobar')).toBeUndefined();
 
     cerrarModal();
-    expect(limpio(tarjetas()[0].querySelector('.tarjeta-revisar')?.textContent)).toBe('1 por revisar');
-    expect(limpio(tarjetas()[0].querySelector('.tarjeta-avance')?.textContent)).toBe('2 de 7 aprobadas');
+    const c001 = tarjetas().find((t) => limpio(t.textContent).includes('Conflicto #C-001')) as HTMLElement;
+    expect(limpio(c001.querySelector('.tarjeta-revisar')?.textContent)).toBe('0 por revisar');
+    expect(limpio(c001.querySelector('.tarjeta-avance')?.textContent)).toBe('2 de 7 aprobadas');
+  }));
+
+  it('si la acción falla muestra el motivo del servicio (ultimoError) o el genérico', fakeAsync(() => {
+    const servicio = TestBed.inject(PlanesMockService);
+    const aprobar = spyOn(servicio, 'aprobarEvidencia').and.callFake(() => {
+      servicio.ultimoError = 'La evidencia ya fue revisada (APROBADA) y no se puede revisar de nuevo';
+      return of(null);
+    });
+    crear();
+    abrir('C-001');
+
+    aprobarConfirmando('Presentar el informe');
+    expect(limpio(raiz.querySelector('.aviso--error')?.textContent))
+      .toBe('La evidencia ya fue revisada (APROBADA) y no se puede revisar de nuevo');
+
+    aprobar.and.callFake(() => {
+      servicio.ultimoError = null;
+      return of(null);
+    });
+    pulsar(actividad('Presentar el informe'), 'Confirmar aprobación');
+    esperar();
+    expect(limpio(raiz.querySelector('.aviso--error')?.textContent))
+      .toBe('No se pudo completar la acción. Inténtalo de nuevo.');
   }));
 
   it('aprobar la última cierra el plan: aviso en el modal y la tarjeta desaparece al cerrarlo', fakeAsync(() => {
     crear();
     abrir('C-002');
 
-    pulsar(actividad('Retirar al superintendente'), 'Aprobar');
-    esperar();
+    aprobarConfirmando('Retirar al superintendente');
     expect(limpio(raiz.querySelector('.aviso--cerrado')?.textContent)).toBe(AVISO_PLAN_CERRADO);
     expect(limpio(raiz.querySelector('.cabecera app-badge')?.textContent)).toBe('Cerrado');
     expect(tarjetas().length).toBe(2);
@@ -216,19 +260,6 @@ describe('RevisionEvidenciasComponent', () => {
     cerrarModal();
     expect(tarjetas().length).toBe(1);
     expect(limpio(tarjetas()[0].textContent)).toContain('Conflicto #C-001');
-  }));
-
-  it('deshacer una aprobación de un plan cerrado lo reabre y la tarjeta se queda', fakeAsync(() => {
-    crear();
-    abrir('C-002');
-    pulsar(actividad('Retirar al superintendente'), 'Aprobar');
-    esperar();
-    pulsar(actividad('Retirar al superintendente'), 'Deshacer');
-    esperar();
-
-    expect(raiz.querySelector('.aviso--cerrado')).toBeNull();
-    cerrarModal();
-    expect(tarjetas().length).toBe(2);
   }));
 
   it('«Ver documento» ensancha el modal, muestra el visor y resalta la actividad', fakeAsync(() => {

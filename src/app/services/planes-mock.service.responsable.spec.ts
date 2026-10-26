@@ -7,6 +7,7 @@ import {
   ERROR_EVIDENCIA_GRANDE,
   ERROR_EVIDENCIA_TIPO
 } from '../utils/documento.util';
+import { tieneActividadesVencidas } from '../utils/planes.util';
 import { RELOJ } from '../utils/reloj';
 import { LATENCIA_SIMULADA_MS } from './mock-data/simular-respuesta';
 import { NotificacionesMockService } from './notificaciones-mock.service';
@@ -99,7 +100,7 @@ describe('PlanesMockService: Responsable', () => {
       const planes = esperar(servicio.obtenerPlanesDeResponsable('EMP-002')) ?? [];
 
       expect(planes.map((p) => [p.plan.id, p.plan.estado, p.plan.actividades.length])).toEqual([
-        ['PL-002', 'activo_vencidas', 1]
+        ['PL-002', 'FIRMADO', 1]
       ]);
     }));
 
@@ -117,11 +118,12 @@ describe('PlanesMockService: Responsable', () => {
       const a = actividad(resultado.plan, 'A-017');
 
       expect(resultado.error).toBeNull();
-      expect(a.estado).toBe('en_revision');
+      expect(a.estado).toBe('EN_REVISION');
       expect(a.evidencia).toEqual({
+        id: 'EV-014',
         archivo: { nombre: 'capacitacion.pdf', url: 'blob:evidencia-1', tipo: 'pdf', fechaSubida: HOY.toISOString() },
         fechaSubida: HOY.toISOString(),
-        estado: 'pendiente'
+        estado: 'PENDIENTE'
       });
       expect(resultado.plan?.plan.actividades.every((x) => x.responsableId === 'EMP-010')).toBeTrue();
       const enviados = avisos.calls.allArgs().flatMap(([lista]) => lista);
@@ -136,16 +138,18 @@ describe('PlanesMockService: Responsable', () => {
     it('vencida → en revisión (JPG)', fakeAsync(() => {
       const a = actividad(subir('PL-002', 'A-018', archivo('inventario.jpg', 'image/jpeg')).plan, 'A-018');
 
-      expect(a.estado).toBe('en_revision');
+      expect(a.estado).toBe('EN_REVISION');
       expect(a.evidencia?.archivo.tipo).toBe('jpg');
     }));
 
-    it('si el plan ya no tiene vencidas, deja de estar «con vencidas»', fakeAsync(() => {
-      perfil.empleadoId = 'EMP-001';
-      // A-003 es la unica vencida de PL-002 (de EMP-001); A-018 es de EMP-010.
-      subir('PL-002', 'A-003');
-      perfil.empleadoId = 'EMP-010';
-      expect(subir('PL-002', 'A-018').plan?.plan.estado).toBe('activo');
+    it('subir la evidencia de una vencida deja de contarla como vencida', fakeAsync(() => {
+      const antes = esperar(servicio.obtenerPlanDeResponsable('PL-002', 'EMP-010'));
+      const despues = subir('PL-002', 'A-018').plan;
+
+      // A-018 es la unica vencida de EMP-010 en PL-002; al quedar en revision ya no vence.
+      expect(antes && tieneActividadesVencidas(antes.plan, HOY)).toBeTrue();
+      expect(despues?.plan.estado).toBe('FIRMADO');
+      expect(despues && tieneActividadesVencidas(despues.plan, HOY)).toBeFalse();
     }));
 
     it('rechazada: reemplaza la evidencia (una sola por actividad) y borra el motivo', fakeAsync(() => {
@@ -153,7 +157,7 @@ describe('PlanesMockService: Responsable', () => {
       expect(antes.evidencia?.motivoRechazo).toBeDefined();
 
       const primera = actividad(subir('PL-002', 'A-015', archivo('auditoria-v2.png')).plan, 'A-015');
-      expect(primera.estado).toBe('en_revision');
+      expect(primera.estado).toBe('EN_REVISION');
       expect(primera.evidencia?.archivo.nombre).toBe('auditoria-v2.png');
       expect(primera.evidencia?.motivoRechazo).toBeUndefined();
       expect(primera.evidencia?.revisadoPor).toBeUndefined();
@@ -190,11 +194,11 @@ describe('PlanesMockService: Responsable', () => {
 
     it('valida el archivo: tipo, tamaño y vacío', fakeAsync(() => {
       expect(subir('PL-002', 'A-017', archivo('notas.txt', 'text/plain')).error).toBe(ERROR_EVIDENCIA_TIPO);
-      expect(subir('PL-002', 'A-017', archivo('grande.png', 'image/png', 10 * 1024 * 1024 + 1)).error)
+      expect(subir('PL-002', 'A-017', archivo('grande.png', 'image/png', 5 * 1024 * 1024 + 1)).error)
         .toBe(ERROR_EVIDENCIA_GRANDE);
       expect(subir('PL-002', 'A-017', archivo('vacio.png', 'image/png', 0)).error).toBe(ERROR_DOCUMENTO_VACIO);
       expect(actividad(esperar(servicio.obtenerPlanDeResponsable('PL-002', 'EMP-010')), 'A-017').estado)
-        .toBe('pendiente');
+        .toBe('PENDIENTE');
       expect(URL.createObjectURL).not.toHaveBeenCalled();
     }));
   });

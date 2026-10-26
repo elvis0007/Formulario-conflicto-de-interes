@@ -9,18 +9,33 @@ import {
   inject
 } from '@angular/core';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import { Observable, Subscription } from 'rxjs';
 import { Archivo } from '../../models';
 import { FechaLargaPipe } from '../../pipes/fecha-larga.pipe';
+import { PlanesMockService } from '../../services/planes-mock.service';
 import { ConfirmacionTemporal } from '../../utils/confirmacion-temporal';
 import { IconoComponent } from '../icono/icono.component';
+
+/** Tipo MIME con que se muestra cada clase de archivo del modelo. */
+const TIPOS_MIME: Record<Archivo['tipo'], string> = {
+  pdf: 'application/pdf',
+  png: 'image/png',
+  jpg: 'image/jpeg'
+};
 
 /** Zoom minimo, maximo y paso, en porcentaje. */
 export const ZOOM_MINIMO = 50;
 export const ZOOM_MAXIMO = 200;
 export const ZOOM_PASO = 25;
 
+/** Mensaje si el archivo no se pudo obtener del backend. */
+export const ERROR_CARGA_ARCHIVO = 'No se pudo cargar el archivo. Inténtalo de nuevo más tarde.';
+
 /** Prefijo de las URLs de los archivos de ejemplo (no existen). */
 const PREFIJO_ARCHIVO_EJEMPLO = '/mock/';
+
+/** Prefijo de las URLs locales (archivo recien elegido en esta sesion). */
+const PREFIJO_URL_LOCAL = 'blob:';
 
 /** Alto del visor de PDF al 100 %, en px. */
 const ALTO_PDF_PX = 620;
@@ -34,14 +49,21 @@ const ALTO_PDF_PX = 620;
  *   cerrar.
  * - Los archivos de ejemplo (URL `/mock/...`, que no existe) muestran
  *   «Vista previa no disponible (archivo de ejemplo)» en lugar de un error.
- *   Los subidos en la sesion (URL `blob:`) y los del backend si se ven.
+ * - Los recien elegidos en la sesion (URL `blob:`) se muestran directo.
+ * - Los del backend no tienen URL publica (`Archivo.url` es una ruta de la
+ *   API que exige el token): el contenido se pide con
+ *   `PlanesMockService.obtenerDocumentoPlan` (`planId`) u
+ *   `obtenerArchivoEvidencia` (`evidenciaId`), se muestra con una URL local
+ *   (`URL.createObjectURL`) y esa URL se libera al cambiar de archivo o al
+ *   cerrar el visor. Si no llega, se avisa.
  *
- * Lo usan Revisión de Evidencias y, desde el Dia 10, el Responsable.
+ * Lo usan Revisión de Evidencias, Plan de Acción y el detalle del plan del
+ * Responsable.
  *
  * SEGURIDAD: la URL del PDF se marca como confiable
  * (`bypassSecurityTrustResourceUrl`) porque un `<iframe>` lo exige. Solo
- * debe recibir URLs de nuestros servicios (`blob:` locales o `/archivos/:id`
- * del backend), nunca una URL escrita por el usuario.
+ * recibe URLs locales (`blob:`) creadas por la app, nunca una URL escrita
+ * por el usuario.
  *
  * @author Elvis Flores
  */
@@ -61,14 +83,29 @@ export class DocumentViewerComponent implements OnChanges, OnDestroy {
   /** Fecha y hora de subida (ISO 8601). */
   @Input() fechaSubida = '';
 
+  /** Id del plan, si el archivo es su documento firmado. */
+  @Input() planId = '';
+
+  /** Id de la evidencia, si el archivo es una evidencia. */
+  @Input() evidenciaId = '';
+
   /** Se pide cerrar el visor. */
   @Output() cerrar = new EventEmitter<void>();
 
   /** Zoom actual, en porcentaje. */
   zoom = 100;
 
+  /** URL que se muestra y se descarga (`blob:`); `null` si aun no hay. */
+  urlArchivo: string | null = null;
+
   /** URL del PDF ya marcada como confiable para el `<iframe>`. */
   urlPdf: SafeResourceUrl | null = null;
+
+  /** Se esta pidiendo el archivo al backend. */
+  cargandoArchivo = false;
+
+  /** Motivo por el que no se puede mostrar; `null` si no hay error. */
+  errorArchivo: string | null = null;
 
   /** Confirmacion «Descargado ✓». */
   readonly descargado = new ConfirmacionTemporal();
@@ -76,7 +113,14 @@ export class DocumentViewerComponent implements OnChanges, OnDestroy {
   readonly zoomMinimo = ZOOM_MINIMO;
   readonly zoomMaximo = ZOOM_MAXIMO;
 
+  /** URL creada por este visor (hay que liberarla). */
+  private urlCreada: string | null = null;
+
+  /** Peticion del archivo en curso. */
+  private peticion: Subscription | null = null;
+
   private readonly sanitizer = inject(DomSanitizer);
+  private readonly planesServicio = inject(PlanesMockService);
 
   /** @returns `true` si es un archivo de ejemplo sin vista previa. */
   get esEjemplo(): boolean {
@@ -93,26 +137,31 @@ export class DocumentViewerComponent implements OnChanges, OnDestroy {
     return Math.round(ALTO_PDF_PX * this.zoom / 100);
   }
 
+  /** @returns `true` si «Descargar» no puede hacer nada todavia. */
+  get descargaNoDisponible(): boolean {
+    return !this.esEjemplo && this.urlArchivo === null;
+  }
+
   /**
-   * Al cambiar de archivo, vuelve al 100 % y prepara la URL del PDF.
+   * Al cambiar de archivo, vuelve al 100 % y prepara su contenido.
    *
    * @param cambios Cambios de inputs.
    */
   ngOnChanges(cambios: SimpleChanges): void {
-    if (cambios['archivo']) {
+    if (cambios['archivo'] || cambios['planId'] || cambios['evidenciaId']) {
       this.zoom = 100;
       this.descargado.cancelar();
-      this.urlPdf = this.esPdf && !this.esEjemplo
-        ? this.sanitizer.bypassSecurityTrustResourceUrl(this.archivo.url)
-        : null;
+      this.cargarArchivo();
     }
   }
 
   /**
-   * Detiene el temporizador de «Descargado ✓».
+   * Detiene el temporizador de «Descargado ✓», cancela la peticion y
+   * libera la URL local.
    */
   ngOnDestroy(): void {
     this.descargado.cancelar();
+    this.liberar();
   }
 
   /**
@@ -125,22 +174,105 @@ export class DocumentViewerComponent implements OnChanges, OnDestroy {
   }
 
   /**
-   * Descarga el archivo (si existe) y muestra «Descargado ✓». Los de
-   * ejemplo no existen: solo se confirma.
+   * Descarga el archivo y muestra «Descargado ✓». Los de ejemplo no
+   * existen: solo se confirma. Sin contenido (cargando o con error) no
+   * hace nada.
    */
   descargar(): void {
-    if (this.descargado.activa) {
+    if (this.descargado.activa || this.descargaNoDisponible) {
       return;
     }
-    if (!this.esEjemplo) {
+    if (!this.esEjemplo && this.urlArchivo !== null) {
       const enlace = document.createElement('a');
 
-      enlace.href = this.archivo.url;
+      enlace.href = this.urlArchivo;
       enlace.download = this.archivo.nombre;
       document.body.appendChild(enlace);
       enlace.click();
       document.body.removeChild(enlace);
     }
     this.descargado.disparar();
+  }
+
+  /**
+   * Decide de donde sale el contenido: nada (ejemplo), la URL local o el
+   * backend.
+   */
+  private cargarArchivo(): void {
+    let fuente: Observable<Blob | null> | null = null;
+
+    this.liberar();
+    this.errorArchivo = null;
+    this.cargandoArchivo = false;
+    if (this.esEjemplo) {
+      return;
+    }
+    if (this.archivo.url.startsWith(PREFIJO_URL_LOCAL)) {
+      this.mostrar(this.archivo.url);
+      return;
+    }
+
+    fuente = this.fuente();
+    if (fuente === null) {
+      this.errorArchivo = ERROR_CARGA_ARCHIVO;
+      return;
+    }
+
+    this.cargandoArchivo = true;
+    this.peticion = fuente.subscribe({
+      next: (contenido) => {
+        this.cargandoArchivo = false;
+        if (contenido === null) {
+          this.errorArchivo = ERROR_CARGA_ARCHIVO;
+          return;
+        }
+        // Tipo fijo según el archivo, no el que diga la respuesta: un blob
+        // text/html en el iframe correría con el origen de la app.
+        this.urlCreada = URL.createObjectURL(
+          new Blob([contenido], { type: TIPOS_MIME[this.archivo.tipo] })
+        );
+        this.mostrar(this.urlCreada);
+      },
+      error: (err: unknown) => {
+        this.cargandoArchivo = false;
+        this.errorArchivo = ERROR_CARGA_ARCHIVO;
+        console.error('[DocumentViewerComponent.cargarArchivo]', err);
+      }
+    });
+  }
+
+  /** @returns La consulta del contenido, o `null` si no se sabe de quien es. */
+  private fuente(): Observable<Blob | null> | null {
+    if (this.evidenciaId !== '') {
+      return this.planesServicio.obtenerArchivoEvidencia(this.evidenciaId);
+    }
+    if (this.planId !== '') {
+      return this.planesServicio.obtenerDocumentoPlan(this.planId);
+    }
+
+    return null;
+  }
+
+  /**
+   * @param url URL local que se muestra.
+   */
+  private mostrar(url: string): void {
+    this.urlArchivo = url;
+    this.urlPdf = this.esPdf ? this.sanitizer.bypassSecurityTrustResourceUrl(url) : null;
+  }
+
+  /**
+   * Cancela la peticion en curso y libera la URL que creo este visor (la
+   * `blob:` del archivo recien subido no es suya: no se toca).
+   */
+  private liberar(): void {
+    this.peticion?.unsubscribe();
+    this.peticion = null;
+    if (this.urlCreada !== null) {
+      URL.revokeObjectURL(this.urlCreada);
+      this.urlCreada = null;
+    }
+    this.urlArchivo = null;
+    this.urlPdf = null;
   }
 }

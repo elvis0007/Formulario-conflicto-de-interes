@@ -55,9 +55,9 @@ export interface IndicadorDashboard {
 
 /** Filtro del Informe General para cada estado de plan del grafico. */
 const FILTRO_INFORME_POR_ESTADO: Readonly<Record<string, string>> = {
-  activo: 'en-ejecucion',
-  activo_vencidas: 'con-vencidas',
-  cerrado: 'cerrados'
+  FIRMADO: 'en-ejecucion',
+  FIRMADO_VENCIDAS: 'con-vencidas',
+  CERRADO: 'cerrados'
 };
 
 /**
@@ -290,7 +290,7 @@ export class RrhhDashboardComponent implements OnInit {
    * @param planes Todos los planes.
    */
   private calcular(analisis: AnalisisConflictos, planes: PlanAccion[]): void {
-    const i = calcularIndicadores(analisis.conflictos, planes);
+    const i = calcularIndicadores(analisis.conflictos, planes, this.reloj());
     const atencion = requiereAtencion(planes, this.reloj(), ITEMS_ATENCION);
     const analisisR = this.rutaAnalisis;
     const informe = RUTAS.rrhh.informeGeneral;
@@ -298,9 +298,9 @@ export class RrhhDashboardComponent implements OnInit {
     this.indicadores = [
       { clave: 'detectados', titulo: 'Conflictos detectados', valor: i.detectados, ruta: analisisR, parametros: {} },
       { clave: 'pendientes', titulo: 'Pendientes de clasificar', valor: i.pendientes, tono: 'ambar', ruta: analisisR,
-        parametros: { [PARAMETRO_CLASIFICACION]: 'pendiente' } },
+        parametros: { [PARAMETRO_CLASIFICACION]: 'SIN_CLASIFICAR' } },
       { clave: 'confirmadosSinPlan', titulo: 'Confirmados sin plan', valor: i.confirmadosSinPlan, tono: 'naranja', ruta: analisisR,
-        parametros: { [PARAMETRO_CLASIFICACION]: 'confirmado', [PARAMETRO_PLAN]: VALOR_SIN_PLAN } },
+        parametros: { [PARAMETRO_CLASIFICACION]: 'D_O_N', [PARAMETRO_PLAN]: VALOR_SIN_PLAN } },
       { clave: 'planesActivos', titulo: 'Planes activos', valor: i.planesActivos, tono: 'azul', ruta: informe,
         parametros: { [PARAMETRO_ESTADO]: 'en-ejecucion' } },
       { clave: 'actividadesVencidas', titulo: 'Actividades vencidas', valor: i.actividadesVencidas, tono: 'rojo', ruta: informe,
@@ -311,8 +311,8 @@ export class RrhhDashboardComponent implements OnInit {
         parametros: { [PARAMETRO_ESTADO]: 'cerrados' } }
     ];
     this.porRiesgo = distribucionPorRiesgo(analisis.conflictos);
-    this.porEstadoPlan = distribucionEstadoPlanes(planes);
-    this.actividades = estadoDeActividades(planes);
+    this.porEstadoPlan = distribucionEstadoPlanes(planes, this.reloj());
+    this.actividades = estadoDeActividades(planes, this.reloj());
     this.totalActividades = this.actividades.reduce((suma, s) => suma + s.valor, 0);
     this.vencidas = atencion.vencidas;
     this.evidencias = atencion.evidencias;

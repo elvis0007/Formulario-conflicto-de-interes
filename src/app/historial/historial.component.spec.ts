@@ -135,6 +135,20 @@ describe('HistorialComponent', () => {
     expect(raiz.querySelectorAll('[data-plan="PL-002"] .nodo--actividad').length).toBe(7);
   }));
 
+  it('estado de seguimiento del conflicto (tarjeta y modal) y tipo de cierre de los planes', fakeAsync(() => {
+    crear();
+
+    expect(limpio(raiz.querySelector('.tarjeta[data-conflicto="C-001"] .tarjeta-seguimiento')?.textContent))
+      .toBe('En ejecución');
+    expect(limpio(raiz.querySelector('.tarjeta[data-conflicto="C-004"] .tarjeta-seguimiento')?.textContent))
+      .toBe('Finalizado');
+
+    abrir('C-001');
+    expect(limpio(raiz.querySelector('.caso-seguimiento')?.textContent)).toBe('Seguimiento: En ejecución');
+    expect(limpio(raiz.querySelector('[data-plan="PL-001"] .nodo-cabecera app-badge')?.textContent))
+      .toBe('Cerrado · Cumplido');
+  }));
+
   it('expandir y contraer todo, y desplegar un nivel', fakeAsync(() => {
     crear();
     abrir('C-001');

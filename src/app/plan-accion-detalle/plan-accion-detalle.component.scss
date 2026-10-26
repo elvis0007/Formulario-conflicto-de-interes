@@ -392,6 +392,54 @@
   margin-top: 8px;
 }
 
+// Estado de seguimiento del conflicto, bajo el codigo.
+.seguimiento {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0;
+  color: var(--text2);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+// Tipo y motivo del cierre de un plan cerrado.
+.cierre-plan {
+  margin: 0;
+  padding: 10px 14px;
+  border-left: 4px solid var(--gray);
+  border-radius: 8px;
+  background-color: var(--gray-fill);
+  color: var(--gray-text);
+}
+
+// «Cerrar plan anticipadamente» deshabilitado (aria-disabled: no pierde el foco).
+.boton--cierre[aria-disabled='true'] {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.ayuda-cierre {
+  max-width: 360px;
+  margin-left: auto;
+}
+
+.cierre-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+
+  .confirmacion-texto {
+    margin-bottom: 8px;
+  }
+}
+
+.aviso-documento--firma {
+  color: var(--text2);
+  font-weight: 500;
+}
+
 // Version para imprimir: oculta en pantalla.
 .impresion {
   display: none;

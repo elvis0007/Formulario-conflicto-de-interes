@@ -232,6 +232,14 @@ dd {
   font-weight: 600;
 }
 
+.estado-lectura {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0 0;
+  color: var(--text2);
+}
+
 .observacion-lectura {
   margin: 10px 0 0;
   color: var(--text2);

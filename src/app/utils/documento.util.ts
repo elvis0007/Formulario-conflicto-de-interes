@@ -7,14 +7,14 @@ import { Archivo } from '../models';
  * @author Elvis Flores
  */
 
-/** Tamano maximo del documento firmado: 10 MB. */
-export const TAMANO_MAXIMO_DOCUMENTO_BYTES = 10 * 1024 * 1024;
+/** Tamano maximo del documento firmado: 5 MB. */
+export const TAMANO_MAXIMO_DOCUMENTO_BYTES = 5 * 1024 * 1024;
 
 /** Error: el archivo no es PDF. */
 export const ERROR_DOCUMENTO_NO_PDF = 'El documento firmado debe ser un archivo PDF.';
 
 /** Error: el archivo supera el tamano maximo. */
-export const ERROR_DOCUMENTO_GRANDE = 'El documento firmado no puede superar los 10 MB.';
+export const ERROR_DOCUMENTO_GRANDE = 'El documento firmado no puede superar los 5 MB.';
 
 /** Error: el archivo esta vacio. */
 export const ERROR_DOCUMENTO_VACIO = 'El archivo está vacío.';
@@ -52,7 +52,7 @@ export function validarDocumentoFirmado(archivo: File): string | null {
 export const ERROR_EVIDENCIA_TIPO = 'La evidencia debe ser un archivo PDF, PNG o JPG.';
 
 /** Error: la evidencia supera el tamano maximo. */
-export const ERROR_EVIDENCIA_GRANDE = 'La evidencia no puede superar los 10 MB.';
+export const ERROR_EVIDENCIA_GRANDE = 'La evidencia no puede superar los 5 MB.';
 
 /** Tipos MIME aceptados para cada tipo de evidencia. */
 const MIME_POR_TIPO: Readonly<Record<Archivo['tipo'], readonly string[]>> = {
@@ -93,7 +93,7 @@ export function tipoDeEvidencia(archivo: File): Archivo['tipo'] | null {
 
 /**
  * Valida la evidencia de una actividad antes de subirla: PDF, PNG o JPG
- * de hasta 10 MB. Se usa en la pantalla y en el servicio.
+ * de hasta 5 MB. Se usa en la pantalla y en el servicio.
  *
  * @param archivo Archivo elegido.
  * @returns El mensaje de error, o `null` si es valida.

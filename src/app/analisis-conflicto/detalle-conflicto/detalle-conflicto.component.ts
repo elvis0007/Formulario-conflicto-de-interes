@@ -9,8 +9,10 @@ import {
 import { FormsModule } from '@angular/forms';
 import { Clasificacion, Conflicto, Persona } from '../../models';
 import { GradoParentescoPipe } from '../../pipes/grado-parentesco.pipe';
+import { BadgeComponent } from '../../shared/badge/badge.component';
 import { rolesInvolucrados } from '../../utils/analisis.util';
 import { formatearFecha, parsearFecha } from '../../utils/fechas.util';
+import { Tono, mapearEstadoSeguimientoATono, textoEstadoSeguimiento } from '../../utils/tono.util';
 
 /** Texto de un dato que no se conoce. */
 const SIN_DATO = '—';
@@ -20,25 +22,37 @@ export const LARGO_MAXIMO_OBSERVACION = 500;
 
 /** Opcion de clasificacion (tarjeta seleccionable). */
 interface OpcionClasificacion {
-  valor: Clasificacion;
+  /** `null` = sin clasificar (pendiente de revision). */
+  valor: Clasificacion | null;
   titulo: string;
   descripcion: string;
 }
 
-/** Las tres clasificaciones posibles, en el orden en que se muestran. */
+/** Caso aun sin clasificar (solo se muestra en solo lectura). */
+const OPCION_PENDIENTE: OpcionClasificacion = {
+  valor: null,
+  titulo: 'Pendiente de revisión',
+  descripcion: 'Aún no se confirma el parentesco.'
+};
+
+/**
+ * Las clasificaciones que se pueden elegir, en el orden en que se
+ * muestran. No incluye «Pendiente de revisión»: en el backend clasificar es
+ * definitivo y un caso no vuelve a «sin clasificar».
+ */
 const OPCIONES_CLASIFICACION: readonly OpcionClasificacion[] = [
   {
-    valor: 'pendiente',
-    titulo: 'Pendiente de revisión',
-    descripcion: 'Aún no se confirma el parentesco.'
+    valor: 'D',
+    titulo: 'Declarado',
+    descripcion: 'El parentesco es real y el empleado lo declaró. Se podrán crear planes de acción.'
   },
   {
-    valor: 'confirmado',
-    titulo: 'Conflicto confirmado',
-    descripcion: 'El parentesco es real. Se podrán crear planes de acción.'
+    valor: 'N',
+    titulo: 'No declarado (omisión)',
+    descripcion: 'El parentesco es real pero el empleado no lo declaró. Se podrán crear planes de acción.'
   },
   {
-    valor: 'homonimo',
+    valor: 'H',
     titulo: 'Homónimo',
     descripcion: 'Coincidencia de nombres, sin parentesco. El caso se archiva.'
   }
@@ -57,8 +71,15 @@ interface TarjetaPersona {
   datos: DatoPersona[];
 }
 
+/** Error: se pulso «Guardar» sin elegir una clasificacion. */
+export const ERROR_SIN_CLASIFICACION = 'Elige una clasificación para el caso.';
+
+/** Error: un homonimo exige observacion (el backend exige comentario). */
+export const ERROR_OBSERVACION_HOMONIMO = 'Escribe una observación: es obligatoria para marcar un homónimo.';
+
 /** Lo que emite «Guardar clasificación». */
 export interface ClasificacionElegida {
+  /** Clasificacion elegida (nunca `null`: el formulario no deja guardar sin elegir). */
   clasificacion: Clasificacion;
   observacion: string;
 }
@@ -71,17 +92,19 @@ export interface ClasificacionElegida {
  * El modal (cabecera, cierre, foco) lo pone la pantalla con
  * `ModalComponent`; este componente es solo el cuerpo.
  *
- * - `editable` en `true` (analisis en Borrador): tres tarjetas
- *   seleccionables, observacion opcional, «Cancelar» y «Guardar
- *   clasificación».
- * - `editable` en `false` (analisis Validado): la opcion elegida y la
- *   observacion en solo lectura, sin boton de guardar.
+ * - Editable (analisis en Borrador **y** caso en `DETECTADO`): tres
+ *   tarjetas seleccionables (Declarado, No declarado, Homonimo),
+ *   observacion (obligatoria para Homonimo, se valida antes de enviar),
+ *   «Cancelar» y «Guardar clasificación».
+ * - Solo lectura (analisis Validado, o caso que ya salio de `DETECTADO`:
+ *   en el backend clasificar es definitivo): la clasificacion, su estado de
+ *   seguimiento y la observacion, sin boton de guardar.
  *
  * @author Elvis Flores
  */
 @Component({
   selector: 'app-detalle-conflicto',
-  imports: [FormsModule, GradoParentescoPipe],
+  imports: [BadgeComponent, FormsModule, GradoParentescoPipe],
   templateUrl: './detalle-conflicto.component.html',
   styleUrl: './detalle-conflicto.component.scss'
 })
@@ -89,7 +112,10 @@ export class DetalleConflictoComponent implements OnChanges {
   /** Caso a mostrar. */
   @Input({ required: true }) conflicto!: Conflicto;
 
-  /** Si se puede cambiar la clasificacion (analisis en Borrador). */
+  /**
+   * Si el analisis esta en Borrador. Aun asi, el caso solo se puede
+   * clasificar si sigue en `DETECTADO` (ver `puedeClasificar`).
+   */
   @Input() editable = true;
 
   /** Guardado en curso: deshabilita los botones. */
@@ -108,10 +134,13 @@ export class DetalleConflictoComponent implements OnChanges {
   readonly largoMaximo = LARGO_MAXIMO_OBSERVACION;
 
   /** Clasificacion elegida en las tarjetas. */
-  seleccion: Clasificacion = 'pendiente';
+  seleccion: Clasificacion | null = null;
 
   /** Texto del campo de observacion. */
   observacion = '';
+
+  /** Error de validacion previo al envio; `null` si no hay. */
+  errorLocal: string | null = null;
 
   /** Texto de la franja «Parentesco». */
   parentesco = '';
@@ -132,6 +161,7 @@ export class DetalleConflictoComponent implements OnChanges {
       const roles = rolesInvolucrados(this.conflicto);
 
       this.seleccion = this.conflicto.clasificacion;
+      this.errorLocal = null;
       this.observacion = this.conflicto.observacionClasificacion ?? '';
       this.nombreGrupo = 'clasificacion-' + this.conflicto.id;
       this.parentesco = roles.tipo === 'simetrica'
@@ -145,23 +175,73 @@ export class DetalleConflictoComponent implements OnChanges {
   }
 
   /**
-   * @returns La opcion elegida (para la vista de solo lectura).
+   * @returns `true` si se puede clasificar el caso: analisis en Borrador y
+   * caso todavia en `DETECTADO`.
    */
-  get opcionElegida(): OpcionClasificacion {
-    return this.opciones.find((o) => o.valor === this.seleccion) ?? this.opciones[0];
+  get puedeClasificar(): boolean {
+    return this.editable && this.conflicto.estado === 'DETECTADO';
   }
 
   /**
-   * Emite la clasificacion elegida, si se puede editar.
+   * @returns La opcion guardada del caso (para la vista de solo lectura).
+   */
+  get opcionElegida(): OpcionClasificacion {
+    return OPCIONES_CLASIFICACION.find((o) => o.valor === this.seleccion) ?? OPCION_PENDIENTE;
+  }
+
+  /** @returns Por que la clasificacion esta en solo lectura. */
+  get motivoSoloLectura(): string {
+    return this.editable
+      ? 'La clasificación es definitiva: el caso ya salió de «Detectado» y no se puede cambiar.'
+      : 'El análisis está validado: la clasificación ya no se puede cambiar.';
+  }
+
+  /** @returns Texto del estado de seguimiento del caso. */
+  get textoEstado(): string {
+    return textoEstadoSeguimiento(this.conflicto.estado);
+  }
+
+  /** @returns Tono del estado de seguimiento del caso. */
+  get tonoEstado(): Tono {
+    return mapearEstadoSeguimientoATono(this.conflicto.estado);
+  }
+
+  /** @returns Error a mostrar: el de validacion o el del guardado. */
+  get errorVisible(): string | null {
+    return this.errorLocal ?? this.error;
+  }
+
+  /**
+   * Elige una clasificacion y limpia el aviso de validacion.
+   *
+   * @param valor Clasificacion elegida.
+   */
+  elegir(valor: Clasificacion | null): void {
+    this.seleccion = valor;
+    this.errorLocal = null;
+  }
+
+  /**
+   * Emite la clasificacion elegida si se puede clasificar y es valida:
+   * hay una opcion elegida y, para Homonimo, una observacion.
    */
   alGuardar(): void {
-    if (!this.editable || this.guardando) {
+    if (!this.puedeClasificar || this.guardando) {
       return;
     }
-    this.guardar.emit({
-      clasificacion: this.seleccion,
-      observacion: this.observacion.trim()
-    });
+
+    const observacion = this.observacion.trim();
+
+    if (this.seleccion === null) {
+      this.errorLocal = ERROR_SIN_CLASIFICACION;
+      return;
+    }
+    if (this.seleccion === 'H' && observacion === '') {
+      this.errorLocal = ERROR_OBSERVACION_HOMONIMO;
+      return;
+    }
+    this.errorLocal = null;
+    this.guardar.emit({ clasificacion: this.seleccion, observacion });
   }
 
   /**

@@ -433,7 +433,8 @@ export class BackendService {
 
   getSinArchivoConflicto(
     pagina: number = 0,
-    tamanoPagina: number = 500
+    // La pantalla filtra y cuenta en el navegador: necesita la lista entera.
+    tamanoPagina: number = 5000
   ): Observable<SinArchivoConflictoItem[]> {
     return this.http
       .get<ApiResponse<any>>(

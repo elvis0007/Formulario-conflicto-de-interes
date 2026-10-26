@@ -69,6 +69,7 @@
         <app-document-viewer
           class="revision-visor"
           [archivo]="viendo.evidencia.archivo"
+          [evidenciaId]="viendo.evidencia.id"
           [subidoPor]="viendo.responsableNombre"
           [fechaSubida]="viendo.evidencia.fechaSubida"
           (cerrar)="viendo = null" />
@@ -126,12 +127,12 @@
                         <app-icono nombre="ojo" [tamano]="14" />
                         Ver documento
                       </button>
-                      @if (v.enRevision && rechazandoId !== v.actividad.id) {
+                      @if (v.enRevision && rechazandoId !== v.actividad.id && aprobandoId !== v.actividad.id) {
                         <button
                           type="button"
                           class="boton boton--chico boton--aprobar"
                           [disabled]="procesandoId !== null"
-                          (click)="aprobar(v.actividad)">
+                          (click)="empezarAprobacion(v.actividad)">
                           <app-icono nombre="check" [tamano]="14" />
                           Aprobar
                         </button>
@@ -141,18 +142,26 @@
                           [disabled]="procesandoId !== null"
                           (click)="empezarRechazo(v.actividad)">Rechazar</button>
                       }
-                      @if (v.resuelta) {
+                    </div>
+                  }
+
+                  @if (aprobandoId === v.actividad.id) {
+                    <div class="rechazo aprobacion">
+                      <p class="rechazo-etiqueta">¿Aprobar esta evidencia? La revisión es definitiva: no se puede deshacer.</p>
+                      <div class="acciones">
+                        <button type="button" class="boton boton--chico" (click)="cancelarAprobacion()">Cancelar</button>
                         <button
                           type="button"
-                          class="boton boton--chico"
+                          class="boton boton--chico boton--aprobar"
                           [disabled]="procesandoId !== null"
-                          (click)="deshacer(v.actividad)">Deshacer</button>
-                      }
+                          (click)="aprobar(v.actividad)">Confirmar aprobación</button>
+                      </div>
                     </div>
                   }
 
                   @if (rechazandoId === v.actividad.id) {
                     <div class="rechazo">
+                      <p class="rechazo-aviso">La revisión es definitiva: no se puede deshacer. El responsable deberá subir una evidencia nueva.</p>
                       <label class="rechazo-etiqueta" [for]="'motivo-' + v.actividad.id">Motivo del rechazo (obligatorio)</label>
                       <textarea
                         class="rechazo-motivo"

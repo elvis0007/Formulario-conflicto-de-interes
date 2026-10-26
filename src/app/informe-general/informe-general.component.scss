@@ -190,6 +190,19 @@
   margin-left: auto;
 }
 
+// Estado de seguimiento del conflicto, bajo su numero.
+.grupo-seguimiento {
+  display: block;
+  margin-top: 4px;
+}
+
+// Motivo del cierre de un plan (cierre anticipado).
+.bloque-motivo {
+  margin: 0 0 8px;
+  color: var(--text2);
+  font-size: 12.5px;
+}
+
 .tabla-actividades {
   width: 100%;
   border-collapse: collapse;

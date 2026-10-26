@@ -12,7 +12,7 @@ describe('dashboard-rrhh.util', () => {
   const HOY = new Date(2026, 9, 2, 10, 0);
 
   it('indicadores calculados con los datos de ejemplo', () => {
-    expect(calcularIndicadores(CONFLICTOS, PLANES)).toEqual({
+    expect(calcularIndicadores(CONFLICTOS, PLANES, HOY)).toEqual({
       detectados: 9,
       pendientes: 3,
       confirmadosSinPlan: 0,
@@ -26,26 +26,26 @@ describe('dashboard-rrhh.util', () => {
   it('confirmados sin plan: los que no tienen ningún plan', () => {
     const conflictos = CONFLICTOS.map((c) => c.id === 'C-004' ? { ...c, planes: [] } : c);
 
-    expect(calcularIndicadores(conflictos, PLANES).confirmadosSinPlan).toBe(1);
+    expect(calcularIndicadores(conflictos, PLANES, HOY).confirmadosSinPlan).toBe(1);
   });
 
   it('distribución por riesgo con anchos relativos al mayor', () => {
     expect(distribucionPorRiesgo(CONFLICTOS).map((b) => [b.etiqueta, b.valor, Math.round(b.porcentaje)])).toEqual([
-      ['Alto', 2, 67], ['Moderado', 3, 100], ['Bajo', 3, 100], ['Ninguno', 1, 33]
+      ['Crítico', 1, 25], ['Alto', 1, 25], ['Moderado', 3, 75], ['Bajo', 4, 100]
     ]);
   });
 
   it('distribución de planes por estado', () => {
-    expect(distribucionEstadoPlanes(PLANES).map((b) => [b.clave, b.valor])).toEqual([
-      ['borrador', 2], ['activo', 1], ['activo_vencidas', 1], ['cerrado', 3]
+    expect(distribucionEstadoPlanes(PLANES, HOY).map((b) => [b.clave, b.valor])).toEqual([
+      ['BORRADOR', 2], ['FIRMADO', 1], ['FIRMADO_VENCIDAS', 1], ['CERRADO', 3]
     ]);
   });
 
   it('barra apilada de actividades de planes enviados, en el orden validado y sin ceros', () => {
-    const segmentos = estadoDeActividades(PLANES);
+    const segmentos = estadoDeActividades(PLANES, HOY);
 
     expect(segmentos.map((s) => [s.estado, s.valor])).toEqual([
-      ['aprobada', 8], ['en_revision', 3], ['pendiente', 1], ['vencida', 2], ['rechazada', 1]
+      ['ACEPTADA', 8], ['EN_REVISION', 3], ['PENDIENTE', 1], ['VENCIDA', 2], ['RECHAZADA', 1]
     ]);
     expect(Math.round(segmentos.reduce((suma, s) => suma + s.porcentaje, 0))).toBe(100);
   });

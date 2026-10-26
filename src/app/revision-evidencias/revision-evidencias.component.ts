@@ -14,7 +14,13 @@ import { IconoComponent } from '../shared/icono/icono.component';
 import { ModalComponent } from '../shared/modal/modal.component';
 import { textoRiesgo } from '../utils/analisis.util';
 import { calcularDiasRestantes, formatearFecha, parsearFecha } from '../utils/fechas.util';
-import { calcularAvance, textoEstadoPlan } from '../utils/planes.util';
+import {
+  calcularAvance,
+  estaVencida,
+  estadoVistaActividad,
+  textoEstadoPlan,
+  tieneActividadesVencidas
+} from '../utils/planes.util';
 import { RELOJ } from '../utils/reloj';
 import {
   GrupoResponsable,
@@ -63,7 +69,7 @@ export interface VistaActividad {
   vencida: boolean;
   /** Se puede aprobar o rechazar. */
   enRevision: boolean;
-  /** Ya se aprobo o rechazo: muestra el resultado y «Deshacer». */
+  /** Ya se aprobo o rechazo: muestra el resultado (es definitivo). */
   resuelta: boolean;
 }
 
@@ -79,14 +85,17 @@ export interface VistaGrupo extends Omit<GrupoResponsable, 'actividades'> {
  * - Una tarjeta por conflicto con plan activo, primero las que tienen
  *   evidencias por revisar.
  * - Modal por tarjeta con las actividades agrupadas por responsable:
- *   «Ver documento», «Aprobar», «Rechazar» (motivo obligatorio) y
- *   «Deshacer». Al ver un documento, el modal se ensancha y el visor queda
- *   a la izquierda.
+ *   «Ver documento», «Aprobar» y «Rechazar» (motivo obligatorio). La
+ *   revision es definitiva (el backend no la deshace): aprobar y rechazar
+ *   piden confirmacion. Al ver un documento, el modal se ensancha y el
+ *   visor queda a la izquierda.
  * - Si al aprobar se cierra el plan, el modal lo avisa y la tarjeta
  *   desaparece al cerrarlo.
+ * - Si una accion falla, se muestra el motivo que da el servicio
+ *   (`ultimoError`) o, si no hay, un mensaje generico.
  *
- * Las reglas (que se puede aprobar, rechazar o deshacer, el cierre
- * automatico) las aplica `PlanesMockService`.
+ * Las reglas (que se puede aprobar o rechazar, el cierre automatico) las
+ * aplica `PlanesMockService` (o el backend).
  *
  * @author Elvis Flores
  */
@@ -121,6 +130,9 @@ export class RevisionEvidenciasComponent implements OnInit {
 
   /** Actividad cuyo documento se esta viendo. */
   viendo: Actividad | null = null;
+
+  /** Actividad cuya aprobacion se esta confirmando. */
+  aprobandoId: string | null = null;
 
   /** Actividad en la que se escribe el motivo del rechazo. */
   rechazandoId: string | null = null;
@@ -160,7 +172,7 @@ export class RevisionEvidenciasComponent implements OnInit {
 
   /** @returns `true` si el plan abierto se cerro. */
   get planCerrado(): boolean {
-    return this.abierta?.plan.estado === 'cerrado';
+    return this.abierta?.plan.estado === 'CERRADO';
   }
 
   /**
@@ -209,6 +221,7 @@ export class RevisionEvidenciasComponent implements OnInit {
     this.abierta = tarjeta;
     this.viendo = null;
     this.cancelarRechazo();
+    this.cancelarAprobacion();
     this.errorAccion = null;
     this.grupos = this.crearGrupos(tarjeta.plan);
   }
@@ -223,6 +236,7 @@ export class RevisionEvidenciasComponent implements OnInit {
     this.abierta = null;
     this.viendo = null;
     this.cancelarRechazo();
+    this.cancelarAprobacion();
     this.recalcular();
   }
 
@@ -236,7 +250,24 @@ export class RevisionEvidenciasComponent implements OnInit {
   }
 
   /**
-   * Aprueba la evidencia de una actividad.
+   * «Aprobar»: pide confirmacion, porque la revision es definitiva.
+   *
+   * @param actividad Actividad en revision.
+   */
+  empezarAprobacion(actividad: Actividad): void {
+    this.cancelarRechazo();
+    this.aprobandoId = actividad.id;
+  }
+
+  /**
+   * Cierra la confirmacion de aprobacion sin aprobar.
+   */
+  cancelarAprobacion(): void {
+    this.aprobandoId = null;
+  }
+
+  /**
+   * «Confirmar aprobación»: aprueba la evidencia de una actividad.
    *
    * @param actividad Actividad en revision.
    */
@@ -250,6 +281,7 @@ export class RevisionEvidenciasComponent implements OnInit {
    * @param actividad Actividad en revision.
    */
   empezarRechazo(actividad: Actividad): void {
+    this.cancelarAprobacion();
     this.rechazandoId = actividad.id;
     this.motivo = '';
     this.motivoFaltante = false;
@@ -292,15 +324,6 @@ export class RevisionEvidenciasComponent implements OnInit {
   }
 
   /**
-   * Deshace la revision de una actividad aprobada o rechazada.
-   *
-   * @param actividad Actividad resuelta.
-   */
-  deshacer(actividad: Actividad): void {
-    this.ejecutar(actividad, (planId) => this.planesServicio.deshacerRevision(planId, actividad.id));
-  }
-
-  /**
    * @param iso Fecha ISO.
    * @returns «dd/mm/aaaa», o vacio si no es valida.
    */
@@ -338,10 +361,11 @@ export class RevisionEvidenciasComponent implements OnInit {
         next: (plan) => {
           this.procesandoId = null;
           if (plan === null) {
-            this.errorAccion = ERROR_ACCION;
+            this.errorAccion = this.planesServicio.ultimoError ?? ERROR_ACCION;
             return;
           }
           this.cancelarRechazo();
+          this.cancelarAprobacion();
           this.actualizarPlan(plan);
         },
         error: (err: unknown) => {
@@ -391,6 +415,7 @@ export class RevisionEvidenciasComponent implements OnInit {
   private crearTarjeta(plan: PlanAccion): TarjetaRevision | null {
     const conflicto = this.conflictos.get(plan.conflictoId);
     const avance = calcularAvance(plan.actividades);
+    const conVencidas = tieneActividadesVencidas(plan, this.reloj());
 
     if (conflicto === undefined) {
       return null;
@@ -402,9 +427,9 @@ export class RevisionEvidenciasComponent implements OnInit {
       tituloPlan: 'Plan ' + String(plan.numero).padStart(2, '0') + ' · ' + plan.nombre,
       textoRiesgo: textoRiesgo(conflicto.riesgo),
       tonoRiesgo: mapearRiesgoATono(conflicto.riesgo),
-      textoEstado: textoEstadoPlan(plan.estado),
-      tonoEstado: mapearEstadoPlanATono(plan.estado),
-      porRevisar: plan.actividades.filter((a) => a.estado === 'en_revision').length,
+      textoEstado: textoEstadoPlan(plan.estado, conVencidas),
+      tonoEstado: mapearEstadoPlanATono(plan.estado, conVencidas),
+      porRevisar: plan.actividades.filter((a) => a.estado === 'EN_REVISION').length,
       aprobadas: avance.cumplidas,
       total: avance.total
     };
@@ -420,10 +445,10 @@ export class RevisionEvidenciasComponent implements OnInit {
     return agruparPorResponsable(plan.actividades).map((grupo) => ({
       ...grupo,
       actividades: grupo.actividades.map((actividad): VistaActividad => {
-        const aprobada = actividad.estado === 'aprobada';
-        let vencida = actividad.estado === 'vencida';
+        const aprobada = actividad.estado === 'ACEPTADA';
+        let vencida = estaVencida(actividad, hoy);
 
-        if (!aprobada && !vencida && actividad.fechaLimite) {
+        if (!aprobada && !vencida && actividad.estado !== 'NO_CUMPLIDA' && actividad.fechaLimite) {
           try {
             vencida = calcularDiasRestantes(actividad.fechaLimite, hoy).vencida;
           } catch (err) {
@@ -433,12 +458,12 @@ export class RevisionEvidenciasComponent implements OnInit {
 
         return {
           actividad,
-          textoEstado: textoEstadoActividad(actividad.estado, false),
-          tonoEstado: mapearEstadoActividadATono(actividad.estado, false),
+          textoEstado: textoEstadoActividad(estadoVistaActividad(actividad, hoy), false),
+          tonoEstado: mapearEstadoActividadATono(estadoVistaActividad(actividad, hoy), false),
           fechaLimite: this.fecha(actividad.fechaLimite),
           vencida,
-          enRevision: actividad.estado === 'en_revision' && actividad.evidencia !== undefined,
-          resuelta: (aprobada || actividad.estado === 'rechazada') && actividad.evidencia !== undefined
+          enRevision: actividad.estado === 'EN_REVISION' && actividad.evidencia !== undefined,
+          resuelta: (aprobada || actividad.estado === 'RECHAZADA') && actividad.evidencia !== undefined
         };
       })
     }));

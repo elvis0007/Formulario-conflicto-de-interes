@@ -1,7 +1,9 @@
 import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { ActivatedRoute, ParamMap, convertToParamMap, provideRouter } from '@angular/router';
-import { BehaviorSubject } from 'rxjs';
+import { BehaviorSubject, map, of } from 'rxjs';
+import { ConflictosMockService } from '../services/conflictos-mock.service';
 import { LATENCIA_SIMULADA_MS } from '../services/mock-data/simular-respuesta';
+import { PlanesMockService } from '../services/planes-mock.service';
 import { PerfilUsuarioFalso, proveerPerfilFalso } from '../testing/perfil-usuario-falso';
 import { ERROR_EVIDENCIA_GRANDE, ERROR_EVIDENCIA_TIPO } from '../utils/documento.util';
 import { RELOJ } from '../utils/reloj';
@@ -114,20 +116,35 @@ describe('PlanResponsableDetalleComponent', () => {
     expect(raiz.querySelector('.actividades')?.textContent).not.toContain('Rotar al técnico');
   }));
 
-  it('tarjeta compacta del caso: las dos personas, el parentesco y el riesgo', fakeAsync(() => {
+  it('tarjeta compacta del caso con los datos de la bandeja: personas, parentesco y riesgo', fakeAsync(() => {
+    const conflictos = spyOn(TestBed.inject(ConflictosMockService), 'obtenerConflictoPorId').and.callThrough();
     crear('PL-002');
 
     const caso = raiz.querySelector('.caso') as HTMLElement;
     expect(Array.from(caso.querySelectorAll('.caso-persona')).map((p) => [
       limpio(p.querySelector('.caso-rol')?.textContent),
-      limpio(p.querySelector('.caso-nombre')?.textContent),
-      limpio(p.querySelector('.caso-cargo')?.textContent)
+      limpio(p.querySelector('.caso-nombre')?.textContent)
     ])).toEqual([
-      ['Hermano', 'Carlos Andrés Mayorga Sánchez', 'Jefe de Adquisiciones · Adquisiciones'],
-      ['Hermano', 'Jorge Luis Mayorga Sánchez', 'Técnico de Compras Públicas · Adquisiciones']
+      ['Empleado', 'Carlos Andrés Mayorga Sánchez'],
+      ['Familiar', 'Jorge Luis Mayorga Sánchez']
     ]);
+    expect(caso.querySelector('.caso-cargo')).withContext('la bandeja no trae cargo ni departamento').toBeNull();
     expect(limpio(caso.querySelector('.caso-parentesco')?.textContent)).toBe('Hermanos · Consanguinidad, 2do grado');
     expect(limpio(caso.querySelector('app-badge')?.textContent)).toBe('Riesgo alto');
+    expect(conflictos).withContext('el rol P recibe 403 en /conflictos').not.toHaveBeenCalled();
+  }));
+
+  it('sin datos del caso en la bandeja: «No disponible»', fakeAsync(() => {
+    const planes = TestBed.inject(PlanesMockService);
+    const original = planes.obtenerPlanDeResponsable.bind(planes);
+    spyOn(planes, 'obtenerPlanDeResponsable').and.callFake((planId: string, empleadoId: string) =>
+      original(planId, empleadoId).pipe(map((d) => d && { ...d, nombreB: '', parentesco: '', riesgo: null })));
+    crear('PL-002');
+
+    const caso = raiz.querySelector('.caso') as HTMLElement;
+    expect(limpio(caso.querySelectorAll('.caso-nombre')[1]?.textContent)).toBe('No disponible');
+    expect(limpio(caso.querySelector('.caso-parentesco')?.textContent)).toBe('No disponible');
+    expect(caso.querySelector('app-badge')).toBeNull();
   }));
 
   it('tarjeta del caso con roles distintos (tío / sobrino)', fakeAsync(() => {
@@ -204,22 +221,41 @@ describe('PlanResponsableDetalleComponent', () => {
     expect(limpio(tarjeta.querySelector('.archivo')?.textContent)).toContain('auditoria-v2.png');
   }));
 
-  it('errores visibles si el archivo no es PDF/PNG/JPG o supera 10 MB', fakeAsync(() => {
+  it('errores visibles si el archivo no es PDF/PNG/JPG o supera 5 MB', fakeAsync(() => {
     crear('PL-002');
 
     subir('Capacitar al personal', new File(['x'], 'notas.txt', { type: 'text/plain' }));
     expect(limpio(actividad('Capacitar al personal').querySelector('.error')?.textContent)).toBe(ERROR_EVIDENCIA_TIPO);
 
-    const grande = new File([new Uint8Array(10 * 1024 * 1024 + 1)], 'foto.png', { type: 'image/png' });
+    const grande = new File([new Uint8Array(5 * 1024 * 1024 + 1)], 'foto.png', { type: 'image/png' });
     subir('Capacitar al personal', grande);
     expect(limpio(actividad('Capacitar al personal').querySelector('.error')?.textContent)).toBe(ERROR_EVIDENCIA_GRANDE);
     expect(limpio(actividad('Capacitar al personal').querySelector('app-badge')?.textContent)).toBe('Pendiente');
   }));
 
-  it('plan cerrado: solo lectura', fakeAsync(() => {
+  it('«Ver documento del plan» pide el documento al servicio (no usa la URL directa)', fakeAsync(() => {
+    const planes = TestBed.inject(PlanesMockService);
+    const pedir = spyOn(planes, 'obtenerDocumentoPlan').and.returnValue(of(new Blob(['%PDF'])));
+    const original = planes.obtenerPlanDeResponsable.bind(planes);
+    spyOn(planes, 'obtenerPlanDeResponsable').and.callFake((planId: string, empleadoId: string) =>
+      original(planId, empleadoId).pipe(map((d) => d && {
+        ...d,
+        plan: { ...d.plan, documentoFirmado: { nombre: 'plan.pdf', url: '/planes/PL-002/documento', tipo: 'pdf' as const } }
+      })));
+    crear('PL-002');
+
+    boton(raiz, 'Ver documento del plan')?.click();
+    fixture.detectChanges();
+    expect(pedir).toHaveBeenCalledOnceWith('PL-002');
+    expect(raiz.querySelector('app-document-viewer iframe')?.getAttribute('src')).toBe('blob:prueba');
+  }));
+
+  it('plan cerrado: solo lectura, con cómo se cerró', fakeAsync(() => {
     crear('PL-006');
 
     expect(limpio(raiz.querySelector('.aviso--cerrado')?.textContent)).toContain('Solo lectura');
+    expect(limpio(raiz.querySelector('.aviso--cerrado')?.textContent)).toContain('todas las actividades fueron aprobadas');
+    expect(limpio(raiz.querySelector('h2.titulo app-badge')?.textContent)).toBe('Cerrado · Cumplido');
     expect(boton(raiz, 'Subir evidencia')).toBeUndefined();
     expect(boton(raiz, 'Volver a subir')).toBeUndefined();
   }));

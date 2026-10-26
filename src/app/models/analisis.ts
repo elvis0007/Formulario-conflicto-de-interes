@@ -14,7 +14,7 @@ export interface AnalisisConflictos {
   /** Identificador del analisis; `null` si nunca se genero. */
   id: string | null;
   /**
-   * `borrador` (se puede reclasificar), `validado` (ya no) o `null` si
+   * `BORRADOR` (se puede reclasificar), `VALIDADO` (ya no) o `null` si
    * nunca se genero un analisis.
    */
   estado: EstadoAnalisis | null;

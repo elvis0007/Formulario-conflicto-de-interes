@@ -1,5 +1,6 @@
-import { Actividad, EstadoActividad, PlanAccion, PlanDeResponsable } from '../models';
+import { Actividad, PlanAccion, PlanDeResponsable } from '../models';
 import { DiasRestantes, calcularDiasRestantes, formatearFecha, parsearFecha } from './fechas.util';
+import { EstadoActividadVista, estadoVistaActividad } from './planes.util';
 import { Tono, mapearEstadoActividadATono } from './tono.util';
 
 /**
@@ -10,8 +11,11 @@ import { Tono, mapearEstadoActividadATono } from './tono.util';
  * @author Elvis Flores
  */
 
-/** Filtro de la Bandeja por estado de las actividades del responsable. */
-export type FiltroEstado = 'todas' | EstadoActividad;
+/**
+ * Filtro de la Bandeja por estado de las actividades del responsable. Usa
+ * los estados de presentacion (incluye `VENCIDA`, calculado con la fecha).
+ */
+export type FiltroEstado = 'todas' | EstadoActividadVista;
 
 /** Opcion del filtro por estado. */
 export interface OpcionFiltroEstado {
@@ -24,18 +28,21 @@ export interface OpcionFiltroEstado {
 /** Filtros de la Bandeja, en el orden en que se muestran. */
 export const FILTROS_ESTADO: readonly OpcionFiltroEstado[] = [
   { valor: 'todas', etiqueta: 'Todas', tono: 'azul' },
-  { valor: 'pendiente', etiqueta: 'Pendientes', tono: mapearEstadoActividadATono('pendiente', false) },
-  { valor: 'en_revision', etiqueta: 'En revisión', tono: mapearEstadoActividadATono('en_revision', false) },
-  { valor: 'rechazada', etiqueta: 'Rechazadas', tono: mapearEstadoActividadATono('rechazada', false) },
-  { valor: 'vencida', etiqueta: 'Vencidas', tono: mapearEstadoActividadATono('vencida', false) },
-  { valor: 'aprobada', etiqueta: 'Aprobadas', tono: mapearEstadoActividadATono('aprobada', false) }
+  { valor: 'PENDIENTE', etiqueta: 'Pendientes', tono: mapearEstadoActividadATono('PENDIENTE', false) },
+  { valor: 'EN_REVISION', etiqueta: 'En revisión', tono: mapearEstadoActividadATono('EN_REVISION', false) },
+  { valor: 'RECHAZADA', etiqueta: 'Rechazadas', tono: mapearEstadoActividadATono('RECHAZADA', false) },
+  { valor: 'VENCIDA', etiqueta: 'Vencidas', tono: mapearEstadoActividadATono('VENCIDA', false) },
+  { valor: 'ACEPTADA', etiqueta: 'Aprobadas', tono: mapearEstadoActividadATono('ACEPTADA', false) }
 ];
 
 /** Estados con algo por hacer para el responsable. */
-const ESTADOS_POR_HACER: readonly EstadoActividad[] = ['rechazada', 'vencida', 'pendiente'];
+const ESTADOS_POR_HACER: readonly EstadoActividadVista[] = ['RECHAZADA', 'VENCIDA', 'PENDIENTE'];
 
-/** Cuantas actividades hay en cada estado. */
-export type ConteoEstados = Record<EstadoActividad, number>;
+/**
+ * Cuantas actividades hay en cada estado de presentacion. Una actividad
+ * vencida cuenta como `VENCIDA` y no como `PENDIENTE`/`RECHAZADA`.
+ */
+export type ConteoEstados = Record<EstadoActividadVista, number>;
 
 /** Una actividad abierta con su plan y lo que falta para su fecha limite. */
 export interface ActividadProxima {
@@ -58,14 +65,17 @@ export function esFiltroEstado(valor: string | null | undefined): valor is Filtr
 
 /**
  * @param actividades Actividades del responsable.
+ * @param hoy Fecha de hoy, para decidir cuales estan vencidas.
  * @returns Cuantas hay en cada estado.
  * @author Elvis Flores
  */
-export function contarEstados(actividades: readonly Actividad[]): ConteoEstados {
-  const conteo: ConteoEstados = { pendiente: 0, en_revision: 0, aprobada: 0, rechazada: 0, vencida: 0 };
+export function contarEstados(actividades: readonly Actividad[], hoy: Date = new Date()): ConteoEstados {
+  const conteo: ConteoEstados = {
+    PENDIENTE: 0, EN_REVISION: 0, ACEPTADA: 0, RECHAZADA: 0, NO_CUMPLIDA: 0, VENCIDA: 0
+  };
 
   for (const actividad of actividades) {
-    conteo[actividad.estado]++;
+    conteo[estadoVistaActividad(actividad, hoy)]++;
   }
 
   return conteo;
@@ -83,21 +93,28 @@ export function actividadesDe(planes: readonly PlanDeResponsable[]): Actividad[]
 /**
  * @param plan Plan del responsable.
  * @param filtro Filtro elegido.
+ * @param hoy Fecha de hoy, para decidir cuales estan vencidas.
  * @returns `true` si tiene al menos una actividad en ese estado (o si el
  * filtro es «Todas»).
  * @author Elvis Flores
  */
-export function planCoincideConFiltro(plan: PlanDeResponsable, filtro: FiltroEstado): boolean {
-  return filtro === 'todas' || plan.plan.actividades.some((a) => a.estado === filtro);
+export function planCoincideConFiltro(
+  plan: PlanDeResponsable,
+  filtro: FiltroEstado,
+  hoy: Date = new Date()
+): boolean {
+  return filtro === 'todas'
+    || plan.plan.actividades.some((a) => estadoVistaActividad(a, hoy) === filtro);
 }
 
 /**
  * @param actividades Actividades del responsable.
+ * @param hoy Fecha de hoy, para decidir cuales estan vencidas.
  * @returns Cuantas tienen algo por hacer (rechazadas, vencidas, pendientes).
  * @author Elvis Flores
  */
-export function contarPorHacer(actividades: readonly Actividad[]): number {
-  return actividades.filter((a) => ESTADOS_POR_HACER.includes(a.estado)).length;
+export function contarPorHacer(actividades: readonly Actividad[], hoy: Date = new Date()): number {
+  return actividades.filter((a) => ESTADOS_POR_HACER.includes(estadoVistaActividad(a, hoy))).length;
 }
 
 /**
@@ -106,17 +123,22 @@ export function contarPorHacer(actividades: readonly Actividad[]): number {
  * y al final los cerrados. Dentro de cada grupo, por conflicto y numero.
  *
  * @param planes Planes del responsable.
+ * @param hoy Fecha de hoy, para decidir cuales actividades estan vencidas.
  * @returns Copia ordenada.
  * @author Elvis Flores
  */
-export function ordenarPorUrgencia(planes: readonly PlanDeResponsable[]): PlanDeResponsable[] {
+export function ordenarPorUrgencia(
+  planes: readonly PlanDeResponsable[],
+  hoy: Date = new Date()
+): PlanDeResponsable[] {
   const urgencia = (p: PlanDeResponsable): number => {
-    const indice = ESTADOS_POR_HACER.findIndex((e) => p.plan.actividades.some((a) => a.estado === e));
+    const indice = ESTADOS_POR_HACER.findIndex((e) =>
+      p.plan.actividades.some((a) => estadoVistaActividad(a, hoy) === e));
 
     if (indice >= 0) {
       return indice;
     }
-    return p.plan.estado === 'cerrado' ? ESTADOS_POR_HACER.length + 1 : ESTADOS_POR_HACER.length;
+    return p.plan.estado === 'CERRADO' ? ESTADOS_POR_HACER.length + 1 : ESTADOS_POR_HACER.length;
   };
 
   return [...planes].sort((a, b) => urgencia(a) - urgencia(b)
@@ -138,7 +160,7 @@ export function proximasAVencer(planes: readonly PlanDeResponsable[], hoy: Date)
 
   for (const { plan } of planes) {
     for (const actividad of plan.actividades) {
-      if ((actividad.estado !== 'pendiente' && actividad.estado !== 'rechazada') || !actividad.fechaLimite) {
+      if ((actividad.estado !== 'PENDIENTE' && actividad.estado !== 'RECHAZADA') || !actividad.fechaLimite) {
         continue;
       }
       try {

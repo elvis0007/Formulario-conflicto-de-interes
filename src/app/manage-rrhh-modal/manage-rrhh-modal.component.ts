@@ -83,7 +83,7 @@ export class ManageRrhhModalComponent implements OnInit {
       return;
     }
 
-    const token = localStorage.getItem('TOKEN-SISTEC') || localStorage.getItem('TOKEN-INTRANET');
+    const token = localStorage.getItem('TOKEN-SISCI') || localStorage.getItem('TOKEN-INTRANET');
     console.log('[ManageRrhhModal] Token disponible:', !!token);
     console.log('[ManageRrhhModal] Usuario autenticado:', this.authService.getCurrentUser());
 

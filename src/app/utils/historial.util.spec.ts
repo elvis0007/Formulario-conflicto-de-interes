@@ -42,7 +42,7 @@ describe('historial.util', () => {
 
     expect(resumen(h.eventos)).toEqual([
       ['Conflicto detectado: Tío / Sobrino · Consanguinidad, 3er grado (riesgo moderado).', AUTOR_SISTEMA, 'info'],
-      ['Clasificado como Conflicto confirmado.', 'RRHH', 'ok']
+      ['Clasificado como Declarado.', 'RRHH', 'ok']
     ]);
     expect(h.eventos.every((e) => e.nivel === 'conflicto' && e.refId === 'C-002')).toBeTrue();
   });
@@ -50,14 +50,14 @@ describe('historial.util', () => {
   it('nivel conflicto: análisis de la sesión, clasificación con autor y validación', () => {
     const caso: Conflicto = {
       ...conflicto('C-005'),
-      clasificacion: 'confirmado',
+      clasificacion: 'D',
       observacionClasificacion: 'Revisado con la ficha.',
       fechaClasificacion: '2026-10-02T09:10:00',
       clasificadoPor: 'Lucía Alejandra Freire Ortiz'
     };
     const analisis: AnalisisConflictos = {
       id: 'AN-001',
-      estado: 'validado',
+      estado: 'VALIDADO',
       fechaGeneracion: '2026-10-02T09:00:00',
       fechaValidacion: '2026-10-02T09:30:00',
       validadoPor: 'Lucía Alejandra Freire Ortiz',
@@ -68,7 +68,7 @@ describe('historial.util', () => {
     expect(resumen(h.eventos)).toEqual([
       ['Conflicto detectado: Cuñados · Afinidad, 2do grado (riesgo moderado).', AUTOR_SISTEMA, 'info'],
       ['Incluido en el análisis AN-001.', 'RRHH', 'info'],
-      ['Clasificado como Conflicto confirmado. Observación: Revisado con la ficha.', 'Lucía Alejandra Freire Ortiz', 'ok'],
+      ['Clasificado como Declarado. Observación: Revisado con la ficha.', 'Lucía Alejandra Freire Ortiz', 'ok'],
       ['Análisis AN-001 validado.', 'Lucía Alejandra Freire Ortiz', 'ok']
     ]);
   });

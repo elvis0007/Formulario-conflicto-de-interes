@@ -69,6 +69,10 @@
   </div>
 </header>
 
+@if (errorAccion) {
+  <p class="error-accion" role="alert">{{ errorAccion }}</p>
+}
+
 @if (analisis === null) {
   <p class="cargando-texto" role="status">Cargando análisis…</p>
 } @else if (!hayAnalisis) {

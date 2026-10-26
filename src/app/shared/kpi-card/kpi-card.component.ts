@@ -11,8 +11,8 @@ import { Tono } from '../../utils/tono.util';
  *
  * Uso:
  * `<app-kpi-card titulo="Riesgo alto" [valor]="3" tono="rojo"
- *     [clicable]="true" [activo]="filtro === 'alto'"
- *     (seleccionado)="filtrar('alto')" />`
+ *     [clicable]="true" [activo]="filtro === 'ALTO'"
+ *     (seleccionado)="filtrar('ALTO')" />`
  *
  * @author Elvis Flores
  */

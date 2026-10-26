@@ -10,7 +10,7 @@ import {
   VALOR_SIN_PLAN,
   rutaPlanAccion
 } from '../app.paths';
-import { AnalisisConflictos, Clasificacion, Conflicto, PlanAccion, ResumenAnalisis } from '../models';
+import { AnalisisConflictos, Conflicto, PlanAccion, ResumenAnalisis } from '../models';
 import { FechaLargaPipe } from '../pipes/fecha-larga.pipe';
 import { GradoParentescoPipe } from '../pipes/grado-parentesco.pipe';
 import { AnalisisMockService } from '../services/analisis-mock.service';
@@ -25,21 +25,31 @@ import { IconoComponent } from '../shared/icono/icono.component';
 import { ModalComponent } from '../shared/modal/modal.component';
 import { OpcionPill, PillsComponent } from '../shared/pills/pills.component';
 import {
+  FiltroClasificacion,
   FiltroRiesgo,
   RIESGOS,
   RolesInvolucrados,
   contarPendientes,
   contarPorRiesgo,
+  cumpleFiltroClasificacion,
+  esFiltroClasificacion,
   filtrarPorRiesgo,
   rolesInvolucrados,
   textoClasificacion,
+  textoFiltroClasificacion,
   textoEstadoAnalisis,
   textoRiesgo
 } from '../utils/analisis.util';
 import { ConfirmacionTemporal } from '../utils/confirmacion-temporal';
 import { formatearFecha, parsearFecha } from '../utils/fechas.util';
 import { TODOS } from '../utils/filtros-listados.util';
-import { calcularAvance, obtenerPlanActual, textoEstadoPlan } from '../utils/planes.util';
+import { RELOJ } from '../utils/reloj';
+import {
+  calcularAvance,
+  obtenerPlanActual,
+  textoEstadoPlan,
+  tieneActividadesVencidas
+} from '../utils/planes.util';
 import {
   Tono,
   mapearClasificacionATono,
@@ -63,6 +73,12 @@ const RUTA_FORMULARIOS = '/admin';
 
 /** Mensaje si no se pudo guardar una clasificacion. */
 const ERROR_CLASIFICACION = 'No se pudo guardar la clasificación. Inténtalo de nuevo.';
+
+/** Mensaje si no se pudo validar el analisis. */
+const ERROR_VALIDACION = 'No se pudo validar el análisis. Inténtalo de nuevo.';
+
+/** Mensaje si no se pudo generar el analisis. */
+const ERROR_GENERACION = 'No se pudo generar el análisis. Inténtalo de nuevo.';
 
 /**
  * Como se muestra la columna «Plan de acción» de un caso:
@@ -162,7 +178,7 @@ export class AnalisisConflictoComponent implements OnInit, OnDestroy {
    * Filtro por clasificacion que llega por URL (`?clasificacion=`), p. ej.
    * desde el dashboard de RRHH; `null` = sin filtro.
    */
-  filtroClasificacion: Clasificacion | null = null;
+  filtroClasificacion: FiltroClasificacion | null = null;
 
   /** Solo casos sin ningun plan (`?plan=sin-plan`). */
   filtroSinPlan = false;
@@ -187,6 +203,12 @@ export class AnalisisConflictoComponent implements OnInit, OnDestroy {
 
   /** Error del ultimo guardado de clasificacion. */
   errorClasificacion: string | null = null;
+
+  /**
+   * Motivo del ultimo fallo de «Validar análisis» o «Generar análisis»
+   * (p. ej. «quedan 2 conflicto(s) sin clasificar»); `null` si no hay.
+   */
+  errorAccion: string | null = null;
 
   /** Modal de confirmacion de «Validar análisis». */
   confirmandoValidar = false;
@@ -228,6 +250,7 @@ export class AnalisisConflictoComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly ruta = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly reloj = inject(RELOJ);
 
   /**
    * @returns `true` si ya se genero algun analisis.
@@ -240,14 +263,14 @@ export class AnalisisConflictoComponent implements OnInit, OnDestroy {
    * @returns `true` si el analisis vigente esta Validado.
    */
   get estaValidado(): boolean {
-    return this.analisis?.estado === 'validado';
+    return this.analisis?.estado === 'VALIDADO';
   }
 
   /**
    * @returns `true` si se puede validar: Borrador y sin pendientes.
    */
   get puedeValidar(): boolean {
-    return this.analisis?.estado === 'borrador' && this.pendientes === 0 && !this.validando;
+    return this.analisis?.estado === 'BORRADOR' && this.pendientes === 0 && !this.validando;
   }
 
   /**
@@ -370,7 +393,7 @@ export class AnalisisConflictoComponent implements OnInit, OnDestroy {
     const textos: string[] = [];
 
     if (this.filtroClasificacion !== null) {
-      textos.push(textoClasificacion(this.filtroClasificacion));
+      textos.push(textoFiltroClasificacion(this.filtroClasificacion));
     }
     if (this.filtroSinPlan) {
       textos.push('Sin plan de acción');
@@ -434,7 +457,8 @@ export class AnalisisConflictoComponent implements OnInit, OnDestroy {
         next: (analisis) => {
           this.guardandoClasificacion = false;
           if (analisis === null) {
-            this.errorClasificacion = ERROR_CLASIFICACION;
+            this.errorClasificacion = this.servicio.ultimoError ?? ERROR_CLASIFICACION;
+            this.refrescarTrasFallo();
             return;
           }
           this.actualizarAnalisis(analisis);
@@ -467,6 +491,7 @@ export class AnalisisConflictoComponent implements OnInit, OnDestroy {
     }
 
     this.validando = true;
+    this.errorAccion = null;
     this.servicio.validarAnalisis()
       .pipe(
         switchMap((validado) => validado ? this.servicio.obtenerAnalisisActual() : of(null)),
@@ -478,11 +503,15 @@ export class AnalisisConflictoComponent implements OnInit, OnDestroy {
           this.confirmandoValidar = false;
           if (analisis !== null) {
             this.actualizarAnalisis(analisis);
+            return;
           }
+          this.errorAccion = this.servicio.ultimoError ?? ERROR_VALIDACION;
+          this.refrescarTrasFallo();
         },
         error: (err: unknown) => {
           this.validando = false;
           this.confirmandoValidar = false;
+          this.errorAccion = ERROR_VALIDACION;
           console.error('[AnalisisConflictoComponent.confirmarValidacion]', err);
         }
       });
@@ -541,6 +570,7 @@ export class AnalisisConflictoComponent implements OnInit, OnDestroy {
    */
   private ejecutarGeneracion(): void {
     this.generando = true;
+    this.errorAccion = null;
     this.servicio.generarAnalisis()
       .pipe(
         switchMap(() => this.servicio.obtenerAnalisisActual()),
@@ -549,12 +579,32 @@ export class AnalisisConflictoComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (analisis) => {
           this.generando = false;
+          this.errorAccion = this.servicio.ultimoError;
           this.aplicarAnalisis(analisis);
         },
         error: (err: unknown) => {
           this.generando = false;
+          this.errorAccion = ERROR_GENERACION;
           console.error('[AnalisisConflictoComponent.ejecutarGeneracion]', err);
         }
+      });
+  }
+
+  /**
+   * Tras una accion rechazada por el backend (p. ej. un caso que otro
+   * usuario ya clasifico) vuelve a pedir el analisis para que la pantalla
+   * muestre lo que realmente hay; el aviso del error se conserva.
+   */
+  private refrescarTrasFallo(): void {
+    this.servicio.obtenerAnalisisActual()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (analisis) => {
+          if (analisis.estado !== null) {
+            this.actualizarAnalisis(analisis);
+          }
+        },
+        error: (err: unknown) => console.error('[AnalisisConflictoComponent.refrescarTrasFallo]', err)
       });
   }
 
@@ -622,7 +672,7 @@ export class AnalisisConflictoComponent implements OnInit, OnDestroy {
     );
 
     this.filasFiltradas = this.filas.filter((f) => ids.has(f.conflicto.id)
-      && (this.filtroClasificacion === null || f.conflicto.clasificacion === this.filtroClasificacion)
+      && (this.filtroClasificacion === null || cumpleFiltroClasificacion(f.conflicto, this.filtroClasificacion))
       && (!this.filtroSinPlan || f.conflicto.planes.length === 0));
   }
 
@@ -638,7 +688,7 @@ export class AnalisisConflictoComponent implements OnInit, OnDestroy {
     if (RIESGOS.some((r) => r === riesgo)) {
       this.filtroRiesgo = riesgo as FiltroRiesgo;
     }
-    if (clasificacion === 'pendiente' || clasificacion === 'confirmado' || clasificacion === 'homonimo') {
+    if (esFiltroClasificacion(clasificacion)) {
       this.filtroClasificacion = clasificacion;
     }
     this.filtroSinPlan = parametros.get(PARAMETRO_PLAN) === VALOR_SIN_PLAN;
@@ -661,7 +711,7 @@ export class AnalisisConflictoComponent implements OnInit, OnDestroy {
       tonoRiesgo: mapearRiesgoATono(conflicto.riesgo),
       textoClasificacion: textoClasificacion(conflicto.clasificacion),
       tonoClasificacion: mapearClasificacionATono(conflicto.clasificacion),
-      archivado: conflicto.clasificacion === 'homonimo',
+      archivado: conflicto.clasificacion === 'H',
       tipoPlanes: this.tipoColumnaPlanes(conflicto),
       planes,
       planActual: planes.find((p) => p.actual) ?? null
@@ -673,7 +723,7 @@ export class AnalisisConflictoComponent implements OnInit, OnDestroy {
    * @returns Como se muestra su columna «Plan de acción».
    */
   private tipoColumnaPlanes(conflicto: Conflicto): TipoColumnaPlanes {
-    if (conflicto.clasificacion === 'homonimo') {
+    if (conflicto.clasificacion === 'H') {
       return 'archivado';
     }
     if (conflicto.planes.length > 1) {
@@ -683,7 +733,7 @@ export class AnalisisConflictoComponent implements OnInit, OnDestroy {
       return 'uno';
     }
 
-    return conflicto.clasificacion === 'pendiente' ? 'pendiente' : 'crear';
+    return conflicto.clasificacion === null ? 'pendiente' : 'crear';
   }
 
   /**
@@ -694,12 +744,13 @@ export class AnalisisConflictoComponent implements OnInit, OnDestroy {
    */
   private crearVistaPlan(conflictoId: string, plan: PlanAccion, actual: boolean): VistaPlan {
     const avance = calcularAvance(plan.actividades);
+    const conVencidas = tieneActividadesVencidas(plan, this.reloj());
 
     return {
       plan,
       titulo: 'Plan ' + String(plan.numero).padStart(2, '0') + ' · ' + plan.nombre,
-      textoEstado: textoEstadoPlan(plan.estado),
-      tonoEstado: mapearEstadoPlanATono(plan.estado),
+      textoEstado: textoEstadoPlan(plan.estado, conVencidas),
+      tonoEstado: mapearEstadoPlanATono(plan.estado, conVencidas),
       inicio: this.textoInicio(plan.fechaInicio),
       avance: avance.cumplidas + ' de ' + avance.total + ' actividades cumplidas',
       actual,

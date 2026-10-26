@@ -13,13 +13,13 @@
     <app-empty-state icono="check" texto="No tienes actividades asignadas en planes de acción." />
   </section>
 } @else {
-  @if (conteo.vencida > 0) {
+  @if (conteo.VENCIDA > 0) {
     <div class="alerta" role="alert">
       <span>
-        Tienes {{ conteo.vencida }} {{ conteo.vencida === 1 ? 'actividad vencida' : 'actividades vencidas' }}.
+        Tienes {{ conteo.VENCIDA }} {{ conteo.VENCIDA === 1 ? 'actividad vencida' : 'actividades vencidas' }}.
         Sube la evidencia lo antes posible.
       </span>
-      <button type="button" class="boton boton--alerta" (click)="irABandeja('vencida')">Ver vencidas</button>
+      <button type="button" class="boton boton--alerta" (click)="irABandeja('VENCIDA')">Ver vencidas</button>
     </div>
   }
 
@@ -38,10 +38,10 @@
     <h3 id="titulo-avance" class="seccion-titulo">Avance general</h3>
     <app-barra-avance [actividades]="actividades" [vistaResponsable]="true" />
     <ul class="leyenda-avance">
-      <li><span class="muestra segmento--verde" aria-hidden="true"></span>Aprobadas {{ conteo.aprobada }}</li>
-      <li><span class="muestra segmento--gris" aria-hidden="true"></span>En revisión {{ conteo.en_revision }}</li>
-      <li><span class="muestra segmento--ambar" aria-hidden="true"></span>Pendientes {{ conteo.pendiente + conteo.vencida }}</li>
-      <li><span class="muestra segmento--naranja" aria-hidden="true"></span>Rechazadas {{ conteo.rechazada }}</li>
+      <li><span class="muestra segmento--verde" aria-hidden="true"></span>Aprobadas {{ conteo.ACEPTADA }}</li>
+      <li><span class="muestra segmento--gris" aria-hidden="true"></span>En revisión {{ conteo.EN_REVISION }}</li>
+      <li><span class="muestra segmento--ambar" aria-hidden="true"></span>Pendientes {{ conteo.PENDIENTE + conteo.VENCIDA }}</li>
+      <li><span class="muestra segmento--naranja" aria-hidden="true"></span>Rechazadas {{ conteo.RECHAZADA }}</li>
     </ul>
   </section>
 
@@ -56,7 +56,7 @@
             <span class="abierta-texto">
               <span class="abierta-descripcion">{{ a.actividad.descripcion }}</span>
               <span class="abierta-contexto">
-                Conflicto #{{ a.plan.conflictoId }}{{ a.conflicto ? ' · ' + personas(a.conflicto) : '' }} · {{ tituloPlan(a.plan) }}
+                Conflicto #{{ a.plan.conflictoId }}{{ a.personas ? ' · ' + a.personas : '' }} · {{ tituloPlan(a.plan) }}
               </span>
             </span>
             <span class="abierta-estado">
@@ -114,7 +114,7 @@
               (alternar)="alternar(c.conflictoId)" />
             <span class="acordeon-titulo">
               <span class="acordeon-id">Conflicto #{{ c.conflictoId }}</span>
-              <span class="acordeon-personas">{{ personas(c.conflicto) }}</span>
+              <span class="acordeon-personas">{{ c.personas }}</span>
             </span>
             <app-barra-avance class="acordeon-barra" [actividades]="c.actividades" [vistaResponsable]="true" />
           </div>

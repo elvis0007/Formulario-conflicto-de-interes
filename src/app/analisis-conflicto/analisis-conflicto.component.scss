@@ -263,6 +263,16 @@
   text-align: right;
 }
 
+// Aviso de una accion que fallo (validar, generar).
+.error-accion {
+  margin: 0 0 14px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background-color: var(--red-fill);
+  color: var(--red-text);
+  font-weight: 600;
+}
+
 .boton--tabla:disabled {
   opacity: 0.6;
 }

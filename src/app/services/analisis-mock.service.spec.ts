@@ -45,7 +45,7 @@ describe('AnalisisMockService', () => {
     expect(generado).withContext('simula la latencia del algoritmo').toBeUndefined();
     tick(LATENCIA_GENERACION_MS - LATENCIA_SIMULADA_MS);
 
-    expect(generado?.estado).toBe('borrador');
+    expect(generado?.estado).toBe('BORRADOR');
     expect(new Date(generado?.fechaGeneracion ?? '').getTime())
       .toBeGreaterThanOrEqual(antes - 1000);
     expect(generado?.conflictos.map((c) => c.id)).toEqual(CONFLICTOS.map((c) => c.id));
@@ -57,7 +57,7 @@ describe('AnalisisMockService', () => {
 
     const actual = obtenerActual();
 
-    expect(actual?.estado).toBe('borrador');
+    expect(actual?.estado).toBe('BORRADOR');
     expect(actual?.conflictos.length).toBe(CONFLICTOS.length);
   }));
 
@@ -95,12 +95,12 @@ describe('AnalisisMockService: clasificación, validación e historial', () => {
     return esperar(servicio.generarAnalisis(), LATENCIA_GENERACION_MS);
   }
 
-  /** Clasifica como confirmados todos los pendientes del análisis actual. */
+  /** Clasifica como declarados (D) todos los pendientes del análisis actual. */
   function clasificarPendientes(): void {
     const actual = esperar(servicio.obtenerAnalisisActual());
 
-    for (const caso of actual?.conflictos.filter((c) => c.clasificacion === 'pendiente') ?? []) {
-      esperar(servicio.actualizarClasificacion(caso.id, 'confirmado', ''));
+    for (const caso of actual?.conflictos.filter((c) => c.clasificacion === null) ?? []) {
+      esperar(servicio.actualizarClasificacion(caso.id, 'D', ''));
     }
   }
 
@@ -118,24 +118,24 @@ describe('AnalisisMockService: clasificación, validación e historial', () => {
   it('clasificar guarda la clasificación y la observación en memoria', fakeAsync(() => {
     generar();
 
-    expect(esperar(servicio.actualizarClasificacion('C-005', 'confirmado', '  Revisado.  ')))
+    expect(esperar(servicio.actualizarClasificacion('C-005', 'D', '  Revisado.  ')))
       .toBeTrue();
 
     const caso = esperar(servicio.obtenerAnalisisActual())?.conflictos.find((c) => c.id === 'C-005');
-    expect(caso?.clasificacion).toBe('confirmado');
+    expect(caso?.clasificacion).toBe('D');
     expect(caso?.observacionClasificacion).toBe('Revisado.');
   }));
 
   it('clasificar un caso que no existe devuelve false', fakeAsync(() => {
     generar();
-    expect(esperar(servicio.actualizarClasificacion('NO-EXISTE', 'confirmado', ''))).toBeFalse();
+    expect(esperar(servicio.actualizarClasificacion('NO-EXISTE', 'D', ''))).toBeFalse();
   }));
 
   it('no se puede validar con casos pendientes', fakeAsync(() => {
     generar();
 
     expect(esperar(servicio.validarAnalisis())).toBeFalse();
-    expect(esperar(servicio.obtenerAnalisisActual())?.estado).toBe('borrador');
+    expect(esperar(servicio.obtenerAnalisisActual())?.estado).toBe('BORRADOR');
   }));
 
   it('sin pendientes se valida y ya no se puede reclasificar', fakeAsync(() => {
@@ -143,10 +143,49 @@ describe('AnalisisMockService: clasificación, validación e historial', () => {
     clasificarPendientes();
 
     expect(esperar(servicio.validarAnalisis())).toBeTrue();
-    expect(esperar(servicio.obtenerAnalisisActual())?.estado).toBe('validado');
-    expect(esperar(servicio.actualizarClasificacion('C-001', 'homonimo', ''))).toBeFalse();
+    expect(esperar(servicio.obtenerAnalisisActual())?.estado).toBe('VALIDADO');
+    expect(esperar(servicio.actualizarClasificacion('C-001', 'H', ''))).toBeFalse();
     expect(esperar(servicio.obtenerAnalisisActual())?.conflictos.find((c) => c.id === 'C-001')
-      ?.clasificacion).toBe('confirmado');
+      ?.clasificacion).toBe('D');
+  }));
+
+  it('clasificar es definitivo: fuera de DETECTADO se rechaza y deja el motivo en ultimoError', fakeAsync(() => {
+    generar();
+    expect(esperar(servicio.actualizarClasificacion('C-005', 'D', ''))).toBeTrue();
+    expect(servicio.ultimoError).toBeNull();
+
+    expect(esperar(servicio.actualizarClasificacion('C-005', 'N', ''))).toBeFalse();
+    expect(servicio.ultimoError).toContain('ya no está en DETECTADO');
+    expect(esperar(servicio.actualizarClasificacion('C-001', 'H', 'Prueba.'))).toBeFalse();
+    expect(esperar(servicio.obtenerAnalisisActual())?.conflictos.find((c) => c.id === 'C-005')?.clasificacion)
+      .toBe('D');
+  }));
+
+  it('no se puede volver a «sin clasificar» y homónimo exige observación', fakeAsync(() => {
+    generar();
+
+    expect(esperar(servicio.actualizarClasificacion('C-005', null, ''))).toBeFalse();
+    expect(servicio.ultimoError).toContain('Pendiente de revisión');
+    expect(esperar(servicio.actualizarClasificacion('C-005', 'H', '  '))).toBeFalse();
+    expect(servicio.ultimoError).toContain('obligatorio');
+    expect(esperar(servicio.actualizarClasificacion('C-005', 'H', 'Homónimo.'))).toBeTrue();
+    expect(esperar(servicio.obtenerAnalisisActual())?.conflictos.find((c) => c.id === 'C-005')?.estado)
+      .toBe('DESCARTADO');
+  }));
+
+  it('validar con pendientes deja el mensaje del backend; ya validado, también', fakeAsync(() => {
+    generar();
+
+    expect(esperar(servicio.validarAnalisis())).toBeFalse();
+    expect(servicio.ultimoError).toBe('No se puede validar el análisis: quedan 3 conflicto(s) sin clasificar');
+
+    clasificarPendientes();
+    expect(esperar(servicio.validarAnalisis())).toBeTrue();
+    expect(servicio.ultimoError).toBeNull();
+    expect(esperar(servicio.validarAnalisis())).toBeFalse();
+    expect(servicio.ultimoError).toContain('ya está validado');
+    expect(esperar(servicio.actualizarClasificacion('C-001', 'D', ''))).toBeFalse();
+    expect(servicio.ultimoError).toContain('ya está validado');
   }));
 
   it('sin análisis anteriores, el historial está vacío', fakeAsync(() => {
@@ -162,14 +201,14 @@ describe('AnalisisMockService: clasificación, validación e historial', () => {
     const segundo = generar();
     const historial = esperar(servicio.obtenerHistorialAnalisis());
 
-    expect(segundo?.estado).toBe('borrador');
+    expect(segundo?.estado).toBe('BORRADOR');
     expect(segundo?.id).not.toBe(primero?.id);
     expect(historial).toEqual([{
       id: primero?.id ?? '',
       fechaGeneracion: primero?.fechaGeneracion ?? '',
-      estado: 'validado',
+      estado: 'VALIDADO',
       totalCasos: CONFLICTOS.length,
-      confirmados: CONFLICTOS.filter((c) => c.clasificacion !== 'homonimo').length
+      confirmados: CONFLICTOS.filter((c) => c.clasificacion !== 'H').length
     }]);
   }));
 
@@ -181,7 +220,7 @@ describe('AnalisisMockService: clasificación, validación e historial', () => {
     const historial = esperar(servicio.obtenerHistorialAnalisis());
     expect(historial?.map((h) => h.id)).withContext('del más reciente al más antiguo')
       .toEqual(['AN-002', 'AN-001']);
-    expect(historial?.every((h) => h.estado === 'borrador')).toBeTrue();
+    expect(historial?.every((h) => h.estado === 'BORRADOR')).toBeTrue();
   }));
 });
 
@@ -199,7 +238,7 @@ describe('AnalisisMockService: planes vigentes', () => {
       numero: 0,
       nombre: 'Plan nuevo',
       conflictoId: 'C-005',
-      estado: 'borrador',
+      estado: 'BORRADOR',
       actividades: []
     }).subscribe();
     tick(LATENCIA_SIMULADA_MS);

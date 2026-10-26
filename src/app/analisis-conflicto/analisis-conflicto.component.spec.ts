@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { PerfilUsuarioFalso, proveerPerfilFalso } from '../testing/perfil-usuario-falso';
 import { Router, provideRouter } from '@angular/router';
-import { Observable } from 'rxjs';
+import { Observable, of } from 'rxjs';
 import { AnalisisMockService, LATENCIA_GENERACION_MS } from '../services/analisis-mock.service';
 import { LATENCIA_SIMULADA_MS } from '../services/mock-data/simular-respuesta';
 import { AnalisisConflictoComponent } from './analisis-conflicto.component';
@@ -77,9 +77,9 @@ describe('AnalisisConflictoComponent', () => {
 
   /** Clasifica los 3 pendientes de ejemplo y valida, desde el servicio. */
   function validarEnServicio(): void {
-    esperar(servicio.actualizarClasificacion('C-005', 'confirmado', ''));
-    esperar(servicio.actualizarClasificacion('C-007', 'confirmado', ''));
-    esperar(servicio.actualizarClasificacion('C-009', 'homonimo', ''));
+    esperar(servicio.actualizarClasificacion('C-005', 'D', ''));
+    esperar(servicio.actualizarClasificacion('C-007', 'D', ''));
+    esperar(servicio.actualizarClasificacion('C-009', 'H', 'Homónimo.'));
     esperar(servicio.validarAnalisis());
   }
 
@@ -174,14 +174,14 @@ describe('AnalisisConflictoComponent', () => {
     it('las píldoras cuentan sobre todos los casos y filtran la tabla', fakeAsync(() => {
       crear();
       generarDesdeVacio();
-      const conteos = ['Todos (9)', 'Alto (2)', 'Moderado (3)', 'Bajo (3)', 'Ninguno (1)'];
+      const conteos = ['Todos (9)', 'Crítico (1)', 'Alto (1)', 'Moderado (3)', 'Bajo (4)'];
 
       expect(pildoras()).toEqual(conteos);
 
       boton('app-pills button', 'Alto').click();
       fixture.detectChanges();
 
-      expect(filas().length).toBe(2);
+      expect(filas().length).toBe(1);
       expect(pildoras()).withContext('los conteos no cambian al filtrar').toEqual(conteos);
     }));
 
@@ -210,7 +210,7 @@ describe('AnalisisConflictoComponent', () => {
         '3er grado',
         'DistribuciónDistribución',
         'Moderado',
-        'Conflicto confirmado',
+        'Declarado',
         'Ver detalles'
       ]);
     }));
@@ -226,10 +226,9 @@ describe('AnalisisConflictoComponent', () => {
     it('las filas de homónimos se ven atenuadas', fakeAsync(() => {
       crear();
       generarDesdeVacio();
-      boton('app-pills button', 'Ninguno').click();
-      fixture.detectChanges();
+      verTodos();
 
-      const [homonimo] = filas();
+      const homonimo = filas().find((f) => limpio(f.textContent).includes('Homónimo')) as HTMLElement;
       expect(limpio(homonimo.textContent)).toContain('Homónimo');
       expect(Array.from(homonimo.querySelectorAll('td')).every((td) => td.classList.contains('archivada')))
         .toBeTrue();
@@ -271,6 +270,10 @@ describe('AnalisisConflictoComponent', () => {
         .find((o) => limpio(o.textContent).startsWith('Homónimo')) as HTMLLabelElement;
       homonimo.querySelector('input')?.click();
       fixture.detectChanges();
+      const observacion = raiz.querySelector('app-detalle-conflicto textarea') as HTMLTextAreaElement;
+      observacion.value = 'Solo coincide el nombre.';
+      observacion.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
       boton('app-detalle-conflicto button', 'Guardar clasificación').click();
       fixture.detectChanges();
       tick(LATENCIA_SIMULADA_MS * 2);
@@ -289,12 +292,12 @@ describe('AnalisisConflictoComponent', () => {
 
     it('los cambios siguen ahí al salir de la pantalla y volver', fakeAsync(() => {
       generarEnServicio();
-      esperar(servicio.actualizarClasificacion('C-005', 'confirmado', 'Ok.'));
+      esperar(servicio.actualizarClasificacion('C-005', 'D', 'Ok.'));
       crear();
       verTodos();
 
       expect(limpio(fila('Diana', 'Fernando').querySelectorAll('td')[5].textContent))
-        .toBe('Conflicto confirmado');
+        .toBe('Declarado');
     }));
 
     it('con pendientes, «Validar análisis» está deshabilitado y explica por qué', fakeAsync(() => {
@@ -308,9 +311,9 @@ describe('AnalisisConflictoComponent', () => {
 
     it('sin pendientes, validar pide confirmación y deja el análisis Validado', fakeAsync(() => {
       generarEnServicio();
-      esperar(servicio.actualizarClasificacion('C-005', 'confirmado', ''));
-      esperar(servicio.actualizarClasificacion('C-007', 'confirmado', ''));
-      esperar(servicio.actualizarClasificacion('C-009', 'homonimo', ''));
+      esperar(servicio.actualizarClasificacion('C-005', 'D', ''));
+      esperar(servicio.actualizarClasificacion('C-007', 'D', ''));
+      esperar(servicio.actualizarClasificacion('C-009', 'H', 'Homónimo.'));
       crear();
 
       const validar = boton('.acciones-botones button', 'Validar análisis');
@@ -329,6 +332,51 @@ describe('AnalisisConflictoComponent', () => {
       expect(boton('.acciones-botones button', 'Validar análisis')).toBeUndefined();
     }));
 
+    it('un caso que otro usuario ya clasificó: muestra el motivo y pasa a solo lectura', fakeAsync(() => {
+      generarEnServicio();
+      crear();
+      verTodos();
+      spyOn(console, 'error');
+
+      abrirDetalle(fila('Diana', 'Fernando'));
+      esperar(servicio.actualizarClasificacion('C-005', 'D', ''));
+      (raiz.querySelector('app-detalle-conflicto .opcion input') as HTMLInputElement).click();
+      fixture.detectChanges();
+      boton('app-detalle-conflicto button', 'Guardar clasificación').click();
+      fixture.detectChanges();
+      tick(LATENCIA_SIMULADA_MS * 3);
+      fixture.detectChanges();
+
+      expect(limpio(raiz.querySelector('app-detalle-conflicto .error')?.textContent))
+        .toContain('ya no está en DETECTADO');
+      expect(raiz.querySelectorAll('app-detalle-conflicto input[type=radio]').length).toBe(0);
+      expect(limpio(raiz.querySelector('app-detalle-conflicto .estado-lectura')?.textContent))
+        .toContain('En planificación');
+    }));
+
+    it('si el backend rechaza la validación, muestra su mensaje en la pantalla', fakeAsync(() => {
+      generarEnServicio();
+      esperar(servicio.actualizarClasificacion('C-005', 'D', ''));
+      esperar(servicio.actualizarClasificacion('C-007', 'D', ''));
+      esperar(servicio.actualizarClasificacion('C-009', 'H', 'Homónimo.'));
+      crear();
+      spyOn(servicio, 'validarAnalisis').and.callFake(() => {
+        servicio.ultimoError = 'No se puede validar el análisis: quedan 1 conflicto(s) sin clasificar';
+        return of(false);
+      });
+
+      boton('.acciones-botones button', 'Validar análisis').click();
+      fixture.detectChanges();
+      boton('.confirmacion-botones button', 'Validar análisis').click();
+      fixture.detectChanges();
+      tick(LATENCIA_SIMULADA_MS * 2);
+      fixture.detectChanges();
+
+      expect(limpio(raiz.querySelector('.error-accion')?.textContent))
+        .toBe('No se puede validar el análisis: quedan 1 conflicto(s) sin clasificar');
+      expect(limpio(raiz.querySelector('.estado-analisis')?.textContent)).toBe('Borrador');
+    }));
+
     it('tras validar, la clasificación queda en solo lectura', fakeAsync(() => {
       generarEnServicio();
       validarEnServicio();
@@ -339,7 +387,7 @@ describe('AnalisisConflictoComponent', () => {
       expect(raiz.querySelectorAll('app-detalle-conflicto input[type=radio]').length).toBe(0);
       expect(boton('app-detalle-conflicto button', 'Guardar clasificación')).toBeUndefined();
       expect(limpio(raiz.querySelector('app-detalle-conflicto .opcion--lectura')?.textContent))
-        .toContain('Conflicto confirmado');
+        .toContain('Declarado');
     }));
   });
 
@@ -365,7 +413,7 @@ describe('AnalisisConflictoComponent', () => {
 
     it('confirmado sin planes: en Borrador deshabilitado; Validado navega a /planes/nuevo', fakeAsync(() => {
       generarEnServicio();
-      esperar(servicio.actualizarClasificacion('C-005', 'confirmado', ''));
+      esperar(servicio.actualizarClasificacion('C-005', 'D', ''));
       crear();
       verTodos();
 
@@ -373,8 +421,8 @@ describe('AnalisisConflictoComponent', () => {
       expect(celda.querySelector('button')?.disabled).toBeTrue();
       expect(limpio(celda.textContent)).toContain('Valida el análisis primero');
 
-      esperar(servicio.actualizarClasificacion('C-007', 'confirmado', ''));
-      esperar(servicio.actualizarClasificacion('C-009', 'homonimo', ''));
+      esperar(servicio.actualizarClasificacion('C-007', 'D', ''));
+      esperar(servicio.actualizarClasificacion('C-009', 'H', 'Homónimo.'));
       esperar(servicio.validarAnalisis());
       fixture.destroy();
       crear();
@@ -473,9 +521,9 @@ describe('AnalisisConflictoComponent', () => {
       crear();
     }
 
-    it('?clasificacion=pendiente&plan=sin-plan filtra y muestra la franja «Filtrando»', fakeAsync(() => {
+    it('?clasificacion=SIN_CLASIFICAR&plan=sin-plan filtra y muestra la franja «Filtrando»', fakeAsync(() => {
       generarEnServicio();
-      abrirCon('/?clasificacion=pendiente&plan=sin-plan');
+      abrirCon('/?clasificacion=SIN_CLASIFICAR&plan=sin-plan');
 
       expect(filas().length).toBe(3);
       expect(limpio(raiz.querySelector('.franja-filtros span')?.textContent))
@@ -484,7 +532,7 @@ describe('AnalisisConflictoComponent', () => {
 
     it('?riesgo= elige la píldora y se combina con la clasificación; «Limpiar filtros» los quita', fakeAsync(() => {
       generarEnServicio();
-      abrirCon('/?riesgo=bajo&clasificacion=pendiente');
+      abrirCon('/?riesgo=BAJO&clasificacion=SIN_CLASIFICAR');
 
       expect(filas().length).toBe(2);
       expect(raiz.querySelector('app-pills button[aria-pressed="true"]')?.textContent).toContain('Bajo');

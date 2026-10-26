@@ -19,8 +19,14 @@ import { normalizarTexto } from './texto.util';
  * @author Elvis Flores
  */
 
-/** Error: no se indico ni la cedula ni nombres y apellidos. */
-export const ERROR_DATOS_MINIMOS = 'Escribe la cédula, o los nombres y los apellidos del candidato.';
+/** Error: falta la cedula (el backend la exige). */
+export const ERROR_CEDULA_OBLIGATORIA = 'Escribe la cédula del candidato.';
+
+/** Error: falta al menos un nombre (el backend exige los nombres). */
+export const ERROR_NOMBRES_OBLIGATORIOS = 'Escribe al menos un nombre del candidato.';
+
+/** Error: falta al menos un apellido. */
+export const ERROR_APELLIDOS_OBLIGATORIOS = 'Escribe al menos un apellido del candidato.';
 
 /** Error: la cedula no tiene 10 digitos. */
 export const ERROR_CEDULA = 'La cédula debe tener 10 dígitos.';
@@ -53,28 +59,35 @@ const GRADO_POR_PARENTESCO: Readonly<Record<string, { relacion: Relacion; grado:
 };
 
 /**
- * Valida los datos minimos: la cedula (10 digitos) o nombres y apellidos.
+ * Valida los datos que exige el backend (`CrearConsultaRequestDto`): la
+ * cedula (10 digitos), al menos un nombre y al menos un apellido.
  *
  * @param datos Datos escritos.
- * @returns El mensaje de error, o `null` si se puede consultar.
+ * @returns El mensaje del primer error, o `null` si se puede consultar.
  * @author Elvis Flores
  */
 export function validarDatosCandidato(datos: DatosCandidato): string | null {
   const cedula = datos.cedula.trim();
 
-  if (cedula !== '' && !/^\d{10}$/.test(cedula)) {
+  if (cedula === '') {
+    return ERROR_CEDULA_OBLIGATORIA;
+  }
+  if (!/^\d{10}$/.test(cedula)) {
     return ERROR_CEDULA;
   }
-  if (cedula === '' && (datos.nombres.trim() === '' || datos.apellidos.trim() === '')) {
-    return ERROR_DATOS_MINIMOS;
+  if (datos.nombres.trim() === '') {
+    return ERROR_NOMBRES_OBLIGATORIOS;
+  }
+  if (datos.apellidos.trim() === '') {
+    return ERROR_APELLIDOS_OBLIGATORIOS;
   }
 
   return null;
 }
 
 /**
- * Riesgo estimado: 1er grado o conyuge → alto; 2do → moderado; 3ro y 4to →
- * bajo.
+ * Riesgo estimado: 1er grado o conyuge → ALTO; 2do → MEDIO; 3ro y 4to →
+ * BAJO. La estimacion nunca da CRITICO: ese nivel lo asigna el backend.
  *
  * @param grado Grado (`null` = conyuge).
  * @returns Riesgo estimado.
@@ -82,9 +95,9 @@ export function validarDatosCandidato(datos: DatosCandidato): string | null {
  */
 export function riesgoEstimado(grado: GradoParentesco | null): Riesgo {
   if (grado === null || grado === 1) {
-    return 'alto';
+    return 'ALTO';
   }
-  return grado === 2 ? 'medio' : 'bajo';
+  return grado === 2 ? 'MEDIO' : 'BAJO';
 }
 
 /**
@@ -129,7 +142,7 @@ export function buscarCoincidencias(
     }
   }
 
-  const orden: Record<Riesgo, number> = { alto: 0, medio: 1, bajo: 2, ninguno: 3 };
+  const orden: Record<Riesgo, number> = { CRITICO: 0, ALTO: 1, MEDIO: 2, BAJO: 3 };
 
   return coincidencias.sort((a, b) => orden[a.riesgo] - orden[b.riesgo]
     || a.empleado.nombres.localeCompare(b.empleado.nombres));

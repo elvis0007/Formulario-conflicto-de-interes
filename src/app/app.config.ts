@@ -5,6 +5,24 @@ import { firstValueFrom } from 'rxjs';
 import { AuthService } from './services/auth.service';
 import { solicitudInterceptor } from './interceptors/solicitudes.interceptor';
 import { routes } from './app.routes';
+// [PNIP-CI] Integración backend - 23/10/2026
+// Qué hace: servicios simulados y su versión contra el backend.
+import { AnalisisMockService } from './services/analisis-mock.service';
+import { ConflictosMockService } from './services/conflictos-mock.service';
+import { PlanesMockService } from './services/planes-mock.service';
+import { HistorialMockService } from './services/historial-mock.service';
+import { NotificacionesMockService } from './services/notificaciones-mock.service';
+import { ConsultaPreviaMockService } from './services/consulta-previa-mock.service';
+import { AnalisisHttpService } from './services/http/analisis-http.service';
+import { ConflictosHttpService } from './services/http/conflictos-http.service';
+import { PlanesHttpService } from './services/http/planes-http.service';
+import { HistorialHttpService } from './services/http/historial-http.service';
+import { NotificacionesHttpService } from './services/http/notificaciones-http.service';
+import { ConsultaPreviaHttpService } from './services/http/consulta-previa-http.service';
+import { PersonasMockService } from './services/personas-mock.service';
+import { PersonasHttpService } from './services/http/personas-http.service';
+import { proveerFuente } from './services/http/fuente-datos';
+// [FIN PNIP-CI]
 // [PNIP-CI DEV] Elvis Flores - 30/09/2026 - ELIMINAR ANTES DE PRODUCCIÓN
 // Qué hace: import que solo usa la sesión simulada de desarrollo (ver el
 // bloque [PNIP-CI DEV] más abajo). Se elimina junto con ese bloque.
@@ -18,6 +36,18 @@ export const appConfig: ApplicationConfig = {
     provideHttpClient(
       withInterceptors([solicitudInterceptor])
     ),
+    // [PNIP-CI] Integración backend - 23/10/2026
+    // Qué hace: con sesión real, las pantallas de gestión de conflictos leen
+    // del backend; con la sesión simulada siguen con los datos simulados
+    // (ver docs/INTEGRACION_BACKEND.md).
+    proveerFuente(AnalisisMockService, AnalisisHttpService),
+    proveerFuente(ConflictosMockService, ConflictosHttpService),
+    proveerFuente(PlanesMockService, PlanesHttpService),
+    proveerFuente(HistorialMockService, HistorialHttpService),
+    proveerFuente(NotificacionesMockService, NotificacionesHttpService),
+    proveerFuente(ConsultaPreviaMockService, ConsultaPreviaHttpService),
+    proveerFuente(PersonasMockService, PersonasHttpService),
+    // [FIN PNIP-CI]
     provideAppInitializer(() => {
       const authSrv = inject(AuthService);
       const router = inject(Router);
@@ -118,7 +148,7 @@ export const appConfig: ApplicationConfig = {
 
       // Sin token de Intranet puede haber igualmente una sesion valida de
       // SISCI: es el caso de los usuarios externos, que entran con cedula y
-      // clave temporal y solo tienen TOKEN-SISTEC. Antes se los mandaba a
+      // clave temporal y solo tienen TOKEN-SISCI. Antes se los mandaba a
       // /login, y como el guard de esa ruta hace logout(), cualquier recarga
       // de pagina les borraba la sesion.
       if (authSrv.isAuthenticated()) {

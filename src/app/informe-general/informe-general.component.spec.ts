@@ -115,6 +115,8 @@ describe('InformeGeneralComponent', () => {
     expect(limpio(f.querySelector('.grupo-riesgo')?.textContent)).toBe('Alto');
     expect(limpio(f.querySelector('.grupo-planes')?.textContent)).toBe('2 planes');
     expect(limpio(f.querySelector('.grupo-estado')?.textContent)).toBe('Activo · con vencidas');
+    expect(limpio(f.querySelector('.grupo-seguimiento')?.textContent))
+      .withContext('estado de seguimiento del conflicto').toBe('En ejecución');
   }));
 
   it('barra de avance: un segmento por actividad del plan actual, con tooltip y texto accesible', fakeAsync(() => {
@@ -137,7 +139,7 @@ describe('InformeGeneralComponent', () => {
     const [pl1, pl2] = bloques('C-001');
     expect(bloques('C-001').length).toBe(2);
     expect(Array.from(pl1.querySelector('.bloque-cabecera')?.children ?? []).map((c) => limpio(c.textContent)))
-      .toEqual(['Plan 01 · Separación de funciones en compras', 'Cerrado', 'Inicio: 03/11/2025', '2 de 2 cumplidas']);
+      .toEqual(['Plan 01 · Separación de funciones en compras', 'Cerrado · Cumplido', 'Inicio: 03/11/2025', '2 de 2 cumplidas']);
     expect(limpio(pl2.querySelector('.bloque-titulo')?.textContent)).toBe('Plan 02 · Rotación del técnico de compras');
     expect(Array.from(pl2.querySelectorAll('.tabla-actividades th')).map((th) => limpio(th.textContent)))
       .toEqual(['Actividad', 'Responsable', 'Plazo', 'Fecha límite', 'Estado']);
@@ -160,7 +162,7 @@ describe('InformeGeneralComponent', () => {
     pulsar('Cerrados');
     expect(grupos()).toEqual(['C-004', 'C-008']);
     expect(navegar).toHaveBeenCalledWith([], jasmine.objectContaining({ queryParams: { estado: 'cerrados' } }));
-    filtrar('.filtro-riesgo', 'medio');
+    filtrar('.filtro-riesgo', 'MEDIO');
     expect(grupos()).toEqual(['C-008']);
     filtrar('.filtro-texto', 'nadie se llama así');
     expect(limpio(raiz.querySelector('app-empty-state')?.textContent)).toContain('Ningún plan de acción coincide');

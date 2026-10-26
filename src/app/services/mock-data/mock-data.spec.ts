@@ -89,7 +89,7 @@ describe('cobertura de los conflictos de ejemplo (Análisis de Conflictos)', () 
 
   it('cubren los 4 riesgos, las 2 relaciones, los grados 1 a 4 y «sin grado»', () => {
     expect(distintos(CONFLICTOS.map((c) => c.riesgo)))
-      .toEqual(['alto', 'bajo', 'medio', 'ninguno']);
+      .toEqual(['ALTO', 'BAJO', 'CRITICO', 'MEDIO']);
     expect(distintos(CONFLICTOS.map((c) => c.relacion)))
       .toEqual(['Afinidad', 'Consanguinidad']);
     expect(distintos(CONFLICTOS.map((c) => c.grado))).toEqual([1, 2, 3, 4, null]);
@@ -97,9 +97,38 @@ describe('cobertura de los conflictos de ejemplo (Análisis de Conflictos)', () 
       .withContext('solo los cónyuges no tienen grado').toEqual(['Cónyuges']);
   });
 
-  it('cubren las 3 clasificaciones', () => {
+  it('cubren las clasificaciones D, N, H y sin clasificar', () => {
     expect(distintos(CONFLICTOS.map((c) => c.clasificacion)))
-      .toEqual(['confirmado', 'homonimo', 'pendiente']);
+      .toEqual(['D', 'H', 'N', null]);
+  });
+
+  it('cubren todos los estados de seguimiento salvo EN_ANALISIS', () => {
+    expect(distintos(CONFLICTOS.map((c) => c.estado)))
+      .toEqual(['DESCARTADO', 'DETECTADO', 'EN_EJECUCION', 'EN_PLANIFICACION', 'FINALIZADO']);
+  });
+
+  it('los casos sin clasificar están DETECTADO y los homónimos DESCARTADO', () => {
+    for (const c of CONFLICTOS) {
+      if (c.clasificacion === null) {
+        expect(c.estado).withContext(c.id).toBe('DETECTADO');
+      }
+      if (c.clasificacion === 'H') {
+        expect(c.estado).withContext(c.id).toBe('DESCARTADO');
+      }
+    }
+  });
+
+  it('los planes cerrados traen su tipo de cierre y las evidencias un id único', () => {
+    const ids = PLANES.flatMap((p) => p.actividades.flatMap((a) => [
+      ...(a.evidenciasAnteriores ?? []),
+      ...(a.evidencia ? [a.evidencia] : [])
+    ])).map((e) => e.id);
+
+    for (const plan of PLANES.filter((p) => p.estado === 'CERRADO')) {
+      expect(plan.tipoCierre).withContext(plan.id).toBeDefined();
+    }
+    expect(ids.every((id) => id !== '')).toBeTrue();
+    expect(new Set(ids).size).toBe(ids.length);
   });
 
   it('tienen vínculos simétricos y con roles distintos', () => {
@@ -123,7 +152,7 @@ describe('cobertura de los conflictos de ejemplo (Análisis de Conflictos)', () 
   });
 
   it('los homónimos no tienen planes', () => {
-    for (const c of CONFLICTOS.filter((x) => x.clasificacion === 'homonimo')) {
+    for (const c of CONFLICTOS.filter((x) => x.clasificacion === 'H')) {
       expect(c.planes.length).withContext(c.id).toBe(0);
     }
   });

@@ -82,14 +82,14 @@ describe('HistorialMockService', () => {
 
     esperar(analisis.generarAnalisis());
     for (const id of ['C-005', 'C-007', 'C-009']) {
-      esperar(analisis.actualizarClasificacion(id, 'confirmado', id === 'C-005' ? 'Confirmado en entrevista.' : ''));
+      esperar(analisis.actualizarClasificacion(id, 'D', id === 'C-005' ? 'Confirmado en entrevista.' : ''));
     }
     esperar(analisis.validarAnalisis());
 
     expect(textos('C-005')).toEqual([
       'Conflicto detectado: Cuñados · Afinidad, 2do grado (riesgo moderado).',
       'Incluido en el análisis AN-001.',
-      'Clasificado como Conflicto confirmado. Observación: Confirmado en entrevista.',
+      'Clasificado como Declarado. Observación: Confirmado en entrevista.',
       'Análisis AN-001 validado.'
     ]);
   }));
@@ -104,10 +104,9 @@ describe('HistorialMockService', () => {
     const a015 = h.planes[1].actividades.find((a) => a.actividad.id === 'A-015');
 
     expect(a015?.eventos.map((e) => e.texto)).toEqual([
-      'Asignada a Fernando José Andrade Vela · plazo 2 meses y 15 días · vence el 16/08/2026.',
+      'Asignada a Fernando José Andrade Vela · plazo 5 meses · vence el 01/11/2026.',
       'Evidencia subida: A-015-registro-auditoria.png.',
       'Evidencia rechazada: La captura no muestra la fecha en que se activó el registro.',
-      'Venció sin evidencia aprobada.',
       'Evidencia subida: auditoria-v2.png.'
     ]);
   }));

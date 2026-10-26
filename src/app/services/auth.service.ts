@@ -36,8 +36,8 @@ export class AuthService {
     localStorage.getItem('TOKEN-INTRANET')
     //traer el token del localStorage
   );
-  private _tokenSistec = signal<string | null>(
-    localStorage.getItem('TOKEN-SISTEC')
+  private _tokenSisci = signal<string | null>(
+    localStorage.getItem('TOKEN-SISCI')
   );
 
   private _huella = signal<String | null>(null);
@@ -46,7 +46,7 @@ export class AuthService {
 
   usuario = this._usuario.asReadonly();
   tokenIntranet = this._tokenIntranet.asReadonly();
-  tokenSistec = this._tokenSistec.asReadonly();
+  tokenSisci = this._tokenSisci.asReadonly();
   roles = this._roles.asReadonly();
 
   constructor() {
@@ -55,8 +55,8 @@ export class AuthService {
 
   private cargarUsuarioDesdeStorage(): IUsuario | null {
     try {
-      //const usuarioStr = localStorage.getItem('USUARIO-SISTEC');
-      const usuarioStr = localStorage.getItem('USUARIO-SISTEC');
+      //const usuarioStr = localStorage.getItem('USUARIO-SISCI');
+      const usuarioStr = localStorage.getItem('USUARIO-SISCI');
       if (usuarioStr) {
         return JSON.parse(usuarioStr);
       }
@@ -278,9 +278,9 @@ export class AuthService {
   }
 
   /**
-   * @Campo TOKEN-SISTEC
+   * @Campo TOKEN-SISCI
    */
-  validarTokenSistec(): Observable<boolean> {
+  validarTokenSisci(): Observable<boolean> {
     return this.http
       .post<ApiResponse<IRespuestaLogin>>(`${this.urlBase}getUsuarioSisci`, {
         agent: this._huella(),
@@ -288,7 +288,7 @@ export class AuthService {
       .pipe(
         map((resp) => {
           if (!resp || resp.estado !== 'OK' || !resp.datos) {
-            console.warn('[AuthService.validarTokenSistec] Respuesta inválida o sin datos, probando Intranet:', resp);
+            console.warn('[AuthService.validarTokenSisci] Respuesta inválida o sin datos, probando Intranet:', resp);
             return false;
           }
           return this.procesarRespuestaLogin(resp.datos);
@@ -322,7 +322,7 @@ export class AuthService {
 
   /**
    * Inicia sesión usando cédula y clave temporal generada por el backend.
-   * Guarda el TOKEN-SISTEC y un usuario mínimo con la cédula para llenar el formulario.
+   * Guarda el TOKEN-SISCI y un usuario mínimo con la cédula para llenar el formulario.
    */
   loginConCedulaYCodigo(cedula: string, claveTemporal: string): Observable<boolean> {
     return this.http
@@ -342,7 +342,7 @@ export class AuthService {
             return false;
           }
 
-          // Guardar TOKEN-SISTEC
+          // Guardar TOKEN-SISCI
           this.guardarTokens(datos.token);
 
           // Crear un usuario mínimo con la cédula para que el formulario pueda autollenar ese campo
@@ -353,7 +353,7 @@ export class AuthService {
           };
           this._usuario.set(usuarioMinimo);
           this.actualizarRolesDesdeUsuario(usuarioMinimo);
-          localStorage.setItem('USUARIO-SISTEC', JSON.stringify(usuarioMinimo));
+          localStorage.setItem('USUARIO-SISCI', JSON.stringify(usuarioMinimo));
 
           return true;
         }),
@@ -382,14 +382,14 @@ export class AuthService {
     console.log('[AuthService.procesarRespuestaLogin] Estableciendo usuario:', res.usuario);
     this._usuario.set(res.usuario);
     this.actualizarRolesDesdeUsuario(res.usuario);
-    localStorage.setItem('USUARIO-SISTEC', JSON.stringify(res.usuario));
+    localStorage.setItem('USUARIO-SISCI', JSON.stringify(res.usuario));
 
     return true;
   }
 
-  guardarTokens(tokenSistec: string) {
-    this._tokenSistec.set(tokenSistec);
-    localStorage.setItem('TOKEN-SISTEC', tokenSistec);
+  guardarTokens(tokenSisci: string) {
+    this._tokenSisci.set(tokenSisci);
+    localStorage.setItem('TOKEN-SISCI', tokenSisci);
   }
 
   guardarTokenIntranet(tokenIntranet: string) {
@@ -398,7 +398,7 @@ export class AuthService {
   }
 
   isAuthenticated(): boolean {
-    const tieneTokenSistec = this._tokenSistec() !== null;
+    const tieneTokenSisci = this._tokenSisci() !== null;
     const tieneTokenIntranet = this._tokenIntranet() !== null;
 
     let usuario = this._usuario();
@@ -411,7 +411,7 @@ export class AuthService {
       }
     }
 
-    const tieneToken = tieneTokenSistec || tieneTokenIntranet;
+    const tieneToken = tieneTokenSisci || tieneTokenIntranet;
     const tieneUsuario = usuario !== null;
 
     return tieneToken && tieneUsuario;
@@ -430,12 +430,12 @@ export class AuthService {
   }
 
   logout() {
-    this._tokenSistec.set(null);
+    this._tokenSisci.set(null);
     this._tokenIntranet.set(null);
     this._usuario.set(null);
-    localStorage.removeItem('TOKEN-SISTEC');
+    localStorage.removeItem('TOKEN-SISCI');
     localStorage.removeItem('TOKEN-INTRANET');
-    localStorage.removeItem('USUARIO-SISTEC');
+    localStorage.removeItem('USUARIO-SISCI');
     // window.location.href = environment.urlIntranet;
   }
 
@@ -474,16 +474,16 @@ export class AuthService {
     };
 
     // isAuthenticated() exige DOS cosas: que haya algún token en los signals
-    // (_tokenSistec o _tokenIntranet distinto de null) Y que haya un usuario
+    // (_tokenSisci o _tokenIntranet distinto de null) Y que haya un usuario
     // en _usuario. Aquí se cumple la primera con un token falso en
-    // _tokenSistec. Solo en memoria: NO se escribe en localStorage, para que
+    // _tokenSisci. Solo en memoria: NO se escribe en localStorage, para que
     // al apagar la bandera no quede un token falso guardado.
-    this._tokenSistec.set('TOKEN-DEV-SIMULADO');
+    this._tokenSisci.set('TOKEN-DEV-SIMULADO');
 
     // Segunda condición de isAuthenticated(): el usuario. También es lo que
     // devuelven usuario() y getCurrentUser() (cabecera, formulario, gestión
     // de conflictos).
-    // Tampoco se guarda en localStorage ('USUARIO-SISTEC').
+    // Tampoco se guarda en localStorage ('USUARIO-SISCI').
     this._usuario.set(usuarioDev);
 
     // hasRole() lee el signal _roles. Se llena con el mismo método privado

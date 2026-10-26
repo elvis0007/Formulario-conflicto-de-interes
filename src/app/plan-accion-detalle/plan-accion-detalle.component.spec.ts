@@ -1,13 +1,16 @@
 import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { PerfilUsuarioFalso, proveerPerfilFalso } from '../testing/perfil-usuario-falso';
 import { ActivatedRoute, ParamMap, Router, convertToParamMap, provideRouter } from '@angular/router';
-import { BehaviorSubject, Observable, isObservable } from 'rxjs';
+import { BehaviorSubject, Observable, isObservable, map, of } from 'rxjs';
 import { AnalisisMockService, LATENCIA_GENERACION_MS } from '../services/analisis-mock.service';
 import { LATENCIA_SIMULADA_MS } from '../services/mock-data/simular-respuesta';
 import { PlanesMockService } from '../services/planes-mock.service';
 import { RELOJ } from '../utils/reloj';
 import {
+  AVISO_ENVIADO,
+  MENSAJE_CIERRE_EN_REVISION,
   MENSAJE_PLAN_VIGENTE,
+  NOTA_REABRE_CONFLICTO,
   PlanAccionDetalleComponent,
   TEXTO_SIN_FECHA_LIMITE
 } from './plan-accion-detalle.component';
@@ -56,9 +59,10 @@ describe('PlanAccionDetalleComponent', () => {
   /** Genera el analisis, confirma C-005, clasifica el resto y valida. */
   function analisisValidadoConC005Confirmado(): void {
     esperar(analisis.generarAnalisis(), LATENCIA_GENERACION_MS);
-    esperar(analisis.actualizarClasificacion('C-005', 'confirmado', ''));
-    esperar(analisis.actualizarClasificacion('C-007', 'confirmado', ''));
-    esperar(analisis.actualizarClasificacion('C-009', 'homonimo', ''));
+    esperar(analisis.actualizarClasificacion('C-005', 'D', ''));
+    esperar(analisis.actualizarClasificacion('C-007', 'D', ''));
+    // El homónimo exige comentario (regla del backend, ya en el mock).
+    esperar(analisis.actualizarClasificacion('C-009', 'H', 'Homónimo: sin parentesco real.'));
     esperar(analisis.validarAnalisis());
   }
 
@@ -115,7 +119,8 @@ describe('PlanAccionDetalleComponent', () => {
       expect(texto('.titulo')).toBe('Plan 02 · Rotación del técnico de compras (2 de 2)');
       expect(texto('.estado-plan')).toBe('Activo · con vencidas');
       expect(Array.from(raiz.querySelectorAll('app-tabs [role=tab]')).map((p) => limpio(p.textContent)))
-        .toEqual(['Plan 01 Cerrado', 'Plan 02 Activo · con vencidas']);
+        .toEqual(['Plan 01 Cerrado · Cumplido', 'Plan 02 Activo · con vencidas']);
+      expect(texto('.estado-seguimiento')).withContext('estado de seguimiento del conflicto').toBe('En ejecución');
       expect(raiz.querySelector('app-tabs [aria-selected=true]')?.id).toBe('planes-pestana-PL-002');
     }));
 
@@ -187,6 +192,15 @@ describe('PlanAccionDetalleComponent', () => {
 
       expect(boton('.nuevo-plan button', '+ Nuevo plan').disabled).toBeTrue();
       expect(texto('#ayuda-nuevo-plan')).toBe(MENSAJE_PLAN_VIGENTE);
+      expect(raiz.querySelector('#nota-reabre')).toBeNull();
+    }));
+
+    it('conflicto finalizado: avisa que un plan nuevo lo reabre', fakeAsync(() => {
+      abrir('C-004', 'PL-005');
+
+      expect(texto('.estado-seguimiento')).toBe('Finalizado');
+      expect(texto('#nota-reabre')).toBe(NOTA_REABRE_CONFLICTO);
+      expect(boton('.nuevo-plan button', '+ Nuevo plan').getAttribute('aria-describedby')).toBe('nota-reabre');
     }));
 
     it('habilitado si todos los planes están cerrados; navega a .../planes/nuevo', fakeAsync(() => {
@@ -230,7 +244,7 @@ describe('PlanAccionDetalleComponent', () => {
   });
 
   describe('solo lectura', () => {
-    for (const [conflicto, plan, estado] of [['C-002', 'PL-003', 'activo'], ['C-001', 'PL-001', 'cerrado']]) {
+    for (const [conflicto, plan, estado] of [['C-002', 'PL-003', 'FIRMADO'], ['C-001', 'PL-001', 'CERRADO']]) {
       it(`un plan ${estado} se muestra como texto, sin inputs ni botones de edición`, fakeAsync(() => {
         abrir(conflicto, plan);
 
@@ -447,14 +461,14 @@ describe('PlanAccionDetalleComponent', () => {
       expect(raiz.querySelector('.documento input[type=file]')?.getAttribute('accept')).toBe('.pdf,application/pdf');
     }));
 
-    it('muestra el error si no es PDF o supera 10 MB', fakeAsync(() => {
+    it('muestra el error si no es PDF o supera 5 MB', fakeAsync(() => {
       abrir('C-003', 'PL-004');
 
       elegir('foto.png', 'image/png');
       expect(texto('.error--documento')).toBe('El documento firmado debe ser un archivo PDF.');
 
-      elegir('grande.pdf', 'application/pdf', 10 * 1024 * 1024 + 1);
-      expect(texto('.error--documento')).toBe('El documento firmado no puede superar los 10 MB.');
+      elegir('grande.pdf', 'application/pdf', 5 * 1024 * 1024 + 1);
+      expect(texto('.error--documento')).toBe('El documento firmado no puede superar los 5 MB.');
       expect(raiz.querySelector('.documento-nombre')).toBeNull();
     }));
 
@@ -463,8 +477,13 @@ describe('PlanAccionDetalleComponent', () => {
 
       elegir('plan.pdf');
       expect(texto('.documento-nombre')).toBe('plan.pdf — subido el 02/10/2026');
-      expect(raiz.querySelector('.documento a')?.getAttribute('href')).toBe('blob:prueba-1');
-      expect(raiz.querySelector('.documento a')?.getAttribute('target')).toBe('_blank');
+      expect(texto('.aviso-documento--firma')).toContain('el plazo de las actividades empieza a correr ese día');
+      boton('.documento button', 'Ver documento').click();
+      fixture.detectChanges();
+      expect(raiz.querySelector('app-document-viewer iframe')?.getAttribute('src'))
+        .withContext('el recién elegido se ve con su URL local').toBe('blob:prueba-1');
+      raiz.querySelector<HTMLButtonElement>('app-document-viewer button[aria-label="Cerrar visor"]')?.click();
+      fixture.detectChanges();
 
       elegir('plan-v2.pdf');
       expect(texto('.documento-nombre')).toBe('plan-v2.pdf — subido el 02/10/2026');
@@ -480,7 +499,7 @@ describe('PlanAccionDetalleComponent', () => {
       abrir('C-002', 'PL-003');
 
       expect(texto('.documento-nombre')).toBe('PL-003-plan-firmado.pdf — subido el 14/08/2026');
-      expect(limpio(raiz.querySelector('.documento a')?.textContent)).toBe('Ver documento');
+      expect(boton('.documento button', 'Ver documento')).toBeDefined();
       expect(raiz.querySelector('.documento input[type=file]')).toBeNull();
       expect(boton('.documento button', 'Reemplazar')).toBeUndefined();
       expect(boton('.documento button', 'Quitar')).toBeUndefined();
@@ -551,7 +570,8 @@ describe('PlanAccionDetalleComponent', () => {
       enviar().click();
       fixture.detectChanges();
       expect(texto('app-modal .confirmacion-texto')).toBe(
-        'Se registrará hoy (02/10/2026) como fecha de inicio del plan y se notificará a 1 responsable. '
+        'Al enviar, el plan queda firmado con el documento subido y se notifica a 1 responsable. '
+        + 'El plazo de cada actividad empieza a correr hoy (02/10/2026): las fechas límite se calculan desde ese día. '
         + 'Después ya no podrás editar el plan.');
 
       boton('app-modal button', 'Enviar y notificar').click();
@@ -565,9 +585,172 @@ describe('PlanAccionDetalleComponent', () => {
         .toEqual(['02/10/2027', 'Plazo: 12 meses']);
       expect(raiz.querySelectorAll('input, select, textarea').length).toBe(0);
       expect(enviar()).toBeUndefined();
-      expect(texto('.mensaje--ok')).toBe('Notificación enviada a la bandeja de tareas de cada responsable');
+      expect(texto('.mensaje--ok')).toBe(AVISO_ENVIADO);
       expect(texto('app-tabs [aria-selected=true]')).toBe('Plan 02 Activo');
       expect(fixture.componentInstance.puedeSalir()).toBeTrue();
+    }));
+
+    it('si falla muestra el motivo del servicio (ultimoError) o el genérico', fakeAsync(() => {
+      const planes = TestBed.inject(PlanesMockService);
+      const enviarYNotificar = spyOn(planes, 'enviarYNotificar').and.callFake(() => {
+        planes.ultimoError = 'El plan ya fue firmado';
+        return of(null);
+      });
+      abrir('C-008', 'PL-007');
+
+      enviar().click();
+      fixture.detectChanges();
+      boton('app-modal button', 'Enviar y notificar').click();
+      fixture.detectChanges();
+      expect(texto('.mensaje--error')).toBe('El plan ya fue firmado');
+
+      enviarYNotificar.and.callFake(() => {
+        planes.ultimoError = null;
+        return of(null);
+      });
+      enviar().click();
+      fixture.detectChanges();
+      boton('app-modal button', 'Enviar y notificar').click();
+      fixture.detectChanges();
+      expect(texto('.mensaje--error')).toBe('No se pudo enviar el plan. Revisa que esté completo e inténtalo de nuevo.');
+    }));
+  });
+
+  describe('guardar borrador: error', () => {
+    it('muestra el motivo del servicio (p. ej. el 409 del backend)', fakeAsync(() => {
+      const planes = TestBed.inject(PlanesMockService);
+      spyOn(planes, 'guardarBorrador').and.callFake(() => {
+        planes.ultimoError = 'El conflicto ya tiene un plan abierto';
+        return of(null);
+      });
+      abrir('C-003', 'PL-004');
+
+      escribir('input[formcontrolname=nombre]', 'Otro nombre');
+      boton('.acciones-encabezado button', 'Guardar borrador').click();
+      fixture.detectChanges();
+      expect(texto('.mensaje--error')).toBe('El conflicto ya tiene un plan abierto');
+    }));
+  });
+
+  describe('documento firmado del backend', () => {
+    it('«Ver documento» lo pide con obtenerDocumentoPlan (no usa la ruta de la API como enlace)', fakeAsync(() => {
+      const planes = TestBed.inject(PlanesMockService);
+      const pedir = spyOn(planes, 'obtenerDocumentoPlan')
+        .and.returnValue(of(new Blob(['%PDF'], { type: 'application/pdf' })));
+      spyOn(URL, 'createObjectURL').and.returnValue('blob:documento');
+      const revocar = spyOn(URL, 'revokeObjectURL');
+      const original = planes.obtenerPlanesDeConflicto.bind(planes);
+      spyOn(planes, 'obtenerPlanesDeConflicto').and.callFake((id: string) => original(id).pipe(
+        map((lista) => lista.map((p) => p.documentoFirmado
+          ? { ...p, documentoFirmado: { ...p.documentoFirmado, url: '/planes/' + p.id + '/documento' } }
+          : p))));
+      abrir('C-002', 'PL-003');
+
+      expect(raiz.querySelector('.documento a')).toBeNull();
+      boton('.documento button', 'Ver documento').click();
+      fixture.detectChanges();
+      expect(pedir).toHaveBeenCalledOnceWith('PL-003');
+      expect(raiz.querySelector('app-document-viewer iframe')?.getAttribute('src')).toBe('blob:documento');
+
+      raiz.querySelector<HTMLButtonElement>('app-document-viewer button[aria-label="Cerrar visor"]')?.click();
+      fixture.detectChanges();
+      expect(raiz.querySelector('app-document-viewer')).toBeNull();
+      expect(revocar).toHaveBeenCalledWith('blob:documento');
+    }));
+  });
+
+  describe('cierre anticipado', () => {
+    /** @returns El boton «Cerrar plan anticipadamente», o `undefined`. */
+    function botonCierre(): HTMLButtonElement | undefined {
+      return boton('.acciones-botones button', 'Cerrar plan anticipadamente');
+    }
+
+    /** Rechaza las dos evidencias en revision de PL-002 (asi no queda ninguna). */
+    function sinEvidenciasPorRevisar(): void {
+      const planes = TestBed.inject(PlanesMockService);
+
+      esperar(planes.rechazarEvidencia('PL-002', 'A-005', 'Ilegible.'), LATENCIA_SIMULADA_MS * 2);
+      esperar(planes.rechazarEvidencia('PL-002', 'A-016', 'Ilegible.'), LATENCIA_SIMULADA_MS * 2);
+    }
+
+    it('no aparece en un plan sin vencidas, en borrador ni cerrado', fakeAsync(() => {
+      for (const [conflicto, plan] of [['C-002', 'PL-003'], ['C-003', 'PL-004'], ['C-001', 'PL-001']]) {
+        abrir(conflicto, plan);
+        expect(botonCierre()).withContext(plan).toBeUndefined();
+        fixture.destroy();
+      }
+    }));
+
+    it('con evidencias por revisar se ve deshabilitado (aria-disabled) con la explicación y no abre el modal',
+      fakeAsync(() => {
+        abrir('C-001', 'PL-002');
+
+        const cierre = botonCierre() as HTMLButtonElement;
+        expect(cierre).toBeDefined();
+        expect(cierre.getAttribute('aria-disabled')).toBe('true');
+        expect(cierre.disabled).withContext('aria-disabled, no disabled').toBeFalse();
+        expect(cierre.getAttribute('aria-describedby')).toBe('ayuda-cierre');
+        expect(texto('#ayuda-cierre')).toBe(MENSAJE_CIERRE_EN_REVISION);
+
+        cierre.click();
+        fixture.detectChanges();
+        expect(raiz.querySelector('app-modal .dialogo')).toBeNull();
+      }));
+
+    it('exige el motivo, llama a cerrarPlan y recarga el plan cerrado con su tipo y motivo', fakeAsync(() => {
+      const planes = TestBed.inject(PlanesMockService);
+      sinEvidenciasPorRevisar();
+      const cerrar = spyOn(planes, 'cerrarPlan').and.callThrough();
+      const recargar = spyOn(planes, 'obtenerPlanesDeConflicto').and.callThrough();
+      abrir('C-001', 'PL-002');
+
+      const cierre = botonCierre() as HTMLButtonElement;
+      expect(cierre.getAttribute('aria-disabled')).toBe('false');
+      cierre.click();
+      fixture.detectChanges();
+      expect(texto('app-modal .titulo')).toBe('Cerrar plan anticipadamente');
+      expect(texto('app-modal .confirmacion-texto')).toContain('quedarán como «No cumplida»');
+      expect(texto('app-modal .confirmacion-texto')).toContain('volverá a planificación');
+
+      boton('app-modal button', 'Cerrar plan').click();
+      fixture.detectChanges();
+      expect(texto('#error-motivo-cierre')).toBe('Escribe el motivo del cierre.');
+      expect(cerrar).not.toHaveBeenCalled();
+
+      const motivo = raiz.querySelector('#motivo-cierre') as HTMLTextAreaElement;
+      motivo.value = 'Venció el plazo sin avances.';
+      motivo.dispatchEvent(new Event('input'));
+      boton('app-modal button', 'Cerrar plan').click();
+      fixture.detectChanges();
+      tick(LATENCIA_SIMULADA_MS * 3);
+      fixture.detectChanges();
+
+      expect(cerrar).toHaveBeenCalledOnceWith('PL-002', 'Venció el plazo sin avances.');
+      expect(recargar).toHaveBeenCalledTimes(2);
+      expect(raiz.querySelector('app-modal .dialogo')).toBeNull();
+      expect(texto('.estado-plan')).toBe('Cerrado · Cierre anticipado');
+      expect(texto('.cierre-plan')).toBe('Tipo de cierre: Cierre anticipado Motivo: Venció el plazo sin avances.');
+      expect(texto('.mensaje--ok')).toContain('Plan cerrado anticipadamente');
+      expect(botonCierre()).toBeUndefined();
+      expect(texto('app-tabs [aria-selected=true]')).toBe('Plan 02 Cerrado · Cierre anticipado');
+    }));
+
+    it('si el servicio no cierra, el modal muestra su motivo', fakeAsync(() => {
+      const planes = TestBed.inject(PlanesMockService);
+      sinEvidenciasPorRevisar();
+      spyOn(planes, 'cerrarPlan').and.returnValue(of({ plan: null, error: 'Hay una evidencia por revisar' }));
+      abrir('C-001', 'PL-002');
+
+      (botonCierre() as HTMLButtonElement).click();
+      fixture.detectChanges();
+      const motivo = raiz.querySelector('#motivo-cierre') as HTMLTextAreaElement;
+      motivo.value = 'Motivo';
+      motivo.dispatchEvent(new Event('input'));
+      boton('app-modal button', 'Cerrar plan').click();
+      fixture.detectChanges();
+
+      expect(texto('app-modal .mensaje--error')).toBe('Hay una evidencia por revisar');
+      expect(raiz.querySelector('app-modal .dialogo')).not.toBeNull();
     }));
   });
 });

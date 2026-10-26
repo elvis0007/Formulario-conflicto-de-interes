@@ -1,6 +1,6 @@
 import { Actividad } from './actividad';
 import { Archivo } from './archivo';
-import { EstadoPlan } from './tipos-conflicto';
+import { EstadoPlan, TipoCierre } from './tipos-conflicto';
 
 /**
  * Plan de accion definido por RRHH para mitigar un conflicto de interes.
@@ -19,10 +19,14 @@ export interface PlanAccion {
   fechaCreacion?: string;
   /** Quien lo creo (RRHH). */
   creadoPor?: string;
-  /** Fecha en que el plan pasa a activo (ISO 8601). */
+  /** Fecha en que el plan pasa a firmado (en ejecucion) (ISO 8601). */
   fechaInicio?: string;
   /** Fecha en que el plan se cerro (ISO 8601). */
   fechaCierre?: string;
+  /** Como se cerro el plan; solo existe si `estado` es `CERRADO`. */
+  tipoCierre?: TipoCierre;
+  /** Motivo del cierre; obligatorio en el cierre `ANTICIPADO`. */
+  motivoCierre?: string;
   /** Documento del plan firmado por las partes. */
   documentoFirmado?: Archivo;
   actividades: Actividad[];

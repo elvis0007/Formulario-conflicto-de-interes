@@ -8,27 +8,30 @@ import {
 import { TODOS } from './filtros-listados.util';
 
 /** Niveles de riesgo en el orden en que se muestran (de mayor a menor). */
-export const RIESGOS: readonly Riesgo[] = ['alto', 'medio', 'bajo', 'ninguno'];
+export const RIESGOS: readonly Riesgo[] = ['CRITICO', 'ALTO', 'MEDIO', 'BAJO'];
 
-/** Texto de cada nivel de riesgo. `medio` se muestra como «Moderado». */
+/** Texto de cada nivel de riesgo. `MEDIO` se muestra como «Moderado». */
 const TEXTO_RIESGO: Readonly<Record<Riesgo, string>> = {
-  alto: 'Alto',
-  medio: 'Moderado',
-  bajo: 'Bajo',
-  ninguno: 'Ninguno'
+  CRITICO: 'Crítico',
+  ALTO: 'Alto',
+  MEDIO: 'Moderado',
+  BAJO: 'Bajo'
 };
 
 /** Texto de cada clasificacion (nombres de la especificacion). */
 const TEXTO_CLASIFICACION: Readonly<Record<Clasificacion, string>> = {
-  pendiente: 'Pendiente de revisión',
-  confirmado: 'Conflicto confirmado',
-  homonimo: 'Homónimo'
+  D: 'Declarado',
+  N: 'No declarado (omisión)',
+  H: 'Homónimo'
 };
+
+/** Texto de un caso sin clasificar (`clasificacion` nula). */
+const TEXTO_SIN_CLASIFICAR = 'Pendiente de revisión';
 
 /** Texto de cada estado del analisis. */
 const TEXTO_ESTADO_ANALISIS: Readonly<Record<EstadoAnalisis, string>> = {
-  borrador: 'Borrador',
-  validado: 'Validado'
+  BORRADOR: 'Borrador',
+  VALIDADO: 'Validado'
 };
 
 /** Texto cuando no hay grado de parentesco (conyuges). */
@@ -41,6 +44,17 @@ const ORDINAL_GRADO: Readonly<Record<GradoParentesco, string>> = {
   3: '3er',
   4: '4to'
 };
+
+/**
+ * Filtro por clasificacion que llega por URL (`?clasificacion=`):
+ * - `SIN_CLASIFICAR`: casos con `clasificacion` nula;
+ * - `D_O_N`: declarados o no declarados (el parentesco es real);
+ * - `D`, `N`, `H`: esa clasificacion.
+ */
+export type FiltroClasificacion = Clasificacion | 'SIN_CLASIFICAR' | 'D_O_N';
+
+/** Valores validos de `FiltroClasificacion`, para leerlo de la URL. */
+const FILTROS_CLASIFICACION: readonly FiltroClasificacion[] = ['SIN_CLASIFICAR', 'D_O_N', 'D', 'N', 'H'];
 
 /**
  * Filtro de riesgo de la tabla: un nivel o `TODOS` (`''`).
@@ -64,7 +78,7 @@ export type RolesInvolucrados =
 
 /**
  * @param riesgo Nivel de riesgo.
- * @returns «Alto», «Moderado», «Bajo» o «Ninguno».
+ * @returns «Crítico», «Alto», «Moderado» o «Bajo».
  * @author Elvis Flores
  */
 export function textoRiesgo(riesgo: Riesgo): string {
@@ -72,12 +86,53 @@ export function textoRiesgo(riesgo: Riesgo): string {
 }
 
 /**
- * @param clasificacion Clasificacion de un caso.
- * @returns «Pendiente de revisión», «Conflicto confirmado» u «Homónimo».
+ * @param clasificacion Clasificacion de un caso, o `null` si esta sin
+ * clasificar.
+ * @returns «Pendiente de revisión», «Declarado», «No declarado (omisión)»
+ * u «Homónimo».
  * @author Elvis Flores
  */
-export function textoClasificacion(clasificacion: Clasificacion): string {
-  return TEXTO_CLASIFICACION[clasificacion];
+export function textoClasificacion(clasificacion: Clasificacion | null): string {
+  return clasificacion === null ? TEXTO_SIN_CLASIFICAR : TEXTO_CLASIFICACION[clasificacion];
+}
+
+/**
+ * @param valor Valor leido de la URL (`?clasificacion=`).
+ * @returns `true` si es un filtro de clasificacion valido.
+ * @author Elvis Flores
+ */
+export function esFiltroClasificacion(valor: string | null): valor is FiltroClasificacion {
+  return FILTROS_CLASIFICACION.some((f) => f === valor);
+}
+
+/**
+ * @param filtro Filtro de clasificacion.
+ * @returns Texto de la franja «Filtrando».
+ * @author Elvis Flores
+ */
+export function textoFiltroClasificacion(filtro: FiltroClasificacion): string {
+  if (filtro === 'SIN_CLASIFICAR') {
+    return textoClasificacion(null);
+  }
+
+  return filtro === 'D_O_N' ? 'Declarado o no declarado' : textoClasificacion(filtro);
+}
+
+/**
+ * @param conflicto Caso del analisis.
+ * @param filtro Filtro de clasificacion.
+ * @returns `true` si el caso cumple el filtro.
+ * @author Elvis Flores
+ */
+export function cumpleFiltroClasificacion(conflicto: Conflicto, filtro: FiltroClasificacion): boolean {
+  switch (filtro) {
+    case 'SIN_CLASIFICAR':
+      return conflicto.clasificacion === null;
+    case 'D_O_N':
+      return conflicto.clasificacion === 'D' || conflicto.clasificacion === 'N';
+    default:
+      return conflicto.clasificacion === filtro;
+  }
 }
 
 /**
@@ -111,7 +166,7 @@ export function textoGrado(grado: GradoParentesco | null): string {
  * @author Elvis Flores
  */
 export function contarPorRiesgo(conflictos: readonly Conflicto[]): ConteoRiesgos {
-  const conteo: ConteoRiesgos = { alto: 0, medio: 0, bajo: 0, ninguno: 0, total: 0 };
+  const conteo: ConteoRiesgos = { CRITICO: 0, ALTO: 0, MEDIO: 0, BAJO: 0, total: 0 };
 
   for (const conflicto of conflictos) {
     conteo[conflicto.riesgo]++;
@@ -142,7 +197,7 @@ export function filtrarPorRiesgo(
  * @author Elvis Flores
  */
 export function contarPendientes(conflictos: readonly Conflicto[]): number {
-  return conflictos.filter((c) => c.clasificacion === 'pendiente').length;
+  return conflictos.filter((c) => c.clasificacion === null).length;
 }
 
 /**

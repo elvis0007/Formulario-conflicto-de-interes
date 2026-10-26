@@ -28,7 +28,12 @@ import {
   filtrosInformeVacios,
   responsablesDelInforme
 } from '../utils/informe.util';
-import { calcularAvance, textoEstadoPlan } from '../utils/planes.util';
+import {
+  calcularAvance,
+  estadoVistaActividad,
+  textoEstadoPlan,
+  tieneActividadesVencidas
+} from '../utils/planes.util';
 import { RELOJ } from '../utils/reloj';
 import { textoPlazo } from '../utils/responsable.util';
 import { textoEstadoActividad } from '../utils/revision.util';
@@ -36,7 +41,9 @@ import {
   Tono,
   mapearEstadoActividadATono,
   mapearEstadoPlanATono,
-  mapearRiesgoATono
+  mapearEstadoSeguimientoATono,
+  mapearRiesgoATono,
+  textoEstadoSeguimiento
 } from '../utils/tono.util';
 
 /** Grupos (conflictos) por pagina. */
@@ -50,7 +57,9 @@ export const GRUPOS_POR_PAGINA = 5;
  *   URL, `?estado=`), riesgo, responsable y buscador; se combinan.
  * - Tabla agrupada por conflicto: chevron, Conflicto, Empleado / Familiar,
  *   Parentesco, Riesgo, Planes, Avance (barra segmentada del plan actual)
- *   y Estado.
+ *   y Estado. Bajo el numero, el estado de seguimiento del conflicto.
+ * - Los planes cerrados dicen como se cerraron (cumplido o anticipado) y,
+ *   si lo hay, el motivo.
  * - Al desplegar: un bloque por CADA plan enviado del conflicto, con su
  *   cabecera (nombre, estado, inicio, «x de y cumplidas») y su tabla de
  *   actividades (fecha limite en rojo si vencio).
@@ -157,7 +166,7 @@ export class InformeGeneralComponent implements OnInit, OnDestroy {
             ...ESTADOS_INFORME.map((e) => ({
               valor: e.valor,
               etiqueta: e.etiqueta,
-              contador: this.grupos.filter((g) => cumpleEstado(g.plan, e.valor)).length
+              contador: this.grupos.filter((g) => cumpleEstado(g.plan, e.valor, this.reloj())).length
             }))
           ];
           this.cargando = false;
@@ -297,14 +306,24 @@ export class InformeGeneralComponent implements OnInit, OnDestroy {
     return a.cumplidas + ' de ' + a.total + ' cumplidas';
   }
 
-  /** @param estado Estado. @returns Texto del estado del plan. */
-  textoEstadoPlan(estado: PlanAccion['estado']): string {
-    return textoEstadoPlan(estado);
+  /** @param plan Plan. @returns Texto del estado del plan (con el tipo de cierre). */
+  textoEstadoPlan(plan: PlanAccion): string {
+    return textoEstadoPlan(plan.estado, tieneActividadesVencidas(plan, this.reloj()), plan.tipoCierre);
   }
 
-  /** @param estado Estado. @returns Tono del estado del plan. */
-  tonoEstadoPlan(estado: PlanAccion['estado']): Tono {
-    return mapearEstadoPlanATono(estado);
+  /** @param plan Plan. @returns Tono del estado del plan. */
+  tonoEstadoPlan(plan: PlanAccion): Tono {
+    return mapearEstadoPlanATono(plan.estado, tieneActividadesVencidas(plan, this.reloj()), plan.tipoCierre);
+  }
+
+  /** @param c Conflicto. @returns Texto de su estado de seguimiento. */
+  textoSeguimiento(c: Conflicto): string {
+    return textoEstadoSeguimiento(c.estado);
+  }
+
+  /** @param c Conflicto. @returns Tono de su estado de seguimiento. */
+  tonoSeguimiento(c: Conflicto): Tono {
+    return mapearEstadoSeguimientoATono(c.estado);
   }
 
   /** @param riesgo Riesgo. @returns Texto del riesgo. */
@@ -319,12 +338,12 @@ export class InformeGeneralComponent implements OnInit, OnDestroy {
 
   /** @param a Actividad. @returns Estado con los textos de RRHH. */
   textoEstadoActividad(a: Actividad): string {
-    return textoEstadoActividad(a.estado, false);
+    return textoEstadoActividad(estadoVistaActividad(a, this.reloj()), false);
   }
 
   /** @param a Actividad. @returns Tono de su estado. */
   tonoEstadoActividad(a: Actividad): Tono {
-    return mapearEstadoActividadATono(a.estado, false);
+    return mapearEstadoActividadATono(estadoVistaActividad(a, this.reloj()), false);
   }
 
   /** @param a Actividad. @returns Plazo legible. */
@@ -337,10 +356,7 @@ export class InformeGeneralComponent implements OnInit, OnDestroy {
    * @returns `true` si la fecha limite paso sin aprobacion.
    */
   vencida(a: Actividad): boolean {
-    if (a.estado === 'vencida') {
-      return true;
-    }
-    if (a.estado === 'aprobada' || !a.fechaLimite) {
+    if (a.estado === 'ACEPTADA' || a.estado === 'NO_CUMPLIDA' || !a.fechaLimite) {
       return false;
     }
     try {
@@ -371,7 +387,7 @@ export class InformeGeneralComponent implements OnInit, OnDestroy {
    * Recalcula los grupos filtrados.
    */
   private aplicar(): void {
-    this.filtrados = filtrarInforme(this.grupos, this.filtros);
+    this.filtrados = filtrarInforme(this.grupos, this.filtros, this.reloj());
     this.pagina = Math.min(this.pagina, this.totalPaginas);
   }
 }

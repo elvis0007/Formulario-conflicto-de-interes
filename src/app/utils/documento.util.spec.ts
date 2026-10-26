@@ -35,7 +35,7 @@ describe('documento.util', () => {
       .withContext('nombre .pdf pero no es PDF').toBe(ERROR_DOCUMENTO_NO_PDF);
   });
 
-  it('rechaza un PDF de más de 10 MB y acepta uno de 10 MB justos', () => {
+  it('rechaza un PDF de más de 5 MB y acepta uno de 5 MB justos', () => {
     expect(validarDocumentoFirmado(archivo('grande.pdf', 'application/pdf', TAMANO_MAXIMO_DOCUMENTO_BYTES + 1)))
       .toBe(ERROR_DOCUMENTO_GRANDE);
     expect(validarDocumentoFirmado(archivo('justo.pdf', 'application/pdf', TAMANO_MAXIMO_DOCUMENTO_BYTES)))
@@ -63,7 +63,7 @@ describe('documento.util', () => {
       expect(validarEvidencia(archivo('falso.png', 'application/pdf'))).toBe(ERROR_EVIDENCIA_TIPO);
     });
 
-    it('rechaza más de 10 MB y archivos vacíos', () => {
+    it('rechaza más de 5 MB y archivos vacíos', () => {
       expect(validarEvidencia(archivo('grande.png', 'image/png', TAMANO_MAXIMO_DOCUMENTO_BYTES + 1)))
         .toBe(ERROR_EVIDENCIA_GRANDE);
       expect(validarEvidencia(archivo('justo.png', 'image/png', TAMANO_MAXIMO_DOCUMENTO_BYTES))).toBeNull();

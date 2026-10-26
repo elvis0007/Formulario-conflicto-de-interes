@@ -134,6 +134,23 @@
   font-size: 13px;
 }
 
+// Estado de seguimiento del conflicto (modal).
+.caso-seguimiento {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 0 0;
+  color: var(--text2);
+  font-size: 13px;
+}
+
+// Motivo del cierre de un plan (cierre anticipado).
+.motivo-cierre {
+  margin: 4px 0 8px;
+  color: var(--text2);
+  font-size: 13px;
+}
+
 .barra {
   display: flex;
   flex-wrap: wrap;

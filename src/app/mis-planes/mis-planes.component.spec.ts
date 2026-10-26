@@ -71,6 +71,12 @@ describe('MisPlanesComponent', () => {
     expect(Array.from(primera.querySelectorAll('.chips app-badge')).map((c) => limpio(c.textContent)))
       .toEqual(['1 rechazada', '1 vencida', '1 pendiente', '1 aprobada']);
     expect(primera.querySelector('.ver-plan')?.textContent).toContain('Ver plan →');
+    expect(limpio(primera.querySelector('.tarjeta-personas')?.textContent))
+      .withContext('nombres del caso de la bandeja')
+      .toBe('Carlos Andrés Mayorga Sánchez y Jorge Luis Mayorga Sánchez');
+    expect(limpio(raiz.querySelectorAll('.tarjeta')[2].querySelector('.tarjeta-cabecera app-badge')?.textContent))
+      .withContext('cerrado: con el tipo de cierre')
+      .toBe('Cerrado · Cumplido');
   }));
 
   it('el filtro tiene conteos de SUS actividades', fakeAsync(() => {
@@ -84,11 +90,11 @@ describe('MisPlanesComponent', () => {
   it('filtra por estado desde la URL: un plan aparece si tiene una actividad suya en ese estado', fakeAsync(() => {
     crear();
 
-    filtrarPorUrl('en_revision');
+    filtrarPorUrl('EN_REVISION');
     expect(planes()).toEqual(['PL-003']);
-    filtrarPorUrl('aprobada');
+    filtrarPorUrl('ACEPTADA');
     expect(planes()).toEqual(['PL-002', 'PL-003', 'PL-006']);
-    filtrarPorUrl('vencida');
+    filtrarPorUrl('VENCIDA');
     expect(planes()).toEqual(['PL-002']);
     expect(raiz.querySelector('app-pills button[aria-pressed="true"]')?.textContent).toContain('Vencidas');
     filtrarPorUrl('desconocido');
@@ -96,7 +102,7 @@ describe('MisPlanesComponent', () => {
   }));
 
   it('abrir con ?estado= ya filtrado (clic del dashboard)', fakeAsync(() => {
-    consulta.next(convertToParamMap({ estado: 'rechazada' }));
+    consulta.next(convertToParamMap({ estado: 'RECHAZADA' }));
     crear();
 
     expect(planes()).toEqual(['PL-002']);
@@ -109,14 +115,14 @@ describe('MisPlanesComponent', () => {
     Array.from(raiz.querySelectorAll<HTMLButtonElement>('app-pills button'))
       .find((b) => b.textContent?.includes('Rechazadas'))?.click();
     expect(navegar).toHaveBeenCalledWith([], jasmine.objectContaining({
-      queryParams: { estado: 'rechazada' },
+      queryParams: { estado: 'RECHAZADA' },
       queryParamsHandling: 'merge'
     }));
   }));
 
   it('sin coincidencias: estado vacío con «Ver todas»', fakeAsync(() => {
     perfil.empleadoId = 'EMP-002';
-    consulta.next(convertToParamMap({ estado: 'rechazada' }));
+    consulta.next(convertToParamMap({ estado: 'RECHAZADA' }));
     crear();
 
     expect(planes()).toEqual([]);

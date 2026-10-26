@@ -28,6 +28,23 @@ export class PersonasMockService {
   }
 
   /**
+   * Busca empleados por nombre o cedula, para elegir responsables.
+   *
+   * @param termino Texto buscado; con menos de 3 caracteres no busca.
+   * @returns Coincidencias; vacia si la consulta falla.
+   * @author Integración backend
+   */
+  buscarPersonas(termino: string): Observable<Persona[]> {
+    const texto = termino.trim().toLowerCase();
+    const encontradas = texto.length < 3 ? [] : PERSONAS.filter((p) =>
+      p.nombres.toLowerCase().includes(texto) || p.cedula.includes(texto));
+
+    return simularRespuesta(encontradas).pipe(
+      manejarError<Persona[]>('PersonasMockService.buscarPersonas', [])
+    );
+  }
+
+  /**
    * Obtiene un empleado por id.
    *
    * @param id Id de la persona.

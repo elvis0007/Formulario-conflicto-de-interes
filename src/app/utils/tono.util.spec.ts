@@ -1,64 +1,91 @@
+import { EstadoSeguimiento } from '../models';
 import {
   mapearClasificacionATono,
   mapearEstadoActividadATono,
   mapearEstadoAnalisisATono,
   mapearEstadoPlanATono,
+  mapearEstadoSeguimientoATono,
   mapearRiesgoATono,
-  mapearTipoNotificacionATono
+  mapearTipoNotificacionATono,
+  textoEstadoSeguimiento
 } from './tono.util';
 
 describe('tono.util', () => {
 
   it('mapearRiesgoATono', () => {
-    expect(mapearRiesgoATono('alto')).toBe('rojo');
-    expect(mapearRiesgoATono('medio')).toBe('ambar');
-    expect(mapearRiesgoATono('bajo')).toBe('verde');
-    expect(mapearRiesgoATono('ninguno')).toBe('gris');
+    expect(mapearRiesgoATono('CRITICO')).toBe('rojo');
+    expect(mapearRiesgoATono('ALTO')).toBe('rojo');
+    expect(mapearRiesgoATono('MEDIO')).toBe('ambar');
+    expect(mapearRiesgoATono('BAJO')).toBe('verde');
   });
 
   it('mapearClasificacionATono', () => {
-    expect(mapearClasificacionATono('pendiente')).toBe('ambar');
-    expect(mapearClasificacionATono('confirmado')).toBe('azul');
-    expect(mapearClasificacionATono('homonimo')).toBe('gris');
+    expect(mapearClasificacionATono(null)).toBe('ambar');
+    expect(mapearClasificacionATono('D')).toBe('azul');
+    expect(mapearClasificacionATono('N')).toBe('azul');
+    expect(mapearClasificacionATono('H')).toBe('gris');
   });
 
   it('mapearEstadoAnalisisATono', () => {
-    expect(mapearEstadoAnalisisATono('borrador')).toBe('ambar');
-    expect(mapearEstadoAnalisisATono('validado')).toBe('verde');
+    expect(mapearEstadoAnalisisATono('BORRADOR')).toBe('ambar');
+    expect(mapearEstadoAnalisisATono('VALIDADO')).toBe('verde');
   });
 
   it('mapearEstadoPlanATono', () => {
-    expect(mapearEstadoPlanATono('borrador')).toBe('ambar');
-    expect(mapearEstadoPlanATono('activo')).toBe('azul');
-    expect(mapearEstadoPlanATono('activo_vencidas')).toBe('rojo');
-    expect(mapearEstadoPlanATono('cerrado')).toBe('verde');
+    expect(mapearEstadoPlanATono('BORRADOR')).toBe('ambar');
+    expect(mapearEstadoPlanATono('FIRMADO')).toBe('azul');
+    expect(mapearEstadoPlanATono('FIRMADO', true)).toBe('rojo');
+    expect(mapearEstadoPlanATono('CERRADO')).toBe('verde');
+    expect(mapearEstadoPlanATono('CERRADO', true)).toBe('verde');
+    expect(mapearEstadoPlanATono('CERRADO', false, 'CUMPLIDO')).toBe('verde');
+    expect(mapearEstadoPlanATono('CERRADO', false, 'ANTICIPADO')).toBe('gris');
+    expect(mapearEstadoPlanATono('FIRMADO', true, 'ANTICIPADO')).withContext('solo afecta a CERRADO').toBe('rojo');
+  });
+
+  it('textoEstadoSeguimiento y mapearEstadoSeguimientoATono', () => {
+    const estados: EstadoSeguimiento[] = [
+      'DETECTADO', 'EN_ANALISIS', 'EN_PLANIFICACION', 'EN_EJECUCION', 'FINALIZADO', 'DESCARTADO'
+    ];
+
+    expect(estados.map((e) => [textoEstadoSeguimiento(e), mapearEstadoSeguimientoATono(e)])).toEqual([
+      ['Detectado', 'ambar'],
+      ['En análisis', 'ambar'],
+      ['En planificación', 'ambar'],
+      ['En ejecución', 'azul'],
+      ['Finalizado', 'verde'],
+      ['Descartado', 'gris']
+    ]);
   });
 
   describe('mapearEstadoActividadATono', () => {
     it('vista RRHH', () => {
-      expect(mapearEstadoActividadATono('pendiente', false))
+      expect(mapearEstadoActividadATono('PENDIENTE', false))
         .toBe('ambar');
-      expect(mapearEstadoActividadATono('en_revision', false))
+      expect(mapearEstadoActividadATono('EN_REVISION', false))
         .toBe('gris');
-      expect(mapearEstadoActividadATono('aprobada', false))
+      expect(mapearEstadoActividadATono('ACEPTADA', false))
         .toBe('verde');
-      expect(mapearEstadoActividadATono('rechazada', false))
+      expect(mapearEstadoActividadATono('RECHAZADA', false))
         .toBe('naranja');
-      expect(mapearEstadoActividadATono('vencida', false))
+      expect(mapearEstadoActividadATono('NO_CUMPLIDA', false))
+        .toBe('gris');
+      expect(mapearEstadoActividadATono('VENCIDA', false))
         .toBe('rojo');
     });
 
-    it('vista Responsable: mismo tono salvo vencida (se ve Pendiente)',
+    it('vista Responsable: mismo tono salvo VENCIDA (se ve Pendiente)',
       () => {
-        expect(mapearEstadoActividadATono('pendiente', true))
+        expect(mapearEstadoActividadATono('PENDIENTE', true))
           .toBe('ambar');
-        expect(mapearEstadoActividadATono('en_revision', true))
+        expect(mapearEstadoActividadATono('EN_REVISION', true))
           .toBe('gris');
-        expect(mapearEstadoActividadATono('aprobada', true))
+        expect(mapearEstadoActividadATono('ACEPTADA', true))
           .toBe('verde');
-        expect(mapearEstadoActividadATono('rechazada', true))
+        expect(mapearEstadoActividadATono('RECHAZADA', true))
           .toBe('naranja');
-        expect(mapearEstadoActividadATono('vencida', true))
+        expect(mapearEstadoActividadATono('NO_CUMPLIDA', true))
+          .toBe('gris');
+        expect(mapearEstadoActividadATono('VENCIDA', true))
           .toBe('ambar');
       });
   });

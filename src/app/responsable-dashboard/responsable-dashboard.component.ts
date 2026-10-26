@@ -3,8 +3,8 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router, RouterLink } from '@angular/router';
 import { Observable, forkJoin, map, of } from 'rxjs';
 import { PARAMETRO_ESTADO, RUTAS, rutaPlanResponsable } from '../app.paths';
-import { Actividad, Conflicto, PlanAccion, PlanDeResponsable } from '../models';
-import { ConflictosMockService } from '../services/conflictos-mock.service';
+import { Actividad, PlanAccion, PlanDeResponsable } from '../models';
+import { EstadoActividadVista, estadoVistaActividad } from '../utils/planes.util';
 import { PerfilUsuarioService } from '../services/perfil-usuario.service';
 import { PersonasMockService } from '../services/personas-mock.service';
 import { PlanesMockService } from '../services/planes-mock.service';
@@ -39,7 +39,8 @@ export interface IndicadorResponsable {
 export interface ActividadAbierta {
   actividad: Actividad;
   plan: PlanAccion;
-  conflicto: Conflicto | null;
+  /** «Persona A y Persona B» (de la bandeja), o vacio si no vienen. */
+  personas: string;
   /** Dias para la fecha limite; no se muestran si esta en revision. */
   dias: DiasRestantes | null;
   /** Texto del boton: «Subir evidencia», «Volver a subir» o «Ver plan». */
@@ -49,7 +50,8 @@ export interface ActividadAbierta {
 /** Un conflicto del acordeon «Avance por conflicto». */
 export interface AvanceConflicto {
   conflictoId: string;
-  conflicto: Conflicto | null;
+  /** «Persona A y Persona B» (de la bandeja), o vacio si no vienen. */
+  personas: string;
   /** Sus planes, cada uno con solo las actividades del responsable. */
   planes: PlanAccion[];
   /** Todas sus actividades en ese conflicto (para la barra). */
@@ -60,7 +62,7 @@ export interface AvanceConflicto {
 const MESES_CORTOS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 
 /** Orden de «Mis actividades abiertas»: lo que hay que corregir primero. */
-const ORDEN_ABIERTAS: readonly Actividad['estado'][] = ['rechazada', 'vencida', 'pendiente', 'en_revision'];
+const ORDEN_ABIERTAS: readonly EstadoActividadVista[] = ['RECHAZADA', 'VENCIDA', 'PENDIENTE', 'EN_REVISION'];
 
 /**
  * Dashboard del Responsable (especificacion §6.11).
@@ -104,7 +106,9 @@ export class ResponsableDashboardComponent implements OnInit {
   totalActividades = 0;
 
   /** Actividades por estado. */
-  conteo: ConteoEstados = { pendiente: 0, en_revision: 0, aprobada: 0, rechazada: 0, vencida: 0 };
+  conteo: ConteoEstados = {
+    PENDIENTE: 0, EN_REVISION: 0, ACEPTADA: 0, RECHAZADA: 0, NO_CUMPLIDA: 0, VENCIDA: 0
+  };
 
   /** Indicadores clicables. */
   indicadores: IndicadorResponsable[] = [];
@@ -127,7 +131,6 @@ export class ResponsableDashboardComponent implements OnInit {
   private readonly desplegados = new Set<string>();
 
   private readonly planesServicio = inject(PlanesMockService);
-  private readonly conflictosServicio = inject(ConflictosMockService);
   private readonly personasServicio = inject(PersonasMockService);
   private readonly perfil = inject(PerfilUsuarioService);
   private readonly router = inject(Router);
@@ -135,7 +138,8 @@ export class ResponsableDashboardComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
 
   /**
-   * Carga sus planes, los conflictos y el nombre del saludo.
+   * Carga sus planes y el nombre del saludo. Los nombres del caso vienen en
+   * la bandeja: el rol P no puede pedir `/conflictos` (403).
    */
   ngOnInit(): void {
     const empleadoId = this.perfil.obtenerEmpleadoActualId();
@@ -148,15 +152,14 @@ export class ResponsableDashboardComponent implements OnInit {
 
     forkJoin({
       planes: this.planesServicio.obtenerPlanesDeResponsable(empleadoId),
-      conflictos: this.conflictosServicio.obtenerConflictos(),
       nombre: this.nombreDelSaludo(empleadoId)
     })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: ({ planes, conflictos, nombre }) => {
+        next: ({ planes, nombre }) => {
           this.cargando = false;
           this.nombre = nombre;
-          this.calcular(planes, new Map(conflictos.map((c) => [c.id, c])));
+          this.calcular(planes);
         },
         error: (err: unknown) => {
           this.cargando = false;
@@ -241,9 +244,12 @@ export class ResponsableDashboardComponent implements OnInit {
     return 'Plan ' + String(plan.numero).padStart(2, '0') + ' · ' + plan.nombre;
   }
 
-  /** @param c Conflicto. @returns «Persona A y Persona B», o vacio. */
-  personas(c: Conflicto | null): string {
-    return c ? c.personaA.nombres + ' y ' + c.personaB.nombres : '';
+  /**
+   * @param p Plan del responsable, con los nombres del caso.
+   * @returns «Persona A y Persona B», o vacio si la bandeja no los trae.
+   */
+  personas(p: PlanDeResponsable): string {
+    return [p.nombreA, p.nombreB].filter((n) => n !== '').join(' y ');
   }
 
   /**
@@ -263,41 +269,42 @@ export class ResponsableDashboardComponent implements OnInit {
   }
 
   /**
-   * @param planes Planes del responsable.
-   * @param conflictos Conflictos por id.
+   * @param planes Planes del responsable (con los nombres del caso).
    */
-  private calcular(planes: PlanDeResponsable[], conflictos: Map<string, Conflicto>): void {
+  private calcular(planes: PlanDeResponsable[]): void {
     const hoy = this.reloj();
 
     this.actividades = actividadesDe(planes);
     this.totalActividades = this.actividades.length;
-    this.conteo = contarEstados(this.actividades);
+    this.conteo = contarEstados(this.actividades, hoy);
     this.proximas = proximasAVencer(planes, hoy);
     this.indicadores = [
-      { filtro: 'pendiente', titulo: 'Pendientes', valor: this.conteo.pendiente, tono: 'ambar' },
-      { filtro: 'en_revision', titulo: 'En revisión', valor: this.conteo.en_revision, tono: 'azul' },
-      { filtro: 'rechazada', titulo: 'Rechazadas (a corregir)', valor: this.conteo.rechazada, tono: 'naranja' },
-      { filtro: 'vencida', titulo: 'Vencidas', valor: this.conteo.vencida, tono: 'rojo' },
-      { filtro: 'aprobada', titulo: 'Aprobadas', valor: this.conteo.aprobada, tono: 'verde' }
+      { filtro: 'PENDIENTE', titulo: 'Pendientes', valor: this.conteo.PENDIENTE, tono: 'ambar' },
+      { filtro: 'EN_REVISION', titulo: 'En revisión', valor: this.conteo.EN_REVISION, tono: 'azul' },
+      { filtro: 'RECHAZADA', titulo: 'Rechazadas (a corregir)', valor: this.conteo.RECHAZADA, tono: 'naranja' },
+      { filtro: 'VENCIDA', titulo: 'Vencidas', valor: this.conteo.VENCIDA, tono: 'rojo' },
+      { filtro: 'ACEPTADA', titulo: 'Aprobadas', valor: this.conteo.ACEPTADA, tono: 'verde' }
     ];
     this.abiertas = planes
-      .flatMap(({ plan }) => plan.actividades
-        .filter((a) => a.estado !== 'aprobada')
+      .flatMap((p) => p.plan.actividades
+        .filter((a) => a.estado !== 'ACEPTADA' && a.estado !== 'NO_CUMPLIDA')
         .map((actividad): ActividadAbierta => ({
           actividad,
-          plan,
-          conflicto: conflictos.get(plan.conflictoId) ?? null,
-          dias: actividad.estado === 'en_revision' ? null : this.dias(actividad, hoy),
-          accion: actividad.estado === 'rechazada' ? 'Volver a subir'
-            : actividad.estado === 'en_revision' ? 'Ver plan' : 'Subir evidencia'
+          plan: p.plan,
+          personas: this.personas(p),
+          dias: actividad.estado === 'EN_REVISION' ? null : this.dias(actividad, hoy),
+          accion: actividad.estado === 'RECHAZADA' ? 'Volver a subir'
+            : actividad.estado === 'EN_REVISION' ? 'Ver plan' : 'Subir evidencia'
         })))
-      .sort((a, b) => ORDEN_ABIERTAS.indexOf(a.actividad.estado) - ORDEN_ABIERTAS.indexOf(b.actividad.estado)
+      .sort((a, b) => ORDEN_ABIERTAS.indexOf(estadoVistaActividad(a.actividad, hoy))
+        - ORDEN_ABIERTAS.indexOf(estadoVistaActividad(b.actividad, hoy))
         || (a.dias?.dias ?? 0) - (b.dias?.dias ?? 0));
 
     const porId = new Map<string, AvanceConflicto>();
-    for (const { plan } of planes) {
+    for (const p of planes) {
+      const plan = p.plan;
       const grupo = porId.get(plan.conflictoId)
-        ?? { conflictoId: plan.conflictoId, conflicto: conflictos.get(plan.conflictoId) ?? null, planes: [], actividades: [] };
+        ?? { conflictoId: plan.conflictoId, personas: this.personas(p), planes: [], actividades: [] };
 
       grupo.planes.push(plan);
       grupo.actividades.push(...plan.actividades);

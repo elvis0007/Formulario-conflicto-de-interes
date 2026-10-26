@@ -15,19 +15,19 @@ function pdfSimulado(nombre: string, fechaSubida?: string): Archivo {
 }
 
 /**
- * Planes de accion de ejemplo. Cubren los cuatro `EstadoPlan`, actividades
- * en todos los `EstadoActividad`, evidencias aprobadas, rechazadas, en
+ * Planes de accion de ejemplo. Cubren los tres `EstadoPlan`, actividades
+ * en todos los `EstadoActividad` (la «vencida» sale de la fecha limite), evidencias aprobadas, rechazadas, en
  * revision y ausentes, y planes con y sin documento firmado.
  *
- * | Plan   | Conflicto | Estado          | Documento firmado |
- * |--------|-----------|-----------------|-------------------|
- * | PL-001 | C-001     | cerrado         | si                |
- * | PL-002 | C-001     | activo_vencidas | si                |
- * | PL-003 | C-002     | activo          | si                |
- * | PL-004 | C-003     | borrador        | no                |
- * | PL-005 | C-004     | cerrado         | si                |
- * | PL-006 | C-008     | cerrado         | si                |
- * | PL-007 | C-008     | borrador        | si                |
+ * | Plan   | Conflicto | Estado   | Documento firmado |
+ * |--------|-----------|----------|-------------------|
+ * | PL-001 | C-001     | CERRADO  | si                |
+ * | PL-002 | C-001     | FIRMADO  | si (con vencidas) |
+ * | PL-003 | C-002     | FIRMADO  | si                |
+ * | PL-004 | C-003     | BORRADOR | no                |
+ * | PL-005 | C-004     | CERRADO  | si                |
+ * | PL-006 | C-008     | CERRADO  | si                |
+ * | PL-007 | C-008     | BORRADOR | si                |
  *
  * Las fechas limite estan calculadas con `calcularFechaLimite` sobre
  * `fechaInicio`; los planes en borrador no tienen ni una ni otra.
@@ -54,7 +54,8 @@ export const PLANES: readonly PlanAccion[] = [
     conflictoId: 'C-001',
     fechaCreacion: '2025-10-20T10:30:00',
     creadoPor: 'Lucía Alejandra Freire Ortiz',
-    estado: 'cerrado',
+    estado: 'CERRADO',
+    tipoCierre: 'CUMPLIDO',
     fechaInicio: '2025-11-03',
     fechaCierre: '2026-03-20',
     documentoFirmado: pdfSimulado('PL-001-plan-firmado.pdf', '2025-10-30'),
@@ -68,11 +69,12 @@ export const PLANES: readonly PlanAccion[] = [
         plazoMeses: 1,
         plazoDias: 0,
         fechaLimite: '2025-12-03',
-        estado: 'aprobada',
+        estado: 'ACEPTADA',
         evidencia: {
+          id: 'EV-001',
           archivo: pdfSimulado('A-001-memorando.pdf'),
           fechaSubida: '2025-11-28T10:42:00',
-          estado: 'aprobada',
+          estado: 'APROBADA',
           revisadoPor: 'Lucía Alejandra Freire Ortiz',
           fechaRevision: '2025-11-29T09:00:00'
         }
@@ -86,15 +88,16 @@ export const PLANES: readonly PlanAccion[] = [
         plazoMeses: 0,
         plazoDias: 15,
         fechaLimite: '2025-11-18',
-        estado: 'aprobada',
+        estado: 'ACEPTADA',
         evidencia: {
+          id: 'EV-002',
           archivo: {
             nombre: 'A-002-declaracion.jpg',
             url: '/mock/archivos/A-002-declaracion.jpg',
             tipo: 'jpg'
           },
           fechaSubida: '2025-11-14T16:05:00',
-          estado: 'aprobada',
+          estado: 'APROBADA',
           revisadoPor: 'Lucía Alejandra Freire Ortiz',
           fechaRevision: '2025-11-15T10:00:00'
         }
@@ -108,7 +111,7 @@ export const PLANES: readonly PlanAccion[] = [
     conflictoId: 'C-001',
     fechaCreacion: '2026-05-20T09:00:00',
     creadoPor: 'Lucía Alejandra Freire Ortiz',
-    estado: 'activo_vencidas',
+    estado: 'FIRMADO',
     fechaInicio: '2026-06-01',
     documentoFirmado: pdfSimulado('PL-002-plan-firmado.pdf', '2026-05-28'),
     actividades: [
@@ -120,7 +123,7 @@ export const PLANES: readonly PlanAccion[] = [
         plazoMeses: 2,
         plazoDias: 0,
         fechaLimite: '2026-08-01',
-        estado: 'vencida'
+        estado: 'PENDIENTE'
       },
       {
         id: 'A-004',
@@ -131,15 +134,16 @@ export const PLANES: readonly PlanAccion[] = [
         plazoMeses: 1,
         plazoDias: 0,
         fechaLimite: '2026-07-01',
-        estado: 'aprobada',
+        estado: 'ACEPTADA',
         evidencia: {
+          id: 'EV-003',
           archivo: {
             nombre: 'A-004-captura-permisos.png',
             url: '/mock/archivos/A-004-captura-permisos.png',
             tipo: 'png'
           },
           fechaSubida: '2026-06-24T11:30:00',
-          estado: 'aprobada',
+          estado: 'APROBADA',
           revisadoPor: 'Lucía Alejandra Freire Ortiz',
           fechaRevision: '2026-06-25T09:30:00'
         }
@@ -153,11 +157,12 @@ export const PLANES: readonly PlanAccion[] = [
         plazoMeses: 4,
         plazoDias: 0,
         fechaLimite: '2026-10-01',
-        estado: 'en_revision',
+        estado: 'EN_REVISION',
         evidencia: {
+          id: 'EV-004',
           archivo: pdfSimulado('A-005-informe-trimestral.pdf'),
           fechaSubida: '2026-09-25T09:14:00',
-          estado: 'pendiente'
+          estado: 'PENDIENTE'
         }
       },
       {
@@ -166,18 +171,19 @@ export const PLANES: readonly PlanAccion[] = [
           + 'sistema de compras públicas.',
         responsableId: 'EMP-010',
         responsableNombre: 'Fernando José Andrade Vela',
-        plazoMeses: 2,
-        plazoDias: 15,
-        fechaLimite: '2026-08-16',
-        estado: 'rechazada',
+        plazoMeses: 5,
+        plazoDias: 0,
+        fechaLimite: '2026-11-01',
+        estado: 'RECHAZADA',
         evidencia: {
+          id: 'EV-005',
           archivo: {
             nombre: 'A-015-registro-auditoria.png',
             url: '/mock/archivos/A-015-registro-auditoria.png',
             tipo: 'png'
           },
           fechaSubida: '2026-08-12T17:20:00',
-          estado: 'rechazada',
+          estado: 'RECHAZADA',
           motivoRechazo: 'La captura no muestra la fecha en que se activó '
             + 'el registro.',
           revisadoPor: 'Lucía Alejandra Freire Ortiz',
@@ -193,15 +199,16 @@ export const PLANES: readonly PlanAccion[] = [
         plazoMeses: 3,
         plazoDias: 15,
         fechaLimite: '2026-09-16',
-        estado: 'en_revision',
+        estado: 'EN_REVISION',
         evidencia: {
+          id: 'EV-006',
           archivo: {
             nombre: 'A-016-acta-bodega.jpg',
             url: '/mock/archivos/A-016-acta-bodega.jpg',
             tipo: 'jpg'
           },
           fechaSubida: '2026-09-15T12:30:00',
-          estado: 'pendiente'
+          estado: 'PENDIENTE'
         }
       },
       {
@@ -213,7 +220,7 @@ export const PLANES: readonly PlanAccion[] = [
         plazoMeses: 4,
         plazoDias: 25,
         fechaLimite: '2026-10-26',
-        estado: 'pendiente'
+        estado: 'PENDIENTE'
       },
       {
         id: 'A-018',
@@ -224,7 +231,7 @@ export const PLANES: readonly PlanAccion[] = [
         plazoMeses: 3,
         plazoDias: 0,
         fechaLimite: '2026-09-01',
-        estado: 'vencida'
+        estado: 'PENDIENTE'
       }
     ]
   },
@@ -235,7 +242,7 @@ export const PLANES: readonly PlanAccion[] = [
     conflictoId: 'C-002',
     fechaCreacion: '2026-08-10T11:15:00',
     creadoPor: 'Lucía Alejandra Freire Ortiz',
-    estado: 'activo',
+    estado: 'FIRMADO',
     fechaInicio: '2026-08-17',
     documentoFirmado: pdfSimulado('PL-003-plan-firmado.pdf', '2026-08-14'),
     actividades: [
@@ -248,11 +255,12 @@ export const PLANES: readonly PlanAccion[] = [
         plazoMeses: 0,
         plazoDias: 20,
         fechaLimite: '2026-09-06',
-        estado: 'aprobada',
+        estado: 'ACEPTADA',
         evidencia: {
+          id: 'EV-007',
           archivo: pdfSimulado('A-006-orden-de-cambio.pdf'),
           fechaSubida: '2026-09-02T09:14:00',
-          estado: 'aprobada',
+          estado: 'APROBADA',
           revisadoPor: 'Lucía Alejandra Freire Ortiz',
           fechaRevision: '2026-09-03T08:45:00'
         }
@@ -268,19 +276,21 @@ export const PLANES: readonly PlanAccion[] = [
         fechaLimite: '2026-10-02',
         // Se rechazo el 19/09 (falta de firma) y el responsable volvio a
         // subirla corregida: la primera queda en evidenciasAnteriores.
-        estado: 'aprobada',
+        estado: 'ACEPTADA',
         evidenciasAnteriores: [{
+          id: 'EV-008',
           archivo: pdfSimulado('A-007-matriz-firmas.pdf'),
           fechaSubida: '2026-09-18T16:05:00',
-          estado: 'rechazada',
+          estado: 'RECHAZADA',
           motivoRechazo: 'La matriz no tiene la firma del jefe de área.',
           revisadoPor: 'Lucía Alejandra Freire Ortiz',
           fechaRevision: '2026-09-19T08:40:00'
         }],
         evidencia: {
+          id: 'EV-009',
           archivo: pdfSimulado('A-007-matriz-firmas-v2.pdf'),
           fechaSubida: '2026-09-24T15:48:00',
-          estado: 'aprobada',
+          estado: 'APROBADA',
           revisadoPor: 'Lucía Alejandra Freire Ortiz',
           fechaRevision: '2026-09-26T10:15:00'
         }
@@ -295,15 +305,16 @@ export const PLANES: readonly PlanAccion[] = [
         plazoDias: 0,
         fechaLimite: '2026-10-17',
         // La ultima que falta aprobar: al aprobarla, PL-003 se cierra.
-        estado: 'en_revision',
+        estado: 'EN_REVISION',
         evidencia: {
+          id: 'EV-010',
           archivo: {
             nombre: 'A-008-captura-sistema.png',
             url: '/mock/archivos/A-008-captura-sistema.png',
             tipo: 'png'
           },
           fechaSubida: '2026-10-05T16:40:00',
-          estado: 'pendiente'
+          estado: 'PENDIENTE'
         }
       }
     ]
@@ -315,7 +326,7 @@ export const PLANES: readonly PlanAccion[] = [
     conflictoId: 'C-003',
     fechaCreacion: '2026-09-28T15:20:00',
     creadoPor: 'Lucía Alejandra Freire Ortiz',
-    estado: 'borrador',
+    estado: 'BORRADOR',
     actividades: [
       {
         id: 'A-009',
@@ -325,7 +336,7 @@ export const PLANES: readonly PlanAccion[] = [
         responsableNombre: 'Patricio Eduardo Barona Silva',
         plazoMeses: 1,
         plazoDias: 0,
-        estado: 'pendiente'
+        estado: 'PENDIENTE'
       },
       {
         id: 'A-010',
@@ -335,7 +346,7 @@ export const PLANES: readonly PlanAccion[] = [
         responsableNombre: 'Diana Carolina Pérez López',
         plazoMeses: 3,
         plazoDias: 0,
-        estado: 'pendiente'
+        estado: 'PENDIENTE'
       }
     ]
   },
@@ -346,7 +357,8 @@ export const PLANES: readonly PlanAccion[] = [
     conflictoId: 'C-004',
     fechaCreacion: '2025-05-02T08:45:00',
     creadoPor: 'Lucía Alejandra Freire Ortiz',
-    estado: 'cerrado',
+    estado: 'CERRADO',
+    tipoCierre: 'CUMPLIDO',
     fechaInicio: '2025-05-12',
     fechaCierre: '2025-07-30',
     documentoFirmado: pdfSimulado('PL-005-plan-firmado.pdf', '2025-05-08'),
@@ -360,11 +372,12 @@ export const PLANES: readonly PlanAccion[] = [
         plazoMeses: 0,
         plazoDias: 10,
         fechaLimite: '2025-05-22',
-        estado: 'aprobada',
+        estado: 'ACEPTADA',
         evidencia: {
+          id: 'EV-011',
           archivo: pdfSimulado('A-011-declaracion.pdf'),
           fechaSubida: '2025-05-20T08:55:00',
-          estado: 'aprobada',
+          estado: 'APROBADA',
           revisadoPor: 'Diana Carolina Pérez López',
           fechaRevision: '2025-05-21T09:10:00'
         }
@@ -378,7 +391,8 @@ export const PLANES: readonly PlanAccion[] = [
     conflictoId: 'C-008',
     fechaCreacion: '2026-01-05T14:00:00',
     creadoPor: 'Lucía Alejandra Freire Ortiz',
-    estado: 'cerrado',
+    estado: 'CERRADO',
+    tipoCierre: 'CUMPLIDO',
     fechaInicio: '2026-01-12',
     fechaCierre: '2026-04-15',
     documentoFirmado: pdfSimulado('PL-006-plan-firmado.pdf', '2026-01-09'),
@@ -392,11 +406,12 @@ export const PLANES: readonly PlanAccion[] = [
         plazoMeses: 0,
         plazoDias: 15,
         fechaLimite: '2026-01-27',
-        estado: 'aprobada',
+        estado: 'ACEPTADA',
         evidencia: {
+          id: 'EV-012',
           archivo: pdfSimulado('A-012-compromiso.pdf'),
           fechaSubida: '2026-01-22T14:20:00',
-          estado: 'aprobada',
+          estado: 'APROBADA',
           revisadoPor: 'Diana Carolina Pérez López',
           fechaRevision: '2026-01-23T08:30:00'
         }
@@ -410,15 +425,16 @@ export const PLANES: readonly PlanAccion[] = [
         plazoMeses: 1,
         plazoDias: 0,
         fechaLimite: '2026-02-12',
-        estado: 'aprobada',
+        estado: 'ACEPTADA',
         evidencia: {
+          id: 'EV-013',
           archivo: {
             nombre: 'A-013-captura-accesos.png',
             url: '/mock/archivos/A-013-captura-accesos.png',
             tipo: 'png'
           },
           fechaSubida: '2026-02-09T10:03:00',
-          estado: 'aprobada',
+          estado: 'APROBADA',
           revisadoPor: 'Diana Carolina Pérez López',
           fechaRevision: '2026-02-10T09:00:00'
         }
@@ -432,7 +448,7 @@ export const PLANES: readonly PlanAccion[] = [
     conflictoId: 'C-008',
     fechaCreacion: '2026-09-22T10:00:00',
     creadoPor: 'Lucía Alejandra Freire Ortiz',
-    estado: 'borrador',
+    estado: 'BORRADOR',
     documentoFirmado: pdfSimulado('PL-007-plan-firmado.pdf', '2026-09-25'),
     actividades: [
       {
@@ -443,7 +459,7 @@ export const PLANES: readonly PlanAccion[] = [
         responsableNombre: 'Fernando José Andrade Vela',
         plazoMeses: 12,
         plazoDias: 0,
-        estado: 'pendiente'
+        estado: 'PENDIENTE'
       }
     ]
   }

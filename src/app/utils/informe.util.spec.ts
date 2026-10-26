@@ -11,13 +11,14 @@ import {
 
 describe('informe.util', () => {
   const GRUPOS = armarGruposInforme(CONFLICTOS, PLANES);
+  const HOY = new Date(2026, 9, 2, 10, 0);
 
   /**
    * @param cambios Filtros a aplicar.
    * @returns Ids de los conflictos que pasan.
    */
   function filtrar(cambios: Partial<FiltrosInforme>): string[] {
-    return filtrarInforme(GRUPOS, { ...filtrosInformeVacios(), ...cambios }).map((g) => g.conflicto.id);
+    return filtrarInforme(GRUPOS, { ...filtrosInformeVacios(), ...cambios }, HOY).map((g) => g.conflicto.id);
   }
 
   it('un grupo por conflicto con plan enviado; todos sus planes enviados y el actual', () => {
@@ -41,12 +42,12 @@ describe('informe.util', () => {
   });
 
   it('riesgo y buscador, combinados con el estado', () => {
-    expect(filtrar({ riesgo: 'medio' })).toEqual(['C-002', 'C-008']);
+    expect(filtrar({ riesgo: 'MEDIO' })).toEqual(['C-002', 'C-008']);
     expect(filtrar({ texto: 'tamayo' })).toEqual(['C-002', 'C-008']);
     expect(filtrar({ texto: '002' })).toEqual(['C-002']);
-    expect(filtrar({ estado: 'cerrados', riesgo: 'medio' })).toEqual(['C-008']);
-    expect(filtrar({ estado: 'en-ejecucion', riesgo: 'alto' })).toEqual(['C-001']);
-    expect(filtrar({ estado: 'con-vencidas', riesgo: 'medio' })).toEqual([]);
+    expect(filtrar({ estado: 'cerrados', riesgo: 'MEDIO' })).toEqual(['C-008']);
+    expect(filtrar({ estado: 'en-ejecucion', riesgo: 'ALTO' })).toEqual(['C-001']);
+    expect(filtrar({ estado: 'con-vencidas', riesgo: 'MEDIO' })).toEqual([]);
   });
 
   it('el buscador encuentra responsables de planes anteriores', () => {

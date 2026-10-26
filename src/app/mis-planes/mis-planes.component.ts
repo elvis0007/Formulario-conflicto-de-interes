@@ -9,7 +9,8 @@ import { BadgeComponent } from '../shared/badge/badge.component';
 import { EmptyStateComponent } from '../shared/empty-state/empty-state.component';
 import { OpcionPill, PillsComponent } from '../shared/pills/pills.component';
 import { formatearFecha, parsearFecha } from '../utils/fechas.util';
-import { textoEstadoPlan } from '../utils/planes.util';
+import { EstadoActividadVista, textoEstadoPlan, tieneActividadesVencidas } from '../utils/planes.util';
+import { RELOJ } from '../utils/reloj';
 import {
   FILTROS_ESTADO,
   FiltroEstado,
@@ -31,6 +32,8 @@ export interface ChipEstado {
 export interface TarjetaPlanResponsable {
   planId: string;
   conflictoId: string;
+  /** «Persona A y Persona B» (de la bandeja), o vacio si no vienen. */
+  personas: string;
   /** «Plan 02 · Nombre». */
   tituloPlan: string;
   textoEstado: string;
@@ -45,22 +48,25 @@ export interface TarjetaPlanResponsable {
 }
 
 /** Texto en singular y plural de cada estado para los chips. */
-const TEXTO_CHIP: Readonly<Record<EstadoActividad, [string, string]>> = {
-  pendiente: ['pendiente', 'pendientes'],
-  vencida: ['vencida', 'vencidas'],
-  rechazada: ['rechazada', 'rechazadas'],
-  en_revision: ['en revisión', 'en revisión'],
-  aprobada: ['aprobada', 'aprobadas']
+const TEXTO_CHIP: Readonly<Record<EstadoActividadVista, [string, string]>> = {
+  PENDIENTE: ['pendiente', 'pendientes'],
+  VENCIDA: ['vencida', 'vencidas'],
+  RECHAZADA: ['rechazada', 'rechazadas'],
+  EN_REVISION: ['en revisión', 'en revisión'],
+  ACEPTADA: ['aprobada', 'aprobadas'],
+  NO_CUMPLIDA: ['no cumplida', 'no cumplidas']
 };
 
 /** Orden de los chips: lo urgente primero. */
-const ORDEN_CHIPS: readonly EstadoActividad[] = ['rechazada', 'vencida', 'pendiente', 'en_revision', 'aprobada'];
+const ORDEN_CHIPS: readonly EstadoActividadVista[] = [
+  'RECHAZADA', 'VENCIDA', 'PENDIENTE', 'EN_REVISION', 'ACEPTADA', 'NO_CUMPLIDA'
+];
 
 /**
  * Bandeja de Tareas del Responsable (especificacion §6.12, lista).
  *
  * - Una tarjeta por plan con actividades suyas (sin borradores): conflicto,
- *   plan, estado, fecha de inicio, «x de y de tus actividades aprobadas»,
+ *   personas del caso (las trae la bandeja), plan, estado, fecha de inicio, «x de y de tus actividades aprobadas»,
  *   conteo por estado y «Ver plan →».
  * - Filtro por estado de SUS actividades con conteos; un plan aparece si
  *   tiene al menos una actividad suya en ese estado. El filtro vive en la
@@ -98,6 +104,7 @@ export class MisPlanesComponent implements OnInit {
   private readonly ruta = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly reloj = inject(RELOJ);
 
   /** @returns Cuantos planes tiene en total. */
   get totalPlanes(): number {
@@ -162,10 +169,10 @@ export class MisPlanesComponent implements OnInit {
    * @param planes Planes del responsable.
    */
   private cargar(planes: PlanDeResponsable[]): void {
-    const conteo = contarEstados(actividadesDe(planes));
+    const conteo = contarEstados(actividadesDe(planes), this.reloj());
     const total = actividadesDe(planes).length;
 
-    this.tarjetas = ordenarPorUrgencia(planes).map((p) => this.crearTarjeta(p));
+    this.tarjetas = ordenarPorUrgencia(planes, this.reloj()).map((p) => this.crearTarjeta(p));
     this.opciones = FILTROS_ESTADO.map((f) => ({
       valor: f.valor,
       etiqueta: f.etiqueta,
@@ -179,7 +186,7 @@ export class MisPlanesComponent implements OnInit {
    * Recalcula las tarjetas visibles con el filtro actual.
    */
   private aplicarFiltro(): void {
-    this.visibles = this.tarjetas.filter((t) => planCoincideConFiltro(t.fuente, this.filtro));
+    this.visibles = this.tarjetas.filter((t) => planCoincideConFiltro(t.fuente, this.filtro, this.reloj()));
   }
 
   /**
@@ -188,16 +195,18 @@ export class MisPlanesComponent implements OnInit {
    */
   private crearTarjeta(fuente: PlanDeResponsable): TarjetaPlanResponsable {
     const plan = fuente.plan;
-    const conteo = contarEstados(plan.actividades);
+    const conteo = contarEstados(plan.actividades, this.reloj());
+    const conVencidas = tieneActividadesVencidas(plan, this.reloj());
 
     return {
       planId: plan.id,
       conflictoId: plan.conflictoId,
+      personas: [fuente.nombreA, fuente.nombreB].filter((n) => n !== '').join(' y '),
       tituloPlan: 'Plan ' + String(plan.numero).padStart(2, '0') + ' · ' + plan.nombre,
-      textoEstado: textoEstadoPlan(plan.estado),
-      tonoEstado: mapearEstadoPlanATono(plan.estado),
+      textoEstado: textoEstadoPlan(plan.estado, conVencidas, plan.tipoCierre),
+      tonoEstado: mapearEstadoPlanATono(plan.estado, conVencidas, plan.tipoCierre),
       fechaInicio: this.fecha(plan.fechaInicio),
-      avance: conteo.aprobada + ' de ' + plan.actividades.length + ' de tus actividades aprobadas',
+      avance: conteo.ACEPTADA + ' de ' + plan.actividades.length + ' de tus actividades aprobadas',
       chips: ORDEN_CHIPS
         .filter((e) => conteo[e] > 0)
         .map((e) => ({

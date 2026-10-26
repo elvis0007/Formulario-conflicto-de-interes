@@ -1,6 +1,12 @@
 import { Persona } from './persona';
 import { PlanAccion } from './plan-accion';
-import { Clasificacion, GradoParentesco, Relacion, Riesgo } from './tipos-conflicto';
+import {
+  Clasificacion,
+  EstadoSeguimiento,
+  GradoParentesco,
+  Relacion,
+  Riesgo
+} from './tipos-conflicto';
 
 /**
  * Relacion de parentesco detectada entre dos personas de la empresa que
@@ -28,7 +34,10 @@ export interface Conflicto {
    */
   grado: GradoParentesco | null;
   riesgo: Riesgo;
-  clasificacion: Clasificacion;
+  /** Clasificacion de RRHH; `null` mientras el caso no se ha clasificado. */
+  clasificacion: Clasificacion | null;
+  /** Estado de seguimiento del conflicto (lo cambia el backend). */
+  estado: EstadoSeguimiento;
   /** Observacion opcional que RRHH dejo al clasificar el caso. */
   observacionClasificacion?: string;
   /**

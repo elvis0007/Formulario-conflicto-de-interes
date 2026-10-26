@@ -11,7 +11,7 @@ export const authGuard: CanActivateFn = (route, state) => {
   const rutasPermitidas = RUTAS_PERMITIDAS;
 
   // Regla especial: si el usuario navega explícitamente al login de SISCI,
-  // siempre limpiamos cualquier token previo (Intranet / Sistec) y
+  // siempre limpiamos cualquier token previo (Intranet / Sisci) y
   // permitimos permanecer en la pantalla de login, aunque estuviera autenticado.
     if (url === '/login') {
     authService.logout();

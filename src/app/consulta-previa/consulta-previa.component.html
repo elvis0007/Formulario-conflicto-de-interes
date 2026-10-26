@@ -16,16 +16,26 @@
       inputmode="numeric"
       maxlength="10"
       placeholder="10 dígitos"
-      [class.control--error]="cedulaInvalida"
-      [attr.aria-invalid]="cedulaInvalida" />
+      [class.control--error]="cedulaVacia || cedulaInvalida"
+      [attr.aria-invalid]="cedulaVacia || cedulaInvalida" />
   </label>
   <label class="campo campo--ancho">
     <span class="campo-etiqueta">Nombres</span>
-    <input class="control" formControlName="nombres" placeholder="Nombres del candidato" />
+    <input
+      class="control"
+      formControlName="nombres"
+      placeholder="Nombres del candidato"
+      [class.control--error]="faltanNombres"
+      [attr.aria-invalid]="faltanNombres" />
   </label>
   <label class="campo campo--ancho">
     <span class="campo-etiqueta">Apellidos</span>
-    <input class="control" formControlName="apellidos" placeholder="Apellidos del candidato" />
+    <input
+      class="control"
+      formControlName="apellidos"
+      placeholder="Apellidos del candidato"
+      [class.control--error]="faltanApellidos"
+      [attr.aria-invalid]="faltanApellidos" />
   </label>
   <div class="formulario-acciones">
     <button type="submit" class="boton boton--primario" [disabled]="consultando">
@@ -34,11 +44,17 @@
     </button>
     <button type="button" class="boton" (click)="nuevaConsulta()">Nueva consulta</button>
   </div>
+  @if (cedulaVacia) {
+    <p class="error" role="alert">{{ errorCedulaObligatoria }}</p>
+  }
   @if (cedulaInvalida) {
     <p class="error" role="alert">{{ errorCedula }}</p>
   }
-  @if (faltanDatos) {
-    <p class="error" role="alert">{{ errorDatosMinimos }}</p>
+  @if (faltanNombres) {
+    <p class="error" role="alert">{{ errorNombres }}</p>
+  }
+  @if (faltanApellidos) {
+    <p class="error" role="alert">{{ errorApellidos }}</p>
   }
   @if (errorConsulta) {
     <p class="error" role="alert">{{ errorConsulta }}</p>
@@ -84,20 +100,3 @@
     }
   }
 </section>
-
-@if (recientes.length > 0) {
-  <section class="recientes" aria-labelledby="titulo-recientes">
-    <h3 id="titulo-recientes" class="seccion-titulo">Consultas recientes</h3>
-    <ul class="lista-recientes">
-      @for (r of recientes; track r.id) {
-        <li class="reciente">
-          <span class="reciente-fecha">{{ r.fecha | fechaLarga }}</span>
-          <span class="reciente-datos">{{ descripcion(r.datos) }}</span>
-          <span class="reciente-conteo" [class.reciente-conteo--con]="r.coincidencias.length > 0">
-            {{ r.coincidencias.length }} {{ r.coincidencias.length === 1 ? 'coincidencia' : 'coincidencias' }}
-          </span>
-        </li>
-      }
-    </ul>
-  </section>
-}

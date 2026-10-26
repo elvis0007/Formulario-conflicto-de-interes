@@ -1,21 +1,20 @@
 import { Component, DestroyRef, ElementRef, OnInit, ViewChild, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { EMPTY, map, of, switchMap } from 'rxjs';
+import { EMPTY, switchMap } from 'rxjs';
 import { RUTAS } from '../app.paths';
-import { Actividad, Archivo, Conflicto, PlanAccion, PlanDeResponsable } from '../models';
+import { Actividad, Archivo, PlanAccion, PlanDeResponsable } from '../models';
 import { FechaLargaPipe } from '../pipes/fecha-larga.pipe';
-import { ConflictosMockService } from '../services/conflictos-mock.service';
 import { PerfilUsuarioService } from '../services/perfil-usuario.service';
 import { ESTADOS_CON_SUBIDA, PlanesMockService } from '../services/planes-mock.service';
 import { BadgeComponent } from '../shared/badge/badge.component';
 import { DocumentViewerComponent } from '../shared/document-viewer/document-viewer.component';
 import { IconoComponent } from '../shared/icono/icono.component';
 import { ModalComponent } from '../shared/modal/modal.component';
-import { textoParentesco, textoRiesgo } from '../utils/analisis.util';
+import { textoRiesgo } from '../utils/analisis.util';
 import { ACCEPT_EVIDENCIA, validarEvidencia } from '../utils/documento.util';
 import { DiasRestantes, calcularDiasRestantes, formatearFecha, parsearFecha } from '../utils/fechas.util';
-import { textoEstadoPlan } from '../utils/planes.util';
+import { estaVencida, textoEstadoPlan, tieneActividadesVencidas } from '../utils/planes.util';
 import { RELOJ } from '../utils/reloj';
 import { textoPlazo } from '../utils/responsable.util';
 import { textoEstadoActividad } from '../utils/revision.util';
@@ -44,10 +43,17 @@ export interface DocumentoAbierto {
   archivo: Archivo;
   subidoPor: string;
   fechaSubida: string;
+  /** Id del plan si es su documento firmado (para pedirlo con token). */
+  planId: string;
+  /** Id de la evidencia si es una evidencia (para pedirla con token). */
+  evidenciaId: string;
 }
 
 /** Mensaje si la carga falla. */
 const ERROR_CARGA = 'No se pudo cargar el plan. Inténtalo de nuevo.';
+
+/** Mensaje si la subida falla sin que el servicio diga por que. */
+const ERROR_SUBIDA = 'No se pudo subir la evidencia. Inténtalo de nuevo.';
 
 /**
  * Detalle de un plan visto por el Responsable (especificacion §6.12,
@@ -55,11 +61,14 @@ const ERROR_CARGA = 'No se pudo cargar el plan. Inténtalo de nuevo.';
  *
  * - Cabecera con PNIP.CI.FR.02, conflicto, plan, estado y fecha de inicio.
  * - Tarjeta compacta del caso: las dos personas, el parentesco y el riesgo
- *   (especificacion §6.12; mockups aprobados por RRHH).
+ *   (especificacion §6.12; mockups aprobados por RRHH). Salen de la bandeja
+ *   (`PlanDeResponsable`): el rol P no puede pedir `/conflictos` (403). La
+ *   bandeja no trae el papel, el cargo ni el departamento de cada persona,
+ *   asi que ya no se muestran.
  * - «Ver documento del plan» y «Ver evidencia» en el visor de documentos.
  * - Solo las actividades del responsable, con plazo, fecha limite y dias
  *   restantes, estado y evidencia; «Subir evidencia» / «Volver a subir»
- *   (PDF, PNG o JPG de hasta 10 MB).
+ *   (PDF, PNG o JPG de hasta 5 MB).
  * - Plan cerrado: solo lectura.
  * - Plan inexistente, en borrador o sin actividades suyas: «No se encontró
  *   el plan» (no se ven planes ajenos escribiendo la URL).
@@ -97,9 +106,6 @@ export class PlanResponsableDetalleComponent implements OnInit {
   /** Actividades listas para la vista. */
   actividades: VistaActividadResponsable[] = [];
 
-  /** Caso del plan; `null` si no se encontro. */
-  conflicto: Conflicto | null = null;
-
   /** Errores de subida por actividad. */
   errores: Record<string, string> = {};
 
@@ -117,7 +123,6 @@ export class PlanResponsableDetalleComponent implements OnInit {
 
   private readonly planesServicio = inject(PlanesMockService);
   private readonly perfil = inject(PerfilUsuarioService);
-  private readonly conflictosServicio = inject(ConflictosMockService);
   private readonly ruta = inject(ActivatedRoute);
   private readonly reloj = inject(RELOJ);
   private readonly destroyRef = inject(DestroyRef);
@@ -134,34 +139,69 @@ export class PlanResponsableDetalleComponent implements OnInit {
     return plan ? 'Plan ' + String(plan.numero).padStart(2, '0') + ' · ' + plan.nombre : '';
   }
 
-  /** @returns Texto del estado del plan. */
+  /** @returns Texto del estado del plan (con el tipo de cierre si se sabe). */
   get textoEstado(): string {
-    return this.plan ? textoEstadoPlan(this.plan.estado) : '';
+    const plan = this.plan;
+
+    return plan ? textoEstadoPlan(plan.estado, tieneActividadesVencidas(plan, this.reloj()), plan.tipoCierre) : '';
   }
 
   /** @returns Tono del estado del plan. */
   get tonoEstado(): Tono {
-    return this.plan ? mapearEstadoPlanATono(this.plan.estado) : 'gris';
+    const plan = this.plan;
+
+    return plan
+      ? mapearEstadoPlanATono(plan.estado, tieneActividadesVencidas(plan, this.reloj()), plan.tipoCierre)
+      : 'gris';
   }
 
-  /** @returns Parentesco del caso en una linea. */
+  /** @returns `true` si la bandeja trajo algun dato del caso. */
+  get hayCaso(): boolean {
+    const d = this.datos;
+
+    return d !== null && (d.nombreA !== '' || d.nombreB !== '' || d.parentesco !== '' || d.riesgo !== null);
+  }
+
+  /** @returns Parentesco del caso en una linea (el que trae la bandeja). */
   get parentesco(): string {
-    return this.conflicto ? textoParentesco(this.conflicto) : '';
+    return this.datos?.parentesco ?? '';
   }
 
-  /** @returns «Riesgo alto», «Riesgo moderado»... */
+  /** @returns «Riesgo alto», «Riesgo moderado»...; vacio si no se sabe. */
   get textoRiesgo(): string {
-    return this.conflicto ? 'Riesgo ' + textoRiesgo(this.conflicto.riesgo).toLowerCase() : '';
+    const riesgo = this.datos?.riesgo ?? null;
+
+    return riesgo === null ? '' : 'Riesgo ' + textoRiesgo(riesgo).toLowerCase();
   }
 
   /** @returns Tono del riesgo del caso. */
   get tonoRiesgo(): Tono {
-    return this.conflicto ? mapearRiesgoATono(this.conflicto.riesgo) : 'gris';
+    const riesgo = this.datos?.riesgo ?? null;
+
+    return riesgo === null ? 'gris' : mapearRiesgoATono(riesgo);
+  }
+
+  /**
+   * @returns Texto del aviso de solo lectura de un plan cerrado: dice como
+   * se cerro solo si se sabe (la bandeja del backend no lo trae).
+   */
+  get avisoCerrado(): string {
+    const tipo = this.plan?.tipoCierre;
+
+    if (tipo === 'CUMPLIDO') {
+      return 'Plan cerrado: todas las actividades fueron aprobadas. Solo lectura.';
+    }
+    if (tipo === 'ANTICIPADO') {
+      return 'Plan cerrado por RRHH antes de cumplirse (cierre anticipado): las actividades sin aprobar '
+        + 'quedaron como «No cumplida». Solo lectura.';
+    }
+
+    return 'Plan cerrado. Solo lectura.';
   }
 
   /** @returns `true` si el plan esta cerrado (solo lectura). */
   get soloLectura(): boolean {
-    return this.plan?.estado === 'cerrado';
+    return this.plan?.estado === 'CERRADO';
   }
 
   /**
@@ -179,25 +219,16 @@ export class PlanResponsableDetalleComponent implements OnInit {
           this.errores = {};
           this.documento = null;
           if (empleadoId === null || planId === '') {
-            this.conflicto = null;
             this.mostrar(null);
             return EMPTY;
           }
-          // El caso solo se pide si el plan es suyo.
-          return this.planesServicio.obtenerPlanDeResponsable(planId, empleadoId).pipe(
-            switchMap((datos) => datos === null
-              ? of({ datos, conflicto: undefined })
-              : this.conflictosServicio.obtenerConflictoPorId(datos.plan.conflictoId)
-                .pipe(map((conflicto) => ({ datos, conflicto }))))
-          );
+          // El caso viene en la misma bandeja: no se pide /conflictos.
+          return this.planesServicio.obtenerPlanDeResponsable(planId, empleadoId);
         }),
         takeUntilDestroyed(this.destroyRef)
       )
       .subscribe({
-        next: ({ datos, conflicto }) => {
-          this.conflicto = conflicto ?? null;
-          this.mostrar(datos);
-        },
+        next: (datos) => this.mostrar(datos),
         error: (err: unknown) => {
           this.cargando = false;
           this.errorCarga = ERROR_CARGA;
@@ -250,13 +281,14 @@ export class PlanResponsableDetalleComponent implements OnInit {
         next: (resultado) => {
           this.subiendoId = null;
           if (resultado.plan === null) {
-            this.errores = { ...this.errores, [actividadId]: resultado.error ?? '' };
+            this.errores = { ...this.errores, [actividadId]: resultado.error || ERROR_SUBIDA };
             return;
           }
           this.mostrar(resultado.plan);
         },
         error: (err: unknown) => {
           this.subiendoId = null;
+          this.errores = { ...this.errores, [actividadId]: ERROR_SUBIDA };
           console.error('[PlanResponsableDetalleComponent.alElegirArchivo]', err);
         }
       });
@@ -268,12 +300,14 @@ export class PlanResponsableDetalleComponent implements OnInit {
   verDocumentoPlan(): void {
     const archivo = this.plan?.documentoFirmado;
 
-    if (archivo) {
+    if (archivo && this.plan) {
       this.documento = {
         titulo: 'Documento del plan',
         archivo,
         subidoPor: 'RRHH',
-        fechaSubida: archivo.fechaSubida ?? ''
+        fechaSubida: archivo.fechaSubida ?? '',
+        planId: this.plan.id,
+        evidenciaId: ''
       };
     }
   }
@@ -291,7 +325,9 @@ export class PlanResponsableDetalleComponent implements OnInit {
         titulo: 'Evidencia de la actividad',
         archivo: evidencia.archivo,
         subidoPor: actividad.responsableNombre,
-        fechaSubida: evidencia.fechaSubida
+        fechaSubida: evidencia.fechaSubida,
+        planId: '',
+        evidenciaId: evidencia.id
       };
     }
   }
@@ -345,8 +381,8 @@ export class PlanResponsableDetalleComponent implements OnInit {
       plazo: textoPlazo(actividad),
       fechaLimite: this.fecha(actividad.fechaLimite),
       dias,
-      vencida: actividad.estado === 'vencida' || (dias?.vencida ?? false),
-      puedeSubir: porHacer && plan.estado !== 'cerrado' && plan.estado !== 'borrador'
+      vencida: estaVencida(actividad, this.reloj()) || (dias?.vencida ?? false),
+      puedeSubir: porHacer && plan.estado !== 'CERRADO' && plan.estado !== 'BORRADOR'
     };
   }
 }

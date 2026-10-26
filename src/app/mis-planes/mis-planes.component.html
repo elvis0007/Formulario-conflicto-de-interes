@@ -35,6 +35,9 @@
             <span class="tarjeta-conflicto">Conflicto #{{ t.conflictoId }}</span>
             <app-badge [tono]="t.tonoEstado" [texto]="t.textoEstado" />
           </div>
+          @if (t.personas) {
+            <span class="tarjeta-personas">{{ t.personas }}</span>
+          }
           <h3 class="tarjeta-plan">{{ t.tituloPlan }}</h3>
           @if (t.fechaInicio) {
             <span class="tarjeta-dato">Inicio: {{ t.fechaInicio }}</span>

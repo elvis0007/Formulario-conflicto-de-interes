@@ -49,7 +49,7 @@
 <section class="bloque clasificacion">
   <h3 class="bloque-titulo">Clasificación del caso</h3>
 
-  @if (editable) {
+  @if (puedeClasificar) {
     <fieldset class="opciones">
       <legend class="solo-lectores">Clasificación del caso</legend>
       @for (opcion of opciones; track opcion.valor) {
@@ -59,7 +59,8 @@
             class="opcion-radio"
             [name]="nombreGrupo"
             [value]="opcion.valor"
-            [(ngModel)]="seleccion"
+            [ngModel]="seleccion"
+            (ngModelChange)="elegir($event)"
             [disabled]="guardando" />
           <span class="opcion-titulo">{{ opcion.titulo }}</span>
           <span class="opcion-descripcion">{{ opcion.descripcion }}</span>
@@ -68,17 +69,22 @@
     </fieldset>
 
     <label class="observacion">
-      <span class="observacion-etiqueta">Observación <span class="opcional">(opcional)</span></span>
+      <span class="observacion-etiqueta">
+        Observación
+        <span class="opcional">({{ seleccion === 'H' ? 'obligatoria para homónimo' : 'opcional' }})</span>
+      </span>
       <textarea
         class="observacion-campo"
         rows="3"
         [maxLength]="largoMaximo"
         [(ngModel)]="observacion"
+        (ngModelChange)="errorLocal = null"
+        [attr.aria-required]="seleccion === 'H'"
         [disabled]="guardando"></textarea>
     </label>
 
-    @if (error) {
-      <p class="error" role="alert">{{ error }}</p>
+    @if (errorVisible) {
+      <p class="error" role="alert">{{ errorVisible }}</p>
     }
 
     <div class="botones">
@@ -93,16 +99,21 @@
       </button>
     </div>
   } @else {
-    <p class="aviso-validado">
-      El análisis está validado: la clasificación ya no se puede cambiar.
-    </p>
+    <p class="aviso-validado">{{ motivoSoloLectura }}</p>
     <div class="opcion opcion--elegida opcion--lectura">
       <span class="opcion-titulo">{{ opcionElegida.titulo }}</span>
       <span class="opcion-descripcion">{{ opcionElegida.descripcion }}</span>
     </div>
+    <p class="estado-lectura">
+      <span class="observacion-etiqueta">Estado de seguimiento:</span>
+      <app-badge [tono]="tonoEstado" [texto]="textoEstado" />
+    </p>
     <p class="observacion-lectura">
       <span class="observacion-etiqueta">Observación:</span>
       {{ observacion || 'Sin observación.' }}
     </p>
+    @if (error) {
+      <p class="error" role="alert">{{ error }}</p>
+    }
   }
 </section>

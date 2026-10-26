@@ -4,8 +4,11 @@
  * @author Elvis Flores
  */
 
-/** Nivel de riesgo asignado a un conflicto de interes. */
-export type Riesgo = 'alto' | 'medio' | 'bajo' | 'ninguno';
+/**
+ * Nivel de riesgo asignado a un conflicto de interes (valores del backend).
+ * La consulta previa sin coincidencias no tiene riesgo: usa `null`.
+ */
+export type Riesgo = 'BAJO' | 'MEDIO' | 'ALTO' | 'CRITICO';
 
 /**
  * Tipo de parentesco entre las dos personas de un conflicto:
@@ -20,39 +23,68 @@ export type Relacion = 'Consanguinidad' | 'Afinidad';
 export type GradoParentesco = 1 | 2 | 3 | 4;
 
 /**
- * Resultado de la revision de RRHH sobre un conflicto detectado.
+ * Resultado de la clasificacion de RRHH sobre un conflicto detectado
+ * (valores del backend). Sin clasificar es `null` (ver
+ * `Conflicto.clasificacion`).
  *
- * - `pendiente`: aun no revisado.
- * - `confirmado`: el parentesco es real.
- * - `homonimo`: coincidencia de nombres sin parentesco real (se descarta).
+ * - `D`: declarado, el parentesco es real y el empleado lo declaro.
+ * - `N`: no declarado (omision), el parentesco es real pero no se declaro.
+ * - `H`: homonimo, coincidencia de nombres sin parentesco real (se descarta).
  */
-export type Clasificacion = 'pendiente' | 'confirmado' | 'homonimo';
+export type Clasificacion = 'D' | 'N' | 'H';
+
+/**
+ * Estado de seguimiento de un conflicto (lo calcula el backend).
+ * `FINALIZADO` lo pone solo el sistema al aprobar la ultima evidencia.
+ */
+export type EstadoSeguimiento =
+  | 'DETECTADO'
+  | 'EN_ANALISIS'
+  | 'EN_PLANIFICACION'
+  | 'EN_EJECUCION'
+  | 'FINALIZADO'
+  | 'DESCARTADO';
 
 /**
  * Estado del analisis de conflictos.
  *
- * - `borrador`: recien generado; RRHH puede clasificar los casos.
- * - `validado`: RRHH lo valido; ya no se puede reclasificar.
+ * - `BORRADOR`: recien generado; RRHH puede clasificar los casos.
+ * - `VALIDADO`: RRHH lo valido; ya no se puede reclasificar.
  */
-export type EstadoAnalisis = 'borrador' | 'validado';
+export type EstadoAnalisis = 'BORRADOR' | 'VALIDADO';
 
 /**
  * Estado de un plan de accion.
  *
- * `activo_vencidas` es un plan en ejecucion que tiene al menos una
- * actividad vencida.
+ * - `BORRADOR`: aun no se firma ni se envia.
+ * - `FIRMADO`: en ejecucion.
+ * - `CERRADO`: terminado (ver `TipoCierre`).
+ *
+ * «Con actividades vencidas» ya no es un estado: se calcula con
+ * `tieneActividadesVencidas` (`utils/planes.util.ts`).
  */
-export type EstadoPlan = 'borrador' | 'activo' | 'activo_vencidas' | 'cerrado';
+export type EstadoPlan = 'BORRADOR' | 'FIRMADO' | 'CERRADO';
+
+/**
+ * Como se cerro un plan: `CUMPLIDO` (todas las actividades aceptadas) o
+ * `ANTICIPADO` (RRHH lo cerro con actividades abiertas; ver
+ * `PlanAccion.motivoCierre`).
+ */
+export type TipoCierre = 'CUMPLIDO' | 'ANTICIPADO';
 
 /**
  * Estado de una actividad de un plan de accion.
  *
- * `en_revision` significa que el responsable subio evidencia y RRHH aun no la
- * aprueba ni la rechaza.
+ * - `EN_REVISION`: el responsable subio evidencia y RRHH aun no la aprueba
+ *   ni la rechaza.
+ * - `NO_CUMPLIDA`: quedo abierta cuando el plan se cerro de forma anticipada.
+ *
+ * «Vencida» ya no es un estado: se calcula con `estaVencida`
+ * (`utils/planes.util.ts`).
  */
 export type EstadoActividad =
-  | 'pendiente'
-  | 'en_revision'
-  | 'aprobada'
-  | 'rechazada'
-  | 'vencida';
+  | 'PENDIENTE'
+  | 'EN_REVISION'
+  | 'ACEPTADA'
+  | 'RECHAZADA'
+  | 'NO_CUMPLIDA';

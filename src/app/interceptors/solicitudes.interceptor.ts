@@ -10,10 +10,10 @@ export const solicitudInterceptor: HttpInterceptorFn = (req, next) => {
   if (url.includes('WSSisgerhServices'))
     token = localStorage.getItem('TOKEN-SISGERH');
   else if (req.url.includes('getUsuarioIntranet')) token = localStorage.getItem('TOKEN-INTRANET');
-  else if (req.url.includes('generarTokenSistec')) token = null;
+  else if (req.url.includes('generarTokenSisci')) token = null;
   else if (req.url.includes('getUsuarioInformacionSisgerh')) token = localStorage.getItem('TOKEN-INTRANET');
-  else if (url.includes('/sisgerh/')) token = localStorage.getItem('TOKEN-SISTEC');
-  else token = localStorage.getItem('TOKEN-SISTEC');
+  else if (url.includes('/sisgerh/')) token = localStorage.getItem('TOKEN-SISCI');
+  else token = localStorage.getItem('TOKEN-SISCI');
 
   solicitudesTotales++;
 

@@ -1,5 +1,6 @@
-import { Actividad, EstadoActividad, PlanAccion } from '../models';
+import { Actividad, PlanAccion } from '../models';
 import { formatearFechaIso } from './fechas.util';
+import { EstadoActividadVista } from './planes.util';
 
 /**
  * Utilidades puras de Revisión de Evidencias.
@@ -8,24 +9,26 @@ import { formatearFechaIso } from './fechas.util';
  */
 
 /** Texto de cada estado de actividad en la vista de RRHH (regla 8). */
-const TEXTO_ESTADO_RRHH: Readonly<Record<EstadoActividad, string>> = {
-  pendiente: 'Pendiente de evidencia',
-  en_revision: 'En revisión',
-  aprobada: 'Aprobada · Cumplida',
-  rechazada: 'Rechazada',
-  vencida: 'Vencida'
+const TEXTO_ESTADO_RRHH: Readonly<Record<EstadoActividadVista, string>> = {
+  PENDIENTE: 'Pendiente de evidencia',
+  EN_REVISION: 'En revisión',
+  ACEPTADA: 'Aprobada · Cumplida',
+  RECHAZADA: 'Rechazada',
+  NO_CUMPLIDA: 'No cumplida',
+  VENCIDA: 'Vencida'
 };
 
 /**
  * Texto de cada estado en la vista del Responsable (regla 8). No tiene
  * «Vencida»: una actividad vencida sigue pendiente de evidencia para el.
  */
-const TEXTO_ESTADO_RESPONSABLE: Readonly<Record<EstadoActividad, string>> = {
-  pendiente: 'Pendiente',
-  en_revision: 'En revisión de RRHH',
-  aprobada: 'Aprobada',
-  rechazada: 'Rechazada',
-  vencida: 'Pendiente'
+const TEXTO_ESTADO_RESPONSABLE: Readonly<Record<EstadoActividadVista, string>> = {
+  PENDIENTE: 'Pendiente',
+  EN_REVISION: 'En revisión de RRHH',
+  ACEPTADA: 'Aprobada',
+  RECHAZADA: 'Rechazada',
+  NO_CUMPLIDA: 'No cumplida',
+  VENCIDA: 'Pendiente'
 };
 
 /** Resumen de la cabecera de Revisión de Evidencias. */
@@ -48,22 +51,24 @@ export interface GrupoResponsable {
 }
 
 /**
- * @param estado Estado de la actividad.
+ * @param estado Estado de la actividad (o `VENCIDA`, calculado con
+ * `estadoVistaActividad`).
  * @param vistaResponsable `true` en las pantallas del Responsable.
  * @returns Texto de la insignia de estado.
  * @author Elvis Flores
  */
-export function textoEstadoActividad(estado: EstadoActividad, vistaResponsable: boolean): string {
+export function textoEstadoActividad(estado: EstadoActividadVista, vistaResponsable: boolean): string {
   return (vistaResponsable ? TEXTO_ESTADO_RESPONSABLE : TEXTO_ESTADO_RRHH)[estado];
 }
 
 /**
  * @param plan Plan de accion.
- * @returns `true` si esta activo (con o sin actividades vencidas).
+ * @returns `true` si esta firmado, es decir en ejecucion (con o sin
+ * actividades vencidas).
  * @author Elvis Flores
  */
 export function esPlanActivo(plan: PlanAccion): boolean {
-  return plan.estado === 'activo' || plan.estado === 'activo_vencidas';
+  return plan.estado === 'FIRMADO';
 }
 
 /**
@@ -107,13 +112,13 @@ export function contarResumen(planes: readonly PlanAccion[], hoy: Date): Resumen
       const revisadaHoy = evidencia?.fechaRevision !== undefined
         && formatearFechaIso(new Date(evidencia.fechaRevision)) === diaHoy;
 
-      if (esPlanActivo(plan) && actividad.estado === 'en_revision') {
+      if (esPlanActivo(plan) && actividad.estado === 'EN_REVISION') {
         resumen.porRevisar++;
       }
-      if (revisadaHoy && evidencia?.estado === 'aprobada') {
+      if (revisadaHoy && evidencia?.estado === 'APROBADA') {
         resumen.aprobadasHoy++;
       }
-      if (revisadaHoy && evidencia?.estado === 'rechazada') {
+      if (revisadaHoy && evidencia?.estado === 'RECHAZADA') {
         resumen.rechazadasHoy++;
       }
     }

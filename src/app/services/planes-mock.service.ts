@@ -1,5 +1,18 @@
 import { Injectable, Injector, inject } from '@angular/core';
-import { Observable, defer, forkJoin, map, of, switchMap, throwError } from 'rxjs';
+import {
+  MonoTypeOperatorFunction,
+  Observable,
+  catchError,
+  defer,
+  forkJoin,
+  from,
+  map,
+  of,
+  pipe,
+  switchMap,
+  tap,
+  throwError
+} from 'rxjs';
 import {
   Actividad,
   Archivo,
@@ -8,17 +21,20 @@ import {
   PlanAccion,
   PlanDeResponsable
 } from '../models';
+import { textoParentesco } from '../utils/analisis.util';
 import { tipoDeEvidencia, validarDocumentoFirmado, validarEvidencia } from '../utils/documento.util';
 import { calcularFechaLimite, formatearFechaIso, parsearFecha } from '../utils/fechas.util';
 import { manejarError } from '../utils/manejar-error';
 import {
   actividadCompleta,
   derivarEstadoPlan,
+  estaVencida,
   hayPlanActivo,
   responsablesDelPlan
 } from '../utils/planes.util';
 import { RELOJ } from '../utils/reloj';
 import { esPlanActivo } from '../utils/revision.util';
+import { CONFLICTOS } from './mock-data/conflictos.data';
 import { PLANES } from './mock-data/planes.data';
 import { simularRespuesta } from './mock-data/simular-respuesta';
 import { NotificacionesMockService } from './notificaciones-mock.service';
@@ -44,7 +60,7 @@ export interface ResultadoEvidencia {
 }
 
 /** Estados de actividad que admiten subir (o volver a subir) evidencia. */
-export const ESTADOS_CON_SUBIDA: readonly EstadoActividad[] = ['pendiente', 'rechazada', 'vencida'];
+export const ESTADOS_CON_SUBIDA: readonly EstadoActividad[] = ['PENDIENTE', 'RECHAZADA'];
 
 /** Error: la actividad no es del usuario actual (o no existe). */
 export const ERROR_ACTIVIDAD_AJENA = 'Solo puedes subir evidencias de tus actividades.';
@@ -58,6 +74,34 @@ export const ERROR_ACTIVIDAD_SIN_SUBIDA =
 
 /** Mensaje si la subida de una evidencia falla por otra razon. */
 const ERROR_SUBIDA_EVIDENCIA = 'No se pudo subir la evidencia. Inténtalo de nuevo.';
+
+/** Resultado del cierre anticipado de un plan (`cerrarPlan`). */
+export interface ResultadoCierre {
+  /** Plan cerrado, o `null` si no se cerro. */
+  plan: PlanAccion | null;
+  /** Motivo por el que no se cerro, o `null` si se cerro. */
+  error: string | null;
+}
+
+/** Error: cierre anticipado sin motivo. */
+export const ERROR_MOTIVO_CIERRE = 'El motivo del cierre es obligatorio.';
+
+/** Error: solo se cierra anticipadamente un plan firmado. */
+export const ERROR_CIERRE_NO_FIRMADO = 'Solo se cierra anticipadamente un plan firmado (en ejecución).';
+
+/** Error: el plan tiene una evidencia esperando revision. */
+export const ERROR_CIERRE_EN_REVISION =
+  'Hay una evidencia por revisar: apruébala o recházala antes de cerrar el plan.';
+
+/** Error: ninguna actividad esta vencida. */
+export const ERROR_CIERRE_SIN_VENCIDAS =
+  'El plan solo se cierra anticipadamente cuando al menos una actividad tiene el plazo vencido.';
+
+/** Mensaje si el cierre falla por otra razon. */
+export const ERROR_CIERRE = 'No se pudo cerrar el plan. Inténtalo de nuevo.';
+
+/** Mensaje generico de una accion que fallo sin motivo conocido. */
+const ERROR_ACCION = 'No se pudo completar la acción. Inténtalo de nuevo.';
 
 /**
  * Planes de accion con datos simulados. Se sustituira por un servicio HTTP
@@ -74,6 +118,16 @@ const ERROR_SUBIDA_EVIDENCIA = 'No se pudo subir la evidencia. Inténtalo de nue
   providedIn: 'root'
 })
 export class PlanesMockService {
+  /**
+   * Motivo del ultimo fallo de una accion que devuelve `null`
+   * (`guardarBorrador`, `enviarYNotificar`, `aprobarEvidencia`...), para que
+   * la pantalla pueda mostrar por que no se pudo. Vuelve a `null` cuando una
+   * de esas acciones sale bien.
+   *
+   * @author Integración backend
+   */
+  ultimoError: string | null = null;
+
   /** Planes en memoria. */
   private readonly planes: PlanAccion[] = structuredClone([...PLANES]);
 
@@ -188,7 +242,7 @@ export class PlanesMockService {
    * - Si no, actualiza el plan existente, que debe seguir en borrador.
    *
    * Las actividades sin id reciben uno. Solo acepta planes en estado
-   * `borrador`.
+   * `BORRADOR`.
    *
    * @param plan Plan a guardar.
    * @returns El plan guardado (con id y numero), o `null` si no se pudo
@@ -200,7 +254,7 @@ export class PlanesMockService {
       const guardado = structuredClone(plan);
       let indice = -1;
 
-      if (plan.estado !== 'borrador') {
+      if (plan.estado !== 'BORRADOR') {
         return throwError(() => new Error('Solo se guardan planes en borrador.'));
       }
 
@@ -217,7 +271,7 @@ export class PlanesMockService {
         if (indice < 0) {
           return throwError(() => new Error('No existe el plan ' + guardado.id + '.'));
         }
-        if (this.planes[indice].estado !== 'borrador') {
+        if (this.planes[indice].estado !== 'BORRADOR') {
           return throwError(() => new Error('El plan ' + guardado.id + ' ya no es un borrador.'));
         }
         guardado.numero = this.planes[indice].numero;
@@ -240,13 +294,13 @@ export class PlanesMockService {
 
       return simularRespuesta(guardado);
     }).pipe(
-      manejarError<PlanAccion | null>('PlanesMockService.guardarBorrador', null)
+      this.fallar<PlanAccion | null>('PlanesMockService.guardarBorrador', null)
     );
   }
 
   /**
    * Sube (o reemplaza) el documento firmado de un plan en borrador. Valida
-   * que sea PDF y que no supere 10 MB (`validarDocumentoFirmado`).
+   * que sea PDF y que no supere 5 MB (`validarDocumentoFirmado`).
    * Guarda nombre, tipo, fecha de subida y una URL local
    * (`URL.createObjectURL`) para poder verlo; si habia uno, libera su URL.
    *
@@ -262,7 +316,7 @@ export class PlanesMockService {
       if (plan === undefined) {
         return throwError(() => new Error('No existe el plan ' + planId + '.'));
       }
-      if (plan.estado !== 'borrador') {
+      if (plan.estado !== 'BORRADOR') {
         return simularRespuesta<ResultadoDocumento>({
           plan: null,
           error: 'Solo se puede subir el documento a un plan en borrador.'
@@ -299,7 +353,7 @@ export class PlanesMockService {
     return defer(() => {
       const plan = this.planes.find((p) => p.id === planId);
 
-      if (plan === undefined || plan.estado !== 'borrador') {
+      if (plan === undefined || plan.estado !== 'BORRADOR') {
         return throwError(() => new Error('El plan ' + planId + ' no existe o no está en borrador.'));
       }
 
@@ -307,7 +361,7 @@ export class PlanesMockService {
       delete plan.documentoFirmado;
       return simularRespuesta(plan);
     }).pipe(
-      manejarError<PlanAccion | null>('PlanesMockService.quitarDocumentoFirmado', null)
+      this.fallar<PlanAccion | null>('PlanesMockService.quitarDocumentoFirmado', null)
     );
   }
 
@@ -321,8 +375,8 @@ export class PlanesMockService {
    *   servidor al recibir el envio; aqui se toma del reloj de la app
    *   (`RELOJ`);
    * - calcula la fecha limite de cada actividad (`calcularFechaLimite`) y
-   *   las deja en `pendiente`;
-   * - deja el plan en `activo`;
+   *   las deja en `PENDIENTE`;
+   * - deja el plan en `FIRMADO`;
    * - agrega una notificacion por cada responsable distinto, con su id.
    *
    * @param planId Id del plan.
@@ -333,7 +387,7 @@ export class PlanesMockService {
       const plan = this.planes.find((p) => p.id === planId);
       let fechaInicio = '';
 
-      if (plan === undefined || plan.estado !== 'borrador') {
+      if (plan === undefined || plan.estado !== 'BORRADOR') {
         return throwError(() => new Error('El plan ' + planId + ' no existe o no está en borrador.'));
       }
       if (!plan.documentoFirmado) {
@@ -345,10 +399,10 @@ export class PlanesMockService {
 
       fechaInicio = formatearFechaIso(this.reloj());
       plan.fechaInicio = fechaInicio;
-      plan.estado = 'activo';
+      plan.estado = 'FIRMADO';
       plan.actividades = plan.actividades.map((actividad) => ({
         ...actividad,
-        estado: 'pendiente',
+        estado: 'PENDIENTE',
         fechaLimite: formatearFechaIso(parsearFecha(
           calcularFechaLimite(fechaInicio, actividad.plazoMeses, actividad.plazoDias)
         ))
@@ -358,17 +412,17 @@ export class PlanesMockService {
         switchMap(() => simularRespuesta(plan))
       );
     }).pipe(
-      manejarError<PlanAccion | null>('PlanesMockService.enviarYNotificar', null)
+      this.fallar<PlanAccion | null>('PlanesMockService.enviarYNotificar', null)
     );
   }
 
   /**
    * Aprueba la evidencia de una actividad en revision.
    *
-   * La actividad pasa a `aprobada` y la evidencia guarda quien la reviso
+   * La actividad pasa a `ACEPTADA` y la evidencia guarda quien la reviso
    * (nombre del usuario actual) y cuando (`RELOJ`). Avisa al responsable
    * («Evidencia aprobada»). Si era la ultima pendiente, el plan se cierra
-   * solo: estado `cerrado`, fecha de cierre hoy y aviso a RRHH («Plan de
+   * solo: estado `CERRADO`, fecha de cierre hoy y aviso a RRHH («Plan de
    * acción cerrado»). El estado del plan siempre sale de
    * `derivarEstadoPlan`.
    *
@@ -385,8 +439,8 @@ export class PlanesMockService {
         return throwError(() => new Error('La actividad ' + actividadId + ' no tiene evidencia.'));
       }
 
-      actividad.estado = 'aprobada';
-      evidencia.estado = 'aprobada';
+      actividad.estado = 'ACEPTADA';
+      evidencia.estado = 'APROBADA';
       evidencia.revisadoPor = this.nombreRevisor();
       evidencia.fechaRevision = this.reloj().toISOString();
       delete evidencia.motivoRechazo;
@@ -398,13 +452,13 @@ export class PlanesMockService {
       }
       return this.notificarYResponder(plan, avisos);
     }).pipe(
-      manejarError<PlanAccion | null>('PlanesMockService.aprobarEvidencia', null)
+      this.fallar<PlanAccion | null>('PlanesMockService.aprobarEvidencia', null)
     );
   }
 
   /**
    * Rechaza la evidencia de una actividad en revision. El motivo es
-   * obligatorio (no vacio). La actividad pasa a `rechazada` y la evidencia
+   * obligatorio (no vacio). La actividad pasa a `RECHAZADA` y la evidencia
    * guarda el motivo, quien la reviso y cuando. Avisa al responsable
    * («Evidencia rechazada», con el motivo) para que la vuelva a subir.
    *
@@ -426,8 +480,8 @@ export class PlanesMockService {
         return throwError(() => new Error('La actividad ' + actividadId + ' no tiene evidencia.'));
       }
 
-      actividad.estado = 'rechazada';
-      evidencia.estado = 'rechazada';
+      actividad.estado = 'RECHAZADA';
+      evidencia.estado = 'RECHAZADA';
       evidencia.motivoRechazo = texto;
       evidencia.revisadoPor = this.nombreRevisor();
       evidencia.fechaRevision = this.reloj().toISOString();
@@ -436,56 +490,17 @@ export class PlanesMockService {
       return this.notificarYResponder(plan, [this.avisoAlResponsable(plan, actividad,
         'Evidencia rechazada', 'fue rechazada: ' + texto + ' Vuelve a subirla.', 'rechazo')]);
     }).pipe(
-      manejarError<PlanAccion | null>('PlanesMockService.rechazarEvidencia', null)
+      this.fallar<PlanAccion | null>('PlanesMockService.rechazarEvidencia', null)
     );
   }
 
-  /**
-   * Deshace la revision de una actividad aprobada o rechazada: vuelve a
-   * `en_revision` y se borran el resultado, el motivo, quien la reviso y
-   * cuando. Si el plan se habia cerrado, vuelve a estar activo y se borra
-   * su fecha de cierre.
-   *
-   * @param planId Id del plan.
-   * @param actividadId Id de la actividad.
-   * @returns El plan actualizado, o `null` si no se pudo deshacer.
-   */
-  deshacerRevision(planId: string, actividadId: string): Observable<PlanAccion | null> {
-    return defer(() => {
-      const plan = this.planes.find((p) => p.id === planId);
-      const actividad = plan?.actividades.find((a) => a.id === actividadId);
-      const evidencia = actividad?.evidencia;
-
-      if (plan === undefined || actividad === undefined || plan.estado === 'borrador') {
-        return throwError(() => new Error('No existe la actividad ' + actividadId + ' en un plan enviado.'));
-      }
-      if ((actividad.estado !== 'aprobada' && actividad.estado !== 'rechazada') || evidencia === undefined) {
-        return throwError(() => new Error('La actividad ' + actividadId + ' no tiene una revisión que deshacer.'));
-      }
-
-      actividad.estado = 'en_revision';
-      evidencia.estado = 'pendiente';
-      delete evidencia.motivoRechazo;
-      delete evidencia.revisadoPor;
-      delete evidencia.fechaRevision;
-      this.recalcularEstado(plan);
-
-      return simularRespuesta(plan);
-    }).pipe(
-      manejarError<PlanAccion | null>('PlanesMockService.deshacerRevision', null)
-    );
-  }
-
-  /**
-   * @returns Siguiente id libre de plan (`PL-008`, `PL-009`...).
-   */
   /**
    * El responsable sube la evidencia de una de sus actividades.
    *
    * - Solo el responsable de la actividad (usuario actual), con el plan
    *   activo y la actividad pendiente, rechazada o vencida. En revision o
    *   aprobada no admite otra.
-   * - PDF, PNG o JPG de hasta 10 MB (`validarEvidencia`).
+   * - PDF, PNG o JPG de hasta 5 MB (`validarEvidencia`).
    * - Una sola evidencia por actividad: reemplaza la rechazada (y libera
    *   su URL local). La actividad pasa a «en revisión» y el estado del plan
    *   se recalcula (una vencida deja de contar).
@@ -532,12 +547,17 @@ export class PlanesMockService {
       };
 
       // La rechazada se guarda para el Historial; la vigente es la nueva.
-      if (actividad.evidencia?.estado === 'rechazada') {
+      if (actividad.evidencia?.estado === 'RECHAZADA') {
         actividad.evidenciasAnteriores = [...(actividad.evidenciasAnteriores ?? []), actividad.evidencia];
       }
       this.liberarUrl(actividad.evidencia?.archivo.url);
-      actividad.evidencia = { archivo: nuevo, fechaSubida: ahora, estado: 'pendiente' };
-      actividad.estado = 'en_revision';
+      actividad.evidencia = {
+        id: this.siguienteIdEvidencia(),
+        archivo: nuevo,
+        fechaSubida: ahora,
+        estado: 'PENDIENTE'
+      };
+      actividad.estado = 'EN_REVISION';
       this.recalcularEstado(plan);
 
       return forkJoin([
@@ -552,6 +572,132 @@ export class PlanesMockService {
     );
   }
 
+  /**
+   * Cierre anticipado: RRHH da por terminado un plan firmado que no se
+   * cumplio. Mismas reglas que el backend (`POST /planes/{id}/cerrar`):
+   * motivo obligatorio, plan `FIRMADO`, ninguna actividad `EN_REVISION` y
+   * al menos una vencida. Las actividades no aceptadas quedan
+   * `NO_CUMPLIDA`; el plan, `CERRADO` (`ANTICIPADO`) con el motivo y la
+   * fecha de hoy.
+   *
+   * El backend devuelve ademas el conflicto a `EN_PLANIFICACION`; este mock
+   * no guarda el estado de los conflictos (tampoco lo cambia al enviar ni
+   * al aprobar), asi que eso no se simula.
+   *
+   * @param planId Id del plan.
+   * @param motivo Motivo del cierre.
+   * @returns El plan cerrado, o el motivo por el que no se cerro.
+   * @author Integración backend
+   */
+  cerrarPlan(planId: string, motivo: string): Observable<ResultadoCierre> {
+    return defer(() => {
+      const texto = (motivo ?? '').trim();
+      const plan = this.planes.find((p) => p.id === planId);
+      const hoy = this.reloj();
+      let error: string | null = null;
+
+      if (plan === undefined) {
+        return throwError(() => new Error('No existe el plan ' + planId + '.'));
+      }
+      if (texto === '') {
+        error = ERROR_MOTIVO_CIERRE;
+      } else if (plan.estado !== 'FIRMADO') {
+        error = ERROR_CIERRE_NO_FIRMADO;
+      } else if (plan.actividades.some((a) => a.estado === 'EN_REVISION')) {
+        error = ERROR_CIERRE_EN_REVISION;
+      } else if (!plan.actividades.some((a) => estaVencida(a, hoy))) {
+        error = ERROR_CIERRE_SIN_VENCIDAS;
+      }
+      if (error !== null) {
+        return simularRespuesta<ResultadoCierre>({ plan: null, error });
+      }
+
+      plan.actividades = plan.actividades.map((a) => a.estado === 'ACEPTADA' ? a : { ...a, estado: 'NO_CUMPLIDA' });
+      plan.estado = 'CERRADO';
+      plan.tipoCierre = 'ANTICIPADO';
+      plan.motivoCierre = texto;
+      plan.fechaCierre = formatearFechaIso(hoy);
+      return simularRespuesta<ResultadoCierre>({ plan, error: null });
+    }).pipe(
+      manejarError<ResultadoCierre>('PlanesMockService.cerrarPlan', { plan: null, error: ERROR_CIERRE })
+    );
+  }
+
+  /**
+   * Contenido del documento firmado de un plan. Si se subio en esta sesion
+   * (URL `blob:`) se lee de ahi; los datos de ejemplo no tienen contenido
+   * real y devuelven un texto de relleno.
+   *
+   * @param planId Id del plan.
+   * @returns El archivo, o `null` si el plan no tiene documento o falla.
+   * @author Integración backend
+   */
+  obtenerDocumentoPlan(planId: string): Observable<Blob | null> {
+    const archivo = this.planes.find((p) => p.id === planId)?.documentoFirmado;
+
+    return this.contenidoSimulado(archivo).pipe(
+      manejarError<Blob | null>('PlanesMockService.obtenerDocumentoPlan', null)
+    );
+  }
+
+  /**
+   * Contenido del archivo de una evidencia (vigente o anterior). Igual que
+   * `obtenerDocumentoPlan`: `blob:` de esta sesion o texto de relleno.
+   *
+   * @param evidenciaId Id de la evidencia.
+   * @returns El archivo, o `null` si no existe o falla.
+   * @author Integración backend
+   */
+  obtenerArchivoEvidencia(evidenciaId: string): Observable<Blob | null> {
+    const evidencia = this.planes
+      .flatMap((p) => p.actividades)
+      .flatMap((a) => [...(a.evidenciasAnteriores ?? []), ...(a.evidencia ? [a.evidencia] : [])])
+      .find((e) => e.id === evidenciaId);
+
+    return this.contenidoSimulado(evidencia?.archivo).pipe(
+      manejarError<Blob | null>('PlanesMockService.obtenerArchivoEvidencia', null)
+    );
+  }
+
+  /**
+   * @param archivo Archivo del modelo.
+   * @returns Su contenido (`blob:` local) o un texto de relleno; `null` si
+   * no hay archivo.
+   */
+  private contenidoSimulado(archivo: Archivo | undefined): Observable<Blob | null> {
+    if (archivo === undefined) {
+      return simularRespuesta<Blob | null>(null);
+    }
+    if (archivo.url.startsWith('blob:')) {
+      return from(fetch(archivo.url).then((r) => r.blob()));
+    }
+
+    return simularRespuesta<Blob | null>(new Blob(['Archivo simulado: ' + archivo.nombre], { type: 'text/plain' }));
+  }
+
+  /**
+   * Manejo de error de las acciones que devuelven `null` al fallar: guarda
+   * el motivo en `ultimoError` (o lo limpia si salio bien), lo registra y
+   * emite `valor`.
+   *
+   * @param origen `Clase.metodo`, para el log.
+   * @param valor Valor que se emite si falla.
+   * @returns Operador.
+   */
+  private fallar<T>(origen: string, valor: T): MonoTypeOperatorFunction<T> {
+    return pipe(
+      tap(() => this.ultimoError = null),
+      catchError((err: unknown) => {
+        this.ultimoError = err instanceof Error && err.message !== '' ? err.message : ERROR_ACCION;
+        console.error('[' + origen + ']', this.ultimoError, err);
+        return of(valor);
+      })
+    );
+  }
+
+  /**
+   * @returns Siguiente id libre de plan (`PL-008`, `PL-009`...).
+   */
   private siguienteIdPlan(): string {
     return 'PL-' + String(this.mayorNumero(this.planes.map((p) => p.id)) + 1).padStart(3, '0');
   }
@@ -564,6 +710,18 @@ export class PlanesMockService {
 
     this.ultimoIdActividad = Math.max(this.ultimoIdActividad, this.mayorNumero(ids)) + 1;
     return 'A-' + String(this.ultimoIdActividad).padStart(3, '0');
+  }
+
+  /**
+   * @returns Siguiente id libre de evidencia (`EV-014`...).
+   */
+  private siguienteIdEvidencia(): string {
+    const ids = this.planes.flatMap((p) => p.actividades.flatMap((a) => [
+      ...(a.evidenciasAnteriores ?? []),
+      ...(a.evidencia ? [a.evidencia] : [])
+    ].map((e) => e.id)));
+
+    return 'EV-' + String(this.mayorNumero(ids) + 1).padStart(3, '0');
   }
 
   /**
@@ -626,7 +784,7 @@ export class PlanesMockService {
     if (plan === undefined || actividad === undefined) {
       throw new Error('No existe la actividad ' + actividadId + ' en el plan ' + planId + '.');
     }
-    if (actividad.estado !== 'en_revision') {
+    if (actividad.estado !== 'EN_REVISION') {
       throw new Error('La actividad ' + actividadId + ' no está en revisión.');
     }
 
@@ -645,12 +803,14 @@ export class PlanesMockService {
     const antes = plan.estado;
 
     plan.estado = derivarEstadoPlan(plan.actividades, plan.fechaInicio);
-    if (plan.estado === 'cerrado' && antes !== 'cerrado') {
+    if (plan.estado === 'CERRADO' && antes !== 'CERRADO') {
       plan.fechaCierre = formatearFechaIso(this.reloj());
+      plan.tipoCierre = 'CUMPLIDO';
       return true;
     }
-    if (plan.estado !== 'cerrado') {
+    if (plan.estado !== 'CERRADO') {
       delete plan.fechaCierre;
+      delete plan.tipoCierre;
     }
 
     return false;
@@ -666,19 +826,31 @@ export class PlanesMockService {
    * al menos una actividad suya.
    */
   private esVisibleParaResponsable(plan: PlanAccion, empleadoId: string): boolean {
-    return plan.estado !== 'borrador'
+    return plan.estado !== 'BORRADOR'
       && plan.actividades.some((a) => a.responsableId === empleadoId);
   }
 
   /**
+   * Arma la vista del responsable con los datos del caso que trae la
+   * bandeja del backend (`NOMBRE_A`, `NOMBRE_B`, `PARENTESCO`, `RIESGO`);
+   * aqui salen de los conflictos de ejemplo, sin pedir `/conflictos` (el
+   * rol P no puede).
+   *
    * @param plan Plan completo.
    * @param empleadoId Id del empleado.
-   * @returns El plan con solo las actividades del empleado y el total.
+   * @returns El plan con solo las actividades del empleado, el total y el
+   * caso.
    */
   private vistaDeResponsable(plan: PlanAccion, empleadoId: string): PlanDeResponsable {
+    const conflicto = CONFLICTOS.find((c) => c.id === plan.conflictoId);
+
     return {
       plan: { ...plan, actividades: plan.actividades.filter((a) => a.responsableId === empleadoId) },
-      totalActividades: plan.actividades.length
+      totalActividades: plan.actividades.length,
+      nombreA: conflicto?.personaA.nombres ?? '',
+      nombreB: conflicto?.personaB.nombres ?? '',
+      parentesco: conflicto ? textoParentesco(conflicto) : '',
+      riesgo: conflicto?.riesgo ?? null
     };
   }
 

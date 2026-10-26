@@ -1,11 +1,13 @@
 import {
   Clasificacion,
-  EstadoActividad,
   EstadoAnalisis,
   EstadoPlan,
+  EstadoSeguimiento,
   Notificacion,
-  Riesgo
+  Riesgo,
+  TipoCierre
 } from '../models';
+import { EstadoActividadVista } from './planes.util';
 
 /**
  * Tonos visuales del sistema de diseno. Cada uno tiene tres variables CSS
@@ -14,12 +16,12 @@ import {
  *
  * | Tono      | Significado                                  |
  * |-----------|----------------------------------------------|
- * | `rojo`    | Riesgo alto, vencido, «con vencidas»         |
+ * | `rojo`    | Riesgo alto o critico, vencido, «con vencidas» |
  * | `ambar`   | Riesgo moderado, pendiente, borrador         |
  * | `verde`   | Riesgo bajo, aprobado, cumplido, cerrado     |
  * | `azul`    | Activo, en ejecucion, informacion            |
  * | `naranja` | Rechazado                                    |
- * | `gris`    | En revision, homonimo, ninguno               |
+ * | `gris`    | En revision, homonimo, no cumplida           |
  *
  * La tabla es fija del sistema de diseno, por eso vive en codigo.
  *
@@ -29,27 +31,27 @@ export type Tono = 'rojo' | 'ambar' | 'verde' | 'azul' | 'naranja' | 'gris';
 
 /** Tono de cada nivel de riesgo. */
 const TONO_RIESGO: Readonly<Record<Riesgo, Tono>> = {
-  alto: 'rojo',
-  medio: 'ambar',
-  bajo: 'verde',
-  ninguno: 'gris'
+  CRITICO: 'rojo',
+  ALTO: 'rojo',
+  MEDIO: 'ambar',
+  BAJO: 'verde'
 };
 
 /** Tono de cada estado de plan. */
 const TONO_ESTADO_PLAN: Readonly<Record<EstadoPlan, Tono>> = {
-  borrador: 'ambar',
-  activo: 'azul',
-  activo_vencidas: 'rojo',
-  cerrado: 'verde'
+  BORRADOR: 'ambar',
+  FIRMADO: 'azul',
+  CERRADO: 'verde'
 };
 
-/** Tono de cada estado de actividad (igual en ambas vistas, salvo `vencida`). */
-const TONO_ESTADO_ACTIVIDAD: Readonly<Record<EstadoActividad, Tono>> = {
-  pendiente: 'ambar',
-  en_revision: 'gris',
-  aprobada: 'verde',
-  rechazada: 'naranja',
-  vencida: 'rojo'
+/** Tono de cada estado de actividad (igual en ambas vistas, salvo `VENCIDA`). */
+const TONO_ESTADO_ACTIVIDAD: Readonly<Record<EstadoActividadVista, Tono>> = {
+  PENDIENTE: 'ambar',
+  EN_REVISION: 'gris',
+  ACEPTADA: 'verde',
+  RECHAZADA: 'naranja',
+  NO_CUMPLIDA: 'gris',
+  VENCIDA: 'rojo'
 };
 
 /** Tono del punto de color de cada tipo de notificacion. */
@@ -63,8 +65,7 @@ const TONO_NOTIFICACION: Readonly<Record<Notificacion['tipo'], Tono>> = {
 
 /**
  * @param riesgo Nivel de riesgo de un conflicto.
- * @returns `alto` → rojo, `medio` → ambar, `bajo` → verde,
- * `ninguno` → gris.
+ * @returns `CRITICO` y `ALTO` → rojo, `MEDIO` → ambar, `BAJO` → verde.
  */
 export function mapearRiesgoATono(riesgo: Riesgo): Tono {
   return TONO_RIESGO[riesgo];
@@ -72,11 +73,63 @@ export function mapearRiesgoATono(riesgo: Riesgo): Tono {
 
 /**
  * @param estado Estado de un plan de accion.
- * @returns `borrador` → ambar, `activo` → azul, `activo_vencidas` → rojo,
- * `cerrado` → verde.
+ * @param conVencidas `true` si el plan tiene actividades vencidas (ver
+ * `tieneActividadesVencidas`); solo afecta a `FIRMADO`.
+ * @param tipoCierre Como se cerro (`PlanAccion.tipoCierre`); solo afecta a
+ * `CERRADO`.
+ * @returns `BORRADOR` → ambar, `FIRMADO` → azul (rojo con vencidas),
+ * `CERRADO` → verde (gris si fue un cierre `ANTICIPADO`: no se cumplio).
  */
-export function mapearEstadoPlanATono(estado: EstadoPlan): Tono {
-  return TONO_ESTADO_PLAN[estado];
+export function mapearEstadoPlanATono(
+  estado: EstadoPlan,
+  conVencidas = false,
+  tipoCierre?: TipoCierre
+): Tono {
+  if (estado === 'CERRADO' && tipoCierre === 'ANTICIPADO') {
+    return 'gris';
+  }
+
+  return estado === 'FIRMADO' && conVencidas ? 'rojo' : TONO_ESTADO_PLAN[estado];
+}
+
+/** Texto de cada estado de seguimiento de un conflicto. */
+const TEXTO_ESTADO_SEGUIMIENTO: Readonly<Record<EstadoSeguimiento, string>> = {
+  DETECTADO: 'Detectado',
+  EN_ANALISIS: 'En análisis',
+  EN_PLANIFICACION: 'En planificación',
+  EN_EJECUCION: 'En ejecución',
+  FINALIZADO: 'Finalizado',
+  DESCARTADO: 'Descartado'
+};
+
+/** Tono de cada estado de seguimiento de un conflicto. */
+const TONO_ESTADO_SEGUIMIENTO: Readonly<Record<EstadoSeguimiento, Tono>> = {
+  DETECTADO: 'ambar',
+  EN_ANALISIS: 'ambar',
+  EN_PLANIFICACION: 'ambar',
+  EN_EJECUCION: 'azul',
+  FINALIZADO: 'verde',
+  DESCARTADO: 'gris'
+};
+
+/**
+ * @param estado Estado de seguimiento de un conflicto (`Conflicto.estado`).
+ * @returns Texto de la insignia («En ejecución», «Finalizado»...).
+ * @author Integración backend
+ */
+export function textoEstadoSeguimiento(estado: EstadoSeguimiento): string {
+  return TEXTO_ESTADO_SEGUIMIENTO[estado] ?? estado;
+}
+
+/**
+ * @param estado Estado de seguimiento de un conflicto.
+ * @returns `DETECTADO`, `EN_ANALISIS` y `EN_PLANIFICACION` → ambar (falta
+ * algo de RRHH), `EN_EJECUCION` → azul, `FINALIZADO` → verde,
+ * `DESCARTADO` → gris.
+ * @author Integración backend
+ */
+export function mapearEstadoSeguimientoATono(estado: EstadoSeguimiento): Tono {
+  return TONO_ESTADO_SEGUIMIENTO[estado] ?? 'gris';
 }
 
 /**
@@ -85,11 +138,15 @@ export function mapearEstadoPlanATono(estado: EstadoPlan): Tono {
  *
  * | Estado        | Vista RRHH (texto)       | Vista Responsable (texto) | Tono |
  * |---------------|--------------------------|---------------------------|------|
- * | `pendiente`   | Pendiente de evidencia   | Pendiente                 | ambar |
- * | `en_revision` | En revision              | En revision de RRHH       | gris |
- * | `aprobada`    | Aprobada · Cumplida      | Aprobada                  | verde |
- * | `rechazada`   | Rechazada                | Rechazada                 | naranja |
- * | `vencida`     | Vencida                  | (Pendiente)               | rojo / ambar |
+ * | `PENDIENTE`   | Pendiente de evidencia   | Pendiente                 | ambar |
+ * | `EN_REVISION` | En revision              | En revision de RRHH       | gris |
+ * | `ACEPTADA`    | Aprobada · Cumplida      | Aprobada                  | verde |
+ * | `RECHAZADA`   | Rechazada                | Rechazada                 | naranja |
+ * | `NO_CUMPLIDA` | No cumplida              | No cumplida               | gris |
+ * | `VENCIDA`     | Vencida                  | (Pendiente)               | rojo / ambar |
+ *
+ * `VENCIDA` no es un estado del backend: es el estado de presentacion que
+ * da `estadoVistaActividad`.
  *
  * DECISION: la vista del Responsable no tiene el estado «Vencida»; una
  * actividad vencida se le muestra como «Pendiente» (sigue teniendo que
@@ -98,16 +155,16 @@ export function mapearEstadoPlanATono(estado: EstadoPlan): Tono {
  * (`calcularDiasRestantes`), no con la insignia de estado. PENDIENTE de
  * confirmar con la especificacion.
  *
- * @param estado Estado interno de la actividad.
+ * @param estado Estado de la actividad (o `VENCIDA`, calculado).
  * @param vistaResponsable `true` en las pantallas del Responsable.
  * @returns Tono de la insignia de estado.
  */
 export function mapearEstadoActividadATono(
-  estado: EstadoActividad,
+  estado: EstadoActividadVista,
   vistaResponsable: boolean
 ): Tono {
-  if (vistaResponsable && estado === 'vencida') {
-    return TONO_ESTADO_ACTIVIDAD.pendiente;
+  if (vistaResponsable && estado === 'VENCIDA') {
+    return TONO_ESTADO_ACTIVIDAD.PENDIENTE;
   }
 
   return TONO_ESTADO_ACTIVIDAD[estado];
@@ -124,29 +181,33 @@ export function mapearTipoNotificacionATono(tipo: Notificacion['tipo']): Tono {
 
 /** Tono de cada clasificacion de un caso del analisis. */
 const TONO_CLASIFICACION: Readonly<Record<Clasificacion, Tono>> = {
-  pendiente: 'ambar',
-  confirmado: 'azul',
-  homonimo: 'gris'
+  D: 'azul',
+  N: 'azul',
+  H: 'gris'
 };
+
+/** Tono de un caso sin clasificar. */
+const TONO_SIN_CLASIFICAR: Tono = 'ambar';
 
 /** Tono de cada estado del analisis. */
 const TONO_ESTADO_ANALISIS: Readonly<Record<EstadoAnalisis, Tono>> = {
-  borrador: 'ambar',
-  validado: 'verde'
+  BORRADOR: 'ambar',
+  VALIDADO: 'verde'
 };
 
 /**
- * @param clasificacion Clasificacion de un caso del analisis.
- * @returns `pendiente` → ambar, `confirmado` → azul, `homonimo` → gris.
+ * @param clasificacion Clasificacion de un caso, o `null` si esta sin
+ * clasificar.
+ * @returns `null` → ambar, `D` y `N` → azul, `H` → gris.
  * @author Elvis Flores
  */
-export function mapearClasificacionATono(clasificacion: Clasificacion): Tono {
-  return TONO_CLASIFICACION[clasificacion];
+export function mapearClasificacionATono(clasificacion: Clasificacion | null): Tono {
+  return clasificacion === null ? TONO_SIN_CLASIFICAR : TONO_CLASIFICACION[clasificacion];
 }
 
 /**
  * @param estado Estado del analisis de conflictos.
- * @returns `borrador` → ambar, `validado` → verde.
+ * @returns `BORRADOR` → ambar, `VALIDADO` → verde.
  * @author Elvis Flores
  */
 export function mapearEstadoAnalisisATono(estado: EstadoAnalisis): Tono {

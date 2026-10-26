@@ -1,17 +1,24 @@
 import { TestBed } from '@angular/core/testing';
 import { Actividad } from '../../models';
+import { RELOJ } from '../../utils/reloj';
 import { BarraAvanceComponent } from './barra-avance.component';
 
 describe('BarraAvanceComponent', () => {
+  const HOY = new Date(2026, 9, 2, 10, 0);
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({ providers: [{ provide: RELOJ, useValue: () => new Date(HOY) }] });
+  });
+
   /**
    * @param id Id.
    * @param estado Estado.
    * @returns Actividad de prueba.
    */
-  function act(id: string, estado: Actividad['estado']): Actividad {
+  function act(id: string, estado: Actividad['estado'], fechaLimite?: string): Actividad {
     return {
       id, descripcion: 'Actividad ' + id, responsableId: 'E', responsableNombre: 'E',
-      plazoMeses: 1, plazoDias: 0, estado
+      plazoMeses: 1, plazoDias: 0, estado, fechaLimite
     };
   }
 
@@ -30,7 +37,7 @@ describe('BarraAvanceComponent', () => {
   }
 
   it('un segmento por actividad, coloreado por estado, con tooltip y texto accesible', () => {
-    const raiz = crear([act('1', 'aprobada'), act('2', 'vencida'), act('3', 'en_revision')]);
+    const raiz = crear([act('1', 'ACEPTADA'), act('2', 'PENDIENTE', '2026-09-01'), act('3', 'EN_REVISION')]);
     const segmentos = Array.from(raiz.querySelectorAll('.segmento'));
 
     expect(segmentos.map((s) => s.className.replace('segmento ', ''))).toEqual(['segmento--verde', 'segmento--rojo', 'segmento--gris']);
@@ -41,7 +48,7 @@ describe('BarraAvanceComponent', () => {
   });
 
   it('en la vista del Responsable una vencida se muestra como Pendiente', () => {
-    const raiz = crear([act('1', 'vencida')], true);
+    const raiz = crear([act('1', 'PENDIENTE', '2026-09-01')], true);
 
     expect(raiz.querySelector('.segmento')?.getAttribute('title')).toBe('Actividad 1 · Pendiente');
     expect(raiz.querySelector('.segmento')?.classList).toContain('segmento--ambar');

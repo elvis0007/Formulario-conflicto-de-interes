@@ -1,8 +1,7 @@
 import { Injectable, inject } from '@angular/core';
-import { Observable, defer, throwError } from 'rxjs';
+import { Observable, catchError, defer, of, tap, throwError } from 'rxjs';
 import { ConsultaPrevia, DatosCandidato } from '../models';
 import { buscarCoincidencias, validarDatosCandidato } from '../utils/consulta-previa.util';
-import { manejarError } from '../utils/manejar-error';
 import { RELOJ } from '../utils/reloj';
 import { FORMULARIOS } from './mock-data/formularios.data';
 import { PERSONAS } from './mock-data/personas.data';
@@ -13,9 +12,10 @@ import { simularRespuesta } from './mock-data/simular-respuesta';
  *
  * Es INFORMATIVA: no crea un caso en el analisis ni un plan de accion.
  * Busca contra los empleados de ejemplo y sus formularios declarados
- * (`buscarCoincidencias`) y guarda en memoria las consultas de la sesion.
+ * (`buscarCoincidencias`). Como el backend, no guarda las consultas.
+ * Exige lo mismo que el backend: cedula, un nombre y un apellido.
  *
- * Con el backend: `GET /consulta-previa?cedula&nombres&apellidos`.
+ * Con el backend: `POST /consultas-previas`.
  *
  * @author Elvis Flores
  */
@@ -23,8 +23,11 @@ import { simularRespuesta } from './mock-data/simular-respuesta';
   providedIn: 'root'
 })
 export class ConsultaPreviaMockService {
-  /** Consultas de la sesion, de la mas reciente a la mas antigua. */
-  private readonly consultas: ConsultaPrevia[] = [];
+  /**
+   * Motivo del ultimo fallo de `consultarCandidato` (el `mensaje` del
+   * backend en la version HTTP). `null` si la ultima salio bien.
+   */
+  ultimoError: string | null = null;
 
   /** Correlativo de las consultas (CP-001...). */
   private correlativo = 0;
@@ -33,11 +36,11 @@ export class ConsultaPreviaMockService {
 
   /**
    * Consulta si un candidato tiene posibles parientes entre los empleados.
-   * Exige la cedula (10 digitos) o nombres y apellidos.
+   * Exige la cedula (10 digitos), un nombre y un apellido.
    *
    * @param datos Datos del candidato.
    * @returns La consulta con sus coincidencias, o `null` si los datos no
-   * son validos o si falla.
+   * son validos o si falla (el motivo queda en `ultimoError`).
    * @author Elvis Flores
    */
   consultarCandidato(datos: DatosCandidato): Observable<ConsultaPrevia | null> {
@@ -61,21 +64,14 @@ export class ConsultaPreviaMockService {
         coincidencias: buscarCoincidencias(limpios, PERSONAS, FORMULARIOS)
       };
 
-      this.consultas.unshift(consulta);
       return simularRespuesta(consulta);
     }).pipe(
-      manejarError<ConsultaPrevia | null>('ConsultaPreviaMockService.consultarCandidato', null)
-    );
-  }
-
-  /**
-   * @returns Consultas hechas en la sesion, de la mas reciente a la mas
-   * antigua; vacia si no hay o si falla.
-   * @author Elvis Flores
-   */
-  obtenerConsultasRecientes(): Observable<ConsultaPrevia[]> {
-    return simularRespuesta(this.consultas).pipe(
-      manejarError<ConsultaPrevia[]>('ConsultaPreviaMockService.obtenerConsultasRecientes', [])
+      tap(() => this.ultimoError = null),
+      catchError((err: unknown) => {
+        this.ultimoError = err instanceof Error && err.message !== '' ? err.message : null;
+        console.error('[ConsultaPreviaMockService.consultarCandidato]', err);
+        return of(null);
+      })
     );
   }
 }

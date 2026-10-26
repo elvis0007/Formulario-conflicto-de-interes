@@ -333,9 +333,17 @@
 }
 
 .rechazo-etiqueta {
+  margin: 0;
   color: var(--text2);
   font-size: 12.5px;
   font-weight: 600;
+}
+
+// Aviso de que la revision no se puede deshacer.
+.rechazo-aviso {
+  margin: 0;
+  color: var(--text2);
+  font-size: 12px;
 }
 
 .rechazo-motivo {

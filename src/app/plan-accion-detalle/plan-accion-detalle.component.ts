@@ -17,7 +17,9 @@ import {
   Validators
 } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { Observable, Subject, forkJoin, map, switchMap } from 'rxjs';
+import {
+  Observable, Subject, debounceTime, distinctUntilChanged, forkJoin, map, switchMap
+} from 'rxjs';
 import { PLAN_NUEVO, RUTAS, rutaPlanAccion } from '../app.paths';
 import { ConCambiosSinGuardar } from '../guards/cambios-sin-guardar.guard';
 import { Actividad, Conflicto, Persona, PlanAccion } from '../models';
@@ -29,6 +31,7 @@ import { PlanesMockService } from '../services/planes-mock.service';
 import { validarDocumentoFirmado } from '../utils/documento.util';
 import { RELOJ } from '../utils/reloj';
 import { BadgeComponent } from '../shared/badge/badge.component';
+import { DocumentViewerComponent } from '../shared/document-viewer/document-viewer.component';
 import { EmptyStateComponent } from '../shared/empty-state/empty-state.component';
 import { IconoComponent } from '../shared/icono/icono.component';
 import { ModalComponent } from '../shared/modal/modal.component';
@@ -40,9 +43,17 @@ import {
   actividadCompleta,
   hayPlanActivo,
   responsablesDelPlan,
-  textoEstadoPlan
+  textoEstadoPlan,
+  textoTipoCierre,
+  tieneActividadesVencidas
 } from '../utils/planes.util';
-import { Tono, mapearEstadoPlanATono, mapearRiesgoATono } from '../utils/tono.util';
+import {
+  Tono,
+  mapearEstadoPlanATono,
+  mapearEstadoSeguimientoATono,
+  mapearRiesgoATono,
+  textoEstadoSeguimiento
+} from '../utils/tono.util';
 import {
   ERROR_PLAZO_CERO,
   ERROR_PLAZO_ENTERO,
@@ -60,14 +71,28 @@ export const MENSAJE_PLAN_VIGENTE =
 /** Texto de la fecha limite mientras el plan no tiene fecha de inicio. */
 export const TEXTO_SIN_FECHA_LIMITE = 'Se calcula al enviar y notificar';
 
+/** Nota de «+ Nuevo plan» cuando el conflicto ya esta finalizado. */
+export const NOTA_REABRE_CONFLICTO =
+  'El conflicto está finalizado: crear un plan nuevo lo reabre (vuelve a «En planificación»).';
+
+/** Explicacion del cierre anticipado deshabilitado por evidencias por revisar. */
+export const MENSAJE_CIERRE_EN_REVISION =
+  'Hay evidencias por revisar: apruébalas o recházalas en Revisión de Evidencias antes de cerrar el plan.';
+
+/** Mensajes genericos si una accion falla sin motivo del servicio. */
+const ERROR_GUARDADO = 'No se pudo guardar el borrador. Inténtalo de nuevo.';
+const ERROR_ENVIO = 'No se pudo enviar el plan. Revisa que esté completo e inténtalo de nuevo.';
+const ERROR_CIERRE_GENERICO = 'No se pudo cerrar el plan. Inténtalo de nuevo.';
+
 /**
  * Clase que la pantalla pone en <body> mientras esta abierta: activa las
  * reglas de impresion de styles.scss que ocultan cabecera, menu y pie.
  */
 export const CLASE_BODY_IMPRIMIBLE = 'con-plan-imprimible';
 
-/** Aviso tras «Enviar y notificar». */
-export const AVISO_ENVIADO = 'Notificación enviada a la bandeja de tareas de cada responsable';
+/** Aviso tras «Enviar y notificar» (firma y notificacion en un solo paso). */
+export const AVISO_ENVIADO = 'Plan firmado y notificado a la bandeja de tareas de cada responsable. '
+  + 'El plazo de las actividades corre desde hoy.';
 
 /** Estado de la pantalla. */
 type EstadoPantalla = 'cargando' | 'no-encontrado' | 'bloqueado' | 'listo';
@@ -118,6 +143,16 @@ interface DatosPlan {
  * Flujo (sin firma electronica): armar el plan, imprimirlo
  * («Imprimir formulario», con estilos @media print), firmarlo a mano,
  * escanearlo, subir el PDF («Documento del plan») y «Enviar y notificar».
+ * El backend firma en un solo paso: el PDF elegido no se registra hasta
+ * «Enviar y notificar», que firma el plan, avisa a los responsables y
+ * arranca el plazo de las actividades ese dia.
+ *
+ * Cierre anticipado (RRHH): un plan `FIRMADO` con actividades vencidas y
+ * sin evidencias por revisar se puede cerrar con un motivo; las no
+ * aceptadas quedan «No cumplida» y el conflicto vuelve a planificacion.
+ *
+ * Los documentos (firmado o recien elegido) se ven en el visor
+ * (`app-document-viewer`): el del backend se pide con token.
  *
  * @author Elvis Flores
  */
@@ -125,6 +160,7 @@ interface DatosPlan {
   selector: 'app-plan-accion-detalle',
   imports: [
     BadgeComponent,
+    DocumentViewerComponent,
     EmptyStateComponent,
     IconoComponent,
     ModalComponent,
@@ -151,6 +187,12 @@ export class PlanAccionDetalleComponent implements OnInit, OnDestroy, ConCambios
 
   /** Empleados que pueden ser responsables. */
   personas: Persona[] = [];
+
+  /** Resultado de la última búsqueda de responsables. */
+  encontradas: Persona[] = [];
+
+  /** Texto escrito en el buscador de responsables. */
+  private readonly busqueda = new Subject<string>();
 
   /** Motivos por los que no se puede crear un plan nuevo. */
   motivosBloqueo: string[] = [];
@@ -191,6 +233,27 @@ export class PlanAccionDetalleComponent implements OnInit, OnDestroy, ConCambios
   /** Se acaba de enviar el plan: muestra el aviso de notificacion. */
   enviado = false;
 
+  /** Modal «Cerrar plan anticipadamente» abierto. */
+  confirmandoCierre = false;
+
+  /** Motivo escrito para el cierre anticipado. */
+  motivoCierre = '';
+
+  /** Se intento cerrar sin motivo. */
+  motivoCierreFaltante = false;
+
+  /** Cierre en curso. */
+  cerrando = false;
+
+  /** Error del ultimo cierre (se muestra en el modal). */
+  errorCierre: string | null = null;
+
+  /** Se acaba de cerrar el plan: muestra el aviso. */
+  cerradoAhora = false;
+
+  /** Visor del documento del plan abierto. */
+  viendoDocumento = false;
+
   /** Fecha que sale en el formulario impreso (dd/mm/aaaa). */
   fechaImpresion = '';
 
@@ -198,6 +261,8 @@ export class PlanAccionDetalleComponent implements OnInit, OnDestroy, ConCambios
 
   readonly rutaAnalisis = RUTAS.rrhh.analisisConflictos;
   readonly mensajePlanVigente = MENSAJE_PLAN_VIGENTE;
+  readonly notaReabreConflicto = NOTA_REABRE_CONFLICTO;
+  readonly mensajeCierreEnRevision = MENSAJE_CIERRE_EN_REVISION;
   readonly textoSinFechaLimite = TEXTO_SIN_FECHA_LIMITE;
   readonly errorPlazoEntero = ERROR_PLAZO_ENTERO;
   readonly errorPlazoCero = ERROR_PLAZO_CERO;
@@ -237,7 +302,7 @@ export class PlanAccionDetalleComponent implements OnInit, OnDestroy, ConCambios
 
   /** @returns `true` si el plan se puede editar (solo en borrador). */
   get editable(): boolean {
-    return this.plan?.estado === 'borrador';
+    return this.plan?.estado === 'BORRADOR';
   }
 
   /** @returns `true` si hay un plan vigente en el conflicto. */
@@ -264,14 +329,65 @@ export class PlanAccionDetalleComponent implements OnInit, OnDestroy, ConCambios
       + ' (' + plan.numero + ' de ' + total + ')';
   }
 
-  /** @returns Texto de la insignia de estado del plan. */
+  /** @returns Texto de la insignia de estado del plan (con el tipo de cierre). */
   get textoEstado(): string {
-    return this.plan ? textoEstadoPlan(this.plan.estado) : '';
+    return this.plan ? textoEstadoPlan(this.plan.estado, this.conVencidas(this.plan), this.plan.tipoCierre) : '';
   }
 
   /** @returns Tono de la insignia de estado del plan. */
   get tonoEstado(): Tono {
-    return this.plan ? mapearEstadoPlanATono(this.plan.estado) : 'gris';
+    return this.plan
+      ? mapearEstadoPlanATono(this.plan.estado, this.conVencidas(this.plan), this.plan.tipoCierre)
+      : 'gris';
+  }
+
+  /** @returns Texto del estado de seguimiento del conflicto. */
+  get textoSeguimiento(): string {
+    return this.conflicto ? textoEstadoSeguimiento(this.conflicto.estado) : '';
+  }
+
+  /** @returns Tono del estado de seguimiento del conflicto. */
+  get tonoSeguimiento(): Tono {
+    return this.conflicto ? mapearEstadoSeguimientoATono(this.conflicto.estado) : 'gris';
+  }
+
+  /**
+   * @returns `true` si «+ Nuevo plan» reabriria el conflicto (esta
+   * `FINALIZADO` y se puede crear un plan).
+   */
+  get nuevoPlanReabre(): boolean {
+    return this.conflicto?.estado === 'FINALIZADO' && this.puedeCrearPlan;
+  }
+
+  /**
+   * «Cerrar plan anticipadamente» se ofrece en un plan `FIRMADO` con
+   * actividades vencidas (mismas reglas que el backend).
+   *
+   * @returns `true` si se muestra el boton.
+   */
+  get muestraCierreAnticipado(): boolean {
+    return this.plan !== null && tieneActividadesVencidas(this.plan, this.reloj());
+  }
+
+  /**
+   * @returns `true` si el cierre esta bloqueado porque alguna actividad
+   * esta en revision (el boton se ve deshabilitado, con la explicacion).
+   */
+  get cierreBloqueadoPorRevision(): boolean {
+    return this.plan?.actividades.some((a) => a.estado === 'EN_REVISION') ?? false;
+  }
+
+  /** @returns Texto de como se cerro el plan; vacio si no esta cerrado. */
+  get textoCierre(): string {
+    return this.plan?.estado === 'CERRADO' ? textoTipoCierre(this.plan.tipoCierre) : '';
+  }
+
+  /**
+   * @param plan Plan.
+   * @returns `true` si esta en ejecucion con actividades vencidas hoy.
+   */
+  private conVencidas(plan: PlanAccion): boolean {
+    return tieneActividadesVencidas(plan, this.reloj());
   }
 
   /** @returns Valor de la pestana activa. */
@@ -283,10 +399,10 @@ export class PlanAccionDetalleComponent implements OnInit, OnDestroy, ConCambios
   get bannerInicio(): BannerInicio {
     const plan = this.plan;
 
-    if (plan === null || plan.estado === 'borrador' || !plan.fechaInicio) {
+    if (plan === null || plan.estado === 'BORRADOR' || !plan.fechaInicio) {
       return { texto: 'Pendiente · se registra al enviar y notificar', tono: 'ambar' };
     }
-    if (plan.estado === 'cerrado') {
+    if (plan.estado === 'CERRADO') {
       return {
         texto: this.fecha(plan.fechaInicio) + ' · cerrado el ' + this.fecha(plan.fechaCierre),
         tono: 'gris'
@@ -384,13 +500,20 @@ export class PlanAccionDetalleComponent implements OnInit, OnDestroy, ConCambios
     return this.plan ? responsablesDelPlan(this.plan.actividades) : [];
   }
 
-  /** @returns Texto de la confirmacion de «Enviar y notificar». */
+  /**
+   * Texto de la confirmacion de «Enviar y notificar». El backend firma y
+   * notifica en un solo paso, y el plazo de las actividades corre desde
+   * ese dia.
+   *
+   * @returns El texto.
+   */
   get textoConfirmacionEnvio(): string {
     const n = this.responsables.length;
 
-    return 'Se registrará hoy (' + formatearFecha(this.reloj()) + ') como fecha de inicio del plan y '
-      + 'se notificará a ' + n + (n === 1 ? ' responsable' : ' responsables')
-      + '. Después ya no podrás editar el plan.';
+    return 'Al enviar, el plan queda firmado con el documento subido y se notifica a ' + n
+      + (n === 1 ? ' responsable' : ' responsables') + '. El plazo de cada actividad empieza a correr hoy ('
+      + formatearFecha(this.reloj()) + '): las fechas límite se calculan desde ese día. '
+      + 'Después ya no podrás editar el plan.';
   }
 
   /** @returns «archivo.pdf — subido el dd/mm/aaaa». */
@@ -409,6 +532,15 @@ export class PlanAccionDetalleComponent implements OnInit, OnDestroy, ConCambios
    * URL (la pantalla se reutiliza al cambiar de pestana).
    */
   ngOnInit(): void {
+    this.busqueda
+      .pipe(
+        debounceTime(300),
+        distinctUntilChanged(),
+        switchMap((t) => this.personasServicio.buscarPersonas(t)),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe((lista) => this.encontradas = lista);
+
     this.documento.body.classList.add(CLASE_BODY_IMPRIMIBLE);
     this.ruta.paramMap
       .pipe(
@@ -596,14 +728,14 @@ export class PlanAccionDetalleComponent implements OnInit, OnDestroy, ConCambios
         next: (guardado) => {
           this.guardando = false;
           if (guardado === null) {
-            this.errorGuardado = 'No se pudo guardar el borrador. Inténtalo de nuevo.';
+            this.errorGuardado = this.planesServicio.ultimoError ?? ERROR_GUARDADO;
             return;
           }
           this.alGuardar(plan, guardado);
         },
         error: (err: unknown) => {
           this.guardando = false;
-          this.errorGuardado = 'No se pudo guardar el borrador. Inténtalo de nuevo.';
+          this.errorGuardado = ERROR_GUARDADO;
           console.error('[PlanAccionDetalleComponent.guardarBorrador]', err);
         }
       });
@@ -679,7 +811,7 @@ export class PlanAccionDetalleComponent implements OnInit, OnDestroy, ConCambios
         next: (actualizado) => {
           this.procesandoDocumento = false;
           if (actualizado === null) {
-            this.errorDocumento = 'No se pudo quitar el documento. Inténtalo de nuevo.';
+            this.errorDocumento = this.planesServicio.ultimoError ?? 'No se pudo quitar el documento. Inténtalo de nuevo.';
             return;
           }
           if (this.plan) {
@@ -724,7 +856,7 @@ export class PlanAccionDetalleComponent implements OnInit, OnDestroy, ConCambios
           this.enviando = false;
           this.confirmandoEnvio = false;
           if (activo === null) {
-            this.errorEnvio = 'No se pudo enviar el plan. Revisa que esté completo e inténtalo de nuevo.';
+            this.errorEnvio = this.planesServicio.ultimoError ?? ERROR_ENVIO;
             return;
           }
           this.plan = activo;
@@ -732,6 +864,10 @@ export class PlanAccionDetalleComponent implements OnInit, OnDestroy, ConCambios
           this.pestanas = this.crearPestanas();
           this.cargarFormulario(activo);
           this.enviado = true;
+          // Firmar pasa el conflicto a EN_EJECUCION: se vuelve a pedir.
+          this.conflictosServicio.obtenerConflictoPorId(activo.conflictoId)
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe((c) => this.conflicto = c ?? this.conflicto);
         },
         error: (err: unknown) => {
           this.enviando = false;
@@ -743,11 +879,136 @@ export class PlanAccionDetalleComponent implements OnInit, OnDestroy, ConCambios
   }
 
   /**
+   * «Cerrar plan anticipadamente»: abre el modal del motivo. No hace nada
+   * si el boton esta deshabilitado (evidencias por revisar).
+   *
+   * @author Integración backend
+   */
+  pedirCierre(): void {
+    if (!this.muestraCierreAnticipado || this.cierreBloqueadoPorRevision) {
+      return;
+    }
+    this.motivoCierre = '';
+    this.motivoCierreFaltante = false;
+    this.errorCierre = null;
+    this.confirmandoCierre = true;
+  }
+
+  /**
+   * Cierra el modal del cierre anticipado sin cerrar el plan.
+   *
+   * @author Integración backend
+   */
+  cancelarCierre(): void {
+    if (!this.cerrando) {
+      this.confirmandoCierre = false;
+    }
+  }
+
+  /**
+   * Guarda el motivo escrito.
+   *
+   * @param evento `input` del textarea.
+   * @author Integración backend
+   */
+  alEscribirMotivoCierre(evento: Event): void {
+    this.motivoCierre = (evento.target as HTMLTextAreaElement).value;
+    if (this.motivoCierre.trim() !== '') {
+      this.motivoCierreFaltante = false;
+    }
+  }
+
+  /**
+   * Confirma el cierre anticipado (motivo obligatorio). Si sale bien,
+   * vuelve a cargar el conflicto y sus planes: el backend cambia el plan,
+   * sus actividades y el estado del conflicto.
+   *
+   * @author Integración backend
+   */
+  confirmarCierre(): void {
+    const plan = this.plan;
+    const motivo = this.motivoCierre.trim();
+
+    if (plan === null || this.cerrando) {
+      return;
+    }
+    if (motivo === '') {
+      this.motivoCierreFaltante = true;
+      return;
+    }
+
+    this.cerrando = true;
+    this.errorCierre = null;
+    this.planesServicio.cerrarPlan(plan.id, motivo)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (resultado) => {
+          this.cerrando = false;
+          if (resultado.plan === null) {
+            this.errorCierre = resultado.error || ERROR_CIERRE_GENERICO;
+            return;
+          }
+          this.confirmandoCierre = false;
+          this.recargar(plan.conflictoId, resultado.plan.id);
+        },
+        error: (err: unknown) => {
+          this.cerrando = false;
+          this.errorCierre = ERROR_CIERRE_GENERICO;
+          console.error('[PlanAccionDetalleComponent.confirmarCierre]', err);
+        }
+      });
+  }
+
+  /**
    * @param persona Empleado.
    * @returns Texto de la opcion del select de responsables.
    */
   textoPersona(persona: Persona): string {
-    return persona.nombres + ' · ' + persona.cargo;
+    return persona.cargo ? persona.nombres + ' · ' + persona.cargo : persona.nombres;
+  }
+
+  /**
+   * @param conflicto Caso del plan.
+   * @returns Departamentos de A y B, sin separadores sueltos cuando falta
+   *   alguno (p. ej. personal sin unidad en nómina).
+   * @author Integración backend
+   */
+  departamentos(conflicto: Conflicto): string {
+    return [conflicto.personaA.departamento, conflicto.personaB.departamento]
+      .filter((d) => d.trim() !== '')
+      .join(' · ') || 'No disponible';
+  }
+
+  /**
+   * Opciones del select de responsables: los que ya tiene el plan, los
+   * cargados al abrir y los de la última búsqueda (con el backend no hay
+   * listado completo del personal: se busca).
+   *
+   * @returns Personas sin repetir.
+   * @author Integración backend
+   */
+  get opcionesResponsable(): Persona[] {
+    const vistas = new Map<string, Persona>();
+    for (const a of this.plan?.actividades ?? []) {
+      if (a.responsableId) {
+        vistas.set(a.responsableId, {
+          id: a.responsableId, nombres: a.responsableNombre,
+          cedula: '', cargo: '', departamento: ''
+        });
+      }
+    }
+    for (const p of [...this.personas, ...this.encontradas]) {
+      vistas.set(p.id, p);
+    }
+    return [...vistas.values()];
+  }
+
+  /**
+   * @param termino Texto del buscador de responsables.
+   * @author Integración backend
+   */
+  buscarResponsable(termino: string): void {
+    this.busqueda.next(termino);
   }
 
   /**
@@ -789,9 +1050,33 @@ export class PlanAccionDetalleComponent implements OnInit, OnDestroy, ConCambios
         conflicto: analisis.conflictos.find((c) => c.id === conflictoId) ?? conflicto,
         planes,
         personas,
-        analisisValidado: analisis.estado === 'validado'
+        analisisValidado: analisis.estado === 'VALIDADO'
       }))
     );
+  }
+
+  /**
+   * Tras el cierre anticipado: vuelve a pedir el conflicto y sus planes
+   * (el plan, sus actividades y el estado del conflicto cambiaron) y avisa
+   * que se cerro.
+   *
+   * @param conflictoId Conflicto del plan.
+   * @param planId Plan que se cerro.
+   * @author Integración backend
+   */
+  private recargar(conflictoId: string, planId: string): void {
+    this.cargarDatos(conflictoId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (datos) => {
+          this.aplicarDatos(datos, planId);
+          this.cerradoAhora = true;
+        },
+        error: (err: unknown) => {
+          this.estado = 'no-encontrado';
+          console.error('[PlanAccionDetalleComponent.recargar]', err);
+        }
+      });
   }
 
   /**
@@ -810,6 +1095,9 @@ export class PlanAccionDetalleComponent implements OnInit, OnDestroy, ConCambios
     this.errorDocumento = null;
     this.errorEnvio = null;
     this.enviado = false;
+    this.cerradoAhora = false;
+    this.confirmandoCierre = false;
+    this.viendoDocumento = false;
     this.plan = null;
 
     if (this.conflicto === null) {
@@ -847,7 +1135,7 @@ export class PlanAccionDetalleComponent implements OnInit, OnDestroy, ConCambios
     const motivos: string[] = [];
     const vigente = datos.planes.find((p) => hayPlanActivo([p]));
 
-    if (conflicto.clasificacion !== 'confirmado') {
+    if (conflicto.clasificacion !== 'D' && conflicto.clasificacion !== 'N') {
       motivos.push('El caso no está confirmado como conflicto de interés (hoy: «'
         + textoClasificacion(conflicto.clasificacion) + '»). Clasifícalo en Análisis de Conflictos.');
     }
@@ -872,7 +1160,7 @@ export class PlanAccionDetalleComponent implements OnInit, OnDestroy, ConCambios
       numero: this.planes.reduce((max, p) => Math.max(max, p.numero), 0) + 1,
       nombre: '',
       conflictoId,
-      estado: 'borrador',
+      estado: 'BORRADOR',
       actividades: []
     };
   }
@@ -885,15 +1173,18 @@ export class PlanAccionDetalleComponent implements OnInit, OnDestroy, ConCambios
     const pestanas: Pestana[] = this.planes.map((p) => ({
       valor: p.id,
       etiqueta: 'Plan ' + String(p.numero).padStart(2, '0'),
-      atenuada: p.estado === 'cerrado',
-      insignia: { texto: textoEstadoPlan(p.estado), tono: mapearEstadoPlanATono(p.estado) }
+      atenuada: p.estado === 'CERRADO',
+      insignia: {
+        texto: textoEstadoPlan(p.estado, this.conVencidas(p), p.tipoCierre),
+        tono: mapearEstadoPlanATono(p.estado, this.conVencidas(p), p.tipoCierre)
+      }
     }));
 
     if (this.esNuevo) {
       pestanas.push({
         valor: PLAN_NUEVO,
         etiqueta: 'Nuevo plan',
-        insignia: { texto: textoEstadoPlan('borrador'), tono: mapearEstadoPlanATono('borrador') }
+        insignia: { texto: textoEstadoPlan('BORRADOR'), tono: mapearEstadoPlanATono('BORRADOR') }
       });
     }
 
@@ -947,10 +1238,10 @@ export class PlanAccionDetalleComponent implements OnInit, OnDestroy, ConCambios
       ...plan,
       nombre: valor.nombre.trim(),
       actividades: valor.actividades.map((fila): Actividad => {
-        const responsable = this.personas.find((p) => p.id === fila.responsableId);
+        const responsable = this.opcionesResponsable.find((p) => p.id === fila.responsableId);
 
         return {
-          ...(previas.get(fila.id) ?? { estado: 'pendiente' }),
+          ...(previas.get(fila.id) ?? { estado: 'PENDIENTE' as const }),
           id: fila.id,
           descripcion: fila.descripcion.trim(),
           responsableId: fila.responsableId,

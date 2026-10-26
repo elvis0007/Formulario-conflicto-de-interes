@@ -1,8 +1,8 @@
-import { Actividad, Conflicto, EstadoActividad, EstadoPlan, PlanAccion, Riesgo } from '../models';
+import { Actividad, Conflicto, PlanAccion, Riesgo } from '../models';
 import { RIESGOS, contarPendientes, textoRiesgo } from './analisis.util';
 import { DiasRestantes, calcularDiasRestantes } from './fechas.util';
 import { instanteDe } from './historial.util';
-import { textoEstadoPlan } from './planes.util';
+import { EstadoActividadVista, estaVencida, estadoVistaActividad, textoEstadoPlan, tieneActividadesVencidas } from './planes.util';
 import { esPlanActivo, textoEstadoActividad } from './revision.util';
 import { Tono, mapearEstadoActividadATono } from './tono.util';
 
@@ -19,11 +19,11 @@ export interface IndicadoresRrhh {
   detectados: number;
   /** Casos pendientes de clasificar. */
   pendientes: number;
-  /** Conflictos confirmados que aun no tienen ningun plan. */
+  /** Conflictos declarados o no declarados (D/N) que aun no tienen ningun plan. */
   confirmadosSinPlan: number;
-  /** Planes activos (con o sin vencidas). */
+  /** Planes firmados, en ejecucion (con o sin vencidas). */
   planesActivos: number;
-  /** Actividades vencidas de planes enviados. */
+  /** Actividades vencidas (calculadas por fecha) de planes enviados. */
   actividadesVencidas: number;
   /** Evidencias en revision de planes activos. */
   evidenciasPorRevisar: number;
@@ -42,7 +42,7 @@ export interface BarraDistribucion {
 
 /** Un segmento de la barra apilada de estados de actividades. */
 export interface SegmentoEstado {
-  estado: EstadoActividad;
+  estado: EstadoActividadVista;
   etiqueta: string;
   valor: number;
   tono: Tono;
@@ -66,31 +66,56 @@ export interface ItemAtencion {
  * script de la guia de visualizacion (CVD ΔE 8,6). Cada segmento lleva
  * leyenda con texto y conteo, asi el color nunca va solo.
  */
-export const ORDEN_ESTADOS_ACTIVIDAD: readonly EstadoActividad[] = [
-  'aprobada', 'en_revision', 'pendiente', 'vencida', 'rechazada'
+export const ORDEN_ESTADOS_ACTIVIDAD: readonly EstadoActividadVista[] = [
+  'ACEPTADA', 'EN_REVISION', 'PENDIENTE', 'VENCIDA', 'RECHAZADA', 'NO_CUMPLIDA'
 ];
 
-/** Estados de plan en el orden de su grafico. */
-const ORDEN_ESTADOS_PLAN: readonly EstadoPlan[] = ['borrador', 'activo', 'activo_vencidas', 'cerrado'];
+/**
+ * Barras del grafico de planes, en orden. «Activo · con vencidas» no es un
+ * estado del backend: sale de `tieneActividadesVencidas`.
+ */
+const BARRAS_ESTADO_PLAN: readonly {
+  clave: string;
+  pertenece: (plan: PlanAccion, hoy: Date) => boolean;
+  etiqueta: string;
+}[] = [
+  { clave: 'BORRADOR', etiqueta: textoEstadoPlan('BORRADOR'), pertenece: (p) => p.estado === 'BORRADOR' },
+  {
+    clave: 'FIRMADO',
+    etiqueta: textoEstadoPlan('FIRMADO'),
+    pertenece: (p, hoy) => p.estado === 'FIRMADO' && !tieneActividadesVencidas(p, hoy)
+  },
+  {
+    clave: 'FIRMADO_VENCIDAS',
+    etiqueta: textoEstadoPlan('FIRMADO', true),
+    pertenece: (p, hoy) => tieneActividadesVencidas(p, hoy)
+  },
+  { clave: 'CERRADO', etiqueta: textoEstadoPlan('CERRADO'), pertenece: (p) => p.estado === 'CERRADO' }
+];
 
 /**
  * @param conflictos Casos del analisis vigente (con sus planes).
  * @param planes Todos los planes.
+ * @param hoy Fecha de hoy (`RELOJ`), para calcular las vencidas.
  * @returns Los indicadores.
  * @author Elvis Flores
  */
-export function calcularIndicadores(conflictos: readonly Conflicto[], planes: readonly PlanAccion[]): IndicadoresRrhh {
-  const enviados = planes.filter((p) => p.estado !== 'borrador');
+export function calcularIndicadores(
+  conflictos: readonly Conflicto[],
+  planes: readonly PlanAccion[],
+  hoy: Date = new Date()
+): IndicadoresRrhh {
+  const enviados = planes.filter((p) => p.estado !== 'BORRADOR');
 
   return {
     detectados: conflictos.length,
     pendientes: contarPendientes(conflictos),
-    confirmadosSinPlan: conflictos.filter((c) => c.clasificacion === 'confirmado' && c.planes.length === 0).length,
+    confirmadosSinPlan: conflictos.filter((c) => (c.clasificacion === 'D' || c.clasificacion === 'N') && c.planes.length === 0).length,
     planesActivos: planes.filter(esPlanActivo).length,
-    actividadesVencidas: enviados.flatMap((p) => p.actividades).filter((a) => a.estado === 'vencida').length,
+    actividadesVencidas: enviados.flatMap((p) => p.actividades).filter((a) => estaVencida(a, hoy)).length,
     evidenciasPorRevisar: planes.filter(esPlanActivo).flatMap((p) => p.actividades)
-      .filter((a) => a.estado === 'en_revision').length,
-    planesCerrados: planes.filter((p) => p.estado === 'cerrado').length
+      .filter((a) => a.estado === 'EN_REVISION').length,
+    planesCerrados: planes.filter((p) => p.estado === 'CERRADO').length
   };
 }
 
@@ -109,29 +134,37 @@ export function distribucionPorRiesgo(conflictos: readonly Conflicto[]): BarraDi
 
 /**
  * @param planes Todos los planes.
+ * @param hoy Fecha de hoy (`RELOJ`), para separar los activos con vencidas.
  * @returns Una barra por estado de plan, con su conteo.
  * @author Elvis Flores
  */
-export function distribucionEstadoPlanes(planes: readonly PlanAccion[]): BarraDistribucion[] {
-  return escalar(ORDEN_ESTADOS_PLAN.map((e) => ({
-    clave: e,
-    etiqueta: textoEstadoPlan(e),
-    valor: planes.filter((p) => p.estado === e).length
+export function distribucionEstadoPlanes(
+  planes: readonly PlanAccion[],
+  hoy: Date = new Date()
+): BarraDistribucion[] {
+  return escalar(BARRAS_ESTADO_PLAN.map((b) => ({
+    clave: b.clave,
+    etiqueta: b.etiqueta,
+    valor: planes.filter((p) => b.pertenece(p, hoy)).length
   })));
 }
 
 /**
  * @param planes Todos los planes (los borradores no cuentan).
+ * @param hoy Fecha de hoy (`RELOJ`), para calcular las vencidas.
  * @returns Segmentos de la barra apilada; los de valor 0 se omiten.
  * @author Elvis Flores
  */
-export function estadoDeActividades(planes: readonly PlanAccion[]): SegmentoEstado[] {
-  const actividades = planes.filter((p) => p.estado !== 'borrador').flatMap((p) => p.actividades);
+export function estadoDeActividades(
+  planes: readonly PlanAccion[],
+  hoy: Date = new Date()
+): SegmentoEstado[] {
+  const actividades = planes.filter((p) => p.estado !== 'BORRADOR').flatMap((p) => p.actividades);
   const total = actividades.length;
 
   return ORDEN_ESTADOS_ACTIVIDAD
     .map((estado) => {
-      const valor = actividades.filter((a) => a.estado === estado).length;
+      const valor = actividades.filter((a) => estadoVistaActividad(a, hoy) === estado).length;
 
       return {
         estado,
@@ -160,16 +193,16 @@ export function requiereAtencion(
   hoy: Date,
   limite: number
 ): { vencidas: ItemAtencion[]; evidencias: ItemAtencion[] } {
-  const enviados = planes.filter((p) => p.estado !== 'borrador');
+  const enviados = planes.filter((p) => p.estado !== 'BORRADOR');
   const vencidas: ItemAtencion[] = [];
   const evidencias: ItemAtencion[] = [];
 
   for (const plan of enviados) {
     for (const actividad of plan.actividades) {
-      if (actividad.estado === 'vencida' && actividad.fechaLimite) {
+      if (estaVencida(actividad, hoy) && actividad.fechaLimite) {
         vencidas.push({ actividad, plan, fecha: actividad.fechaLimite, dias: diasDesde(actividad.fechaLimite, hoy) });
       }
-      if (actividad.estado === 'en_revision' && esPlanActivo(plan) && actividad.evidencia) {
+      if (actividad.estado === 'EN_REVISION' && esPlanActivo(plan) && actividad.evidencia) {
         evidencias.push({ actividad, plan, fecha: actividad.evidencia.fechaSubida, dias: null });
       }
     }
