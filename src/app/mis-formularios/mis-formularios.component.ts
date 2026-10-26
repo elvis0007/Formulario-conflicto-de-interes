@@ -32,10 +32,13 @@ export class MisFormulariosComponent implements OnInit {
   ngOnInit(): void {
     this.backendService.getMisFormularios().subscribe({
       next: (formularios) => {
+        // [PNIP-CI] Sebas Constante - 08/10/2026
+        // Qué hace: «Mis declaraciones» del más reciente al más antiguo.
         // Del más reciente al más antiguo; las fechas ISO se ordenan bien como texto.
         this.formularios = [...(formularios || [])].sort((a, b) =>
           (b.FECHA_GENERACION || '').localeCompare(a.FECHA_GENERACION || '')
         );
+        // [FIN PNIP-CI]
         this.cargando = false;
       },
       error: (err) => {

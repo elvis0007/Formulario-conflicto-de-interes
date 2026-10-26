@@ -8,7 +8,7 @@ import { PersonasMockService } from '../personas-mock.service';
  * Empleados contra el backend. No hay un listado completo del personal: los
  * responsables se eligen buscando (`/sisgerh/personal/buscar`).
  *
- * @author Integración backend
+ * @author Sebas Constante
  */
 @Injectable({ providedIn: 'root' })
 export class PersonasHttpService

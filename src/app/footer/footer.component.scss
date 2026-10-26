@@ -1,3 +1,6 @@
+// [PNIP-CI] Sebas Constante - 08/10/2026
+// Qué hace: pie de una sola línea (sin logo ni redes sociales) que queda
+//   al final de la página.
 /* Pie de una aplicación interna: una sola línea discreta al final de la página.
    Queda abajo aunque el contenido sea corto porque .app-container es una
    columna de alto mínimo 100vh y .app-main ocupa el espacio libre. */
@@ -23,5 +26,6 @@
 @media (max-width: 480px) {
   .footer-text {
     font-size: 11px;
+// [FIN PNIP-CI]
   }
 }

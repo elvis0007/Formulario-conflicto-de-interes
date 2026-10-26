@@ -99,7 +99,7 @@ interface DocumentoPendiente {
  * - Las acciones que devuelven `null` al fallar dejan el `mensaje` del
  *   backend en `ultimoError`.
  *
- * @author Integración backend
+ * @author Sebas Constante
  */
 @Injectable({
   providedIn: 'root'
@@ -406,7 +406,7 @@ export class PlanesHttpService implements Pick<PlanesMockService, keyof PlanesMo
    * @param planId Id del plan.
    * @param motivo Motivo del cierre (obligatorio).
    * @returns El plan cerrado, o el motivo por el que no se cerró.
-   * @author Integración backend
+   * @author Sebas Constante
    */
   cerrarPlan(planId: string, motivo: string): Observable<ResultadoCierre> {
     const texto = (motivo ?? '').trim();
@@ -433,7 +433,7 @@ export class PlanesHttpService implements Pick<PlanesMockService, keyof PlanesMo
    *
    * @param planId Id del plan.
    * @returns El archivo, o `null` si no tiene o falla.
-   * @author Integración backend
+   * @author Sebas Constante
    */
   obtenerDocumentoPlan(planId: string): Observable<Blob | null> {
     return this.http.get(urlApi('/planes/' + idEnRuta(planId) + '/documento'), { responseType: 'blob' }).pipe(
@@ -446,7 +446,7 @@ export class PlanesHttpService implements Pick<PlanesMockService, keyof PlanesMo
    *
    * @param evidenciaId Id de la evidencia (`Evidencia.id`).
    * @returns El archivo, o `null` si no existe, no es suya o falla.
-   * @author Integración backend
+   * @author Sebas Constante
    */
   obtenerArchivoEvidencia(evidenciaId: string): Observable<Blob | null> {
     return this.http.get(urlApi('/evidencias/' + idEnRuta(evidenciaId) + '/archivo'), { responseType: 'blob' }).pipe(

@@ -14,7 +14,7 @@ import { PlanApi } from './plan-api';
  * Interfaces del módulo de conflictos, tal cual llegan del backend.
  * Fechas: `LocalDate` = `"yyyy-MM-dd"`, `LocalDateTime` = ISO-8601 sin zona.
  *
- * @author Integración backend
+ * @author Sebas Constante
  */
 
 /**

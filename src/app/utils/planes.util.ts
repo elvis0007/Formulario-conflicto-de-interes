@@ -185,7 +185,7 @@ const TEXTO_TIPO_CIERRE: Readonly<Record<TipoCierre, string>> = {
 /**
  * @param tipo Como se cerro un plan (`PlanAccion.tipoCierre`).
  * @returns «Cumplido» o «Cierre anticipado»; vacio si no se sabe.
- * @author Integración backend
+ * @author Sebas Constante
  */
 export function textoTipoCierre(tipo: TipoCierre | undefined): string {
   return tipo ? TEXTO_TIPO_CIERRE[tipo] : '';

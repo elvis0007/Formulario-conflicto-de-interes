@@ -32,7 +32,7 @@ export class PersonasMockService {
    *
    * @param termino Texto buscado; con menos de 3 caracteres no busca.
    * @returns Coincidencias; vacia si la consulta falla.
-   * @author Integración backend
+   * @author Sebas Constante
    */
   buscarPersonas(termino: string): Observable<Persona[]> {
     const texto = termino.trim().toLowerCase();

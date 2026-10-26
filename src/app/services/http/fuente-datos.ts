@@ -11,7 +11,7 @@ const CLAVE_SESION_SIMULADA = 'SISCI-DEV-SESION-SIMULADA';
  * que mientras está activa se siguen usando los datos simulados.
  *
  * @returns `false` solo con la sesión simulada activa fuera de producción.
- * @author Integración backend
+ * @author Sebas Constante
  */
 export function usarBackend(): boolean {
   if (environment.production) {
@@ -35,7 +35,7 @@ export function usarBackend(): boolean {
  * @param mock Clase del servicio simulado que inyectan los componentes.
  * @param http Clase con los mismos métodos públicos, contra el backend.
  * @returns Proveedor para `app.config.ts`.
- * @author Integración backend
+ * @author Sebas Constante
  */
 export function proveerFuente<T>(
   mock: Type<T>,

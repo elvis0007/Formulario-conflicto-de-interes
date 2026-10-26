@@ -5,7 +5,7 @@ import { NotificacionApi, TipoNotificacionApi } from '../../../models/api';
  * Función pura que convierte una notificación del backend al modelo de la
  * campana.
  *
- * @author Integración backend
+ * @author Sebas Constante
  */
 
 /** Título y categoría visual de cada tipo de notificación del backend. */
@@ -27,7 +27,7 @@ const PRESENTACION_GENERICA: Pick<Notificacion, 'titulo' | 'tipo'> = { titulo: '
  *
  * @param api Notificación del backend.
  * @returns Notificación del modelo.
- * @author Integración backend
+ * @author Sebas Constante
  */
 export function mapearNotificacion(api: NotificacionApi): Notificacion {
   const presentacion = api.TIPO === null ? PRESENTACION_GENERICA : PRESENTACION[api.TIPO] ?? PRESENTACION_GENERICA;

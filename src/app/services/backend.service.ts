@@ -433,8 +433,12 @@ export class BackendService {
 
   getSinArchivoConflicto(
     pagina: number = 0,
+    // [PNIP-CI] Sebas Constante - 26/10/2026
+    // Qué hace: «Personal sin formulario» pide hasta 5000 registros (antes
+    //   500): la pantalla filtra y cuenta en el navegador.
     // La pantalla filtra y cuenta en el navegador: necesita la lista entera.
     tamanoPagina: number = 5000
+    // [FIN PNIP-CI]
   ): Observable<SinArchivoConflictoItem[]> {
     return this.http
       .get<ApiResponse<any>>(

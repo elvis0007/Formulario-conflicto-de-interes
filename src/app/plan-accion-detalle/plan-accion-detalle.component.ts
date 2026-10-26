@@ -882,7 +882,7 @@ export class PlanAccionDetalleComponent implements OnInit, OnDestroy, ConCambios
    * «Cerrar plan anticipadamente»: abre el modal del motivo. No hace nada
    * si el boton esta deshabilitado (evidencias por revisar).
    *
-   * @author Integración backend
+   * @author Sebas Constante
    */
   pedirCierre(): void {
     if (!this.muestraCierreAnticipado || this.cierreBloqueadoPorRevision) {
@@ -897,7 +897,7 @@ export class PlanAccionDetalleComponent implements OnInit, OnDestroy, ConCambios
   /**
    * Cierra el modal del cierre anticipado sin cerrar el plan.
    *
-   * @author Integración backend
+   * @author Sebas Constante
    */
   cancelarCierre(): void {
     if (!this.cerrando) {
@@ -909,7 +909,7 @@ export class PlanAccionDetalleComponent implements OnInit, OnDestroy, ConCambios
    * Guarda el motivo escrito.
    *
    * @param evento `input` del textarea.
-   * @author Integración backend
+   * @author Sebas Constante
    */
   alEscribirMotivoCierre(evento: Event): void {
     this.motivoCierre = (evento.target as HTMLTextAreaElement).value;
@@ -923,7 +923,7 @@ export class PlanAccionDetalleComponent implements OnInit, OnDestroy, ConCambios
    * vuelve a cargar el conflicto y sus planes: el backend cambia el plan,
    * sus actividades y el estado del conflicto.
    *
-   * @author Integración backend
+   * @author Sebas Constante
    */
   confirmarCierre(): void {
     const plan = this.plan;
@@ -971,7 +971,7 @@ export class PlanAccionDetalleComponent implements OnInit, OnDestroy, ConCambios
    * @param conflicto Caso del plan.
    * @returns Departamentos de A y B, sin separadores sueltos cuando falta
    *   alguno (p. ej. personal sin unidad en nómina).
-   * @author Integración backend
+   * @author Sebas Constante
    */
   departamentos(conflicto: Conflicto): string {
     return [conflicto.personaA.departamento, conflicto.personaB.departamento]
@@ -985,7 +985,7 @@ export class PlanAccionDetalleComponent implements OnInit, OnDestroy, ConCambios
    * listado completo del personal: se busca).
    *
    * @returns Personas sin repetir.
-   * @author Integración backend
+   * @author Sebas Constante
    */
   get opcionesResponsable(): Persona[] {
     const vistas = new Map<string, Persona>();
@@ -1005,7 +1005,7 @@ export class PlanAccionDetalleComponent implements OnInit, OnDestroy, ConCambios
 
   /**
    * @param termino Texto del buscador de responsables.
-   * @author Integración backend
+   * @author Sebas Constante
    */
   buscarResponsable(termino: string): void {
     this.busqueda.next(termino);
@@ -1062,7 +1062,7 @@ export class PlanAccionDetalleComponent implements OnInit, OnDestroy, ConCambios
    *
    * @param conflictoId Conflicto del plan.
    * @param planId Plan que se cerro.
-   * @author Integración backend
+   * @author Sebas Constante
    */
   private recargar(conflictoId: string, planId: string): void {
     this.cargarDatos(conflictoId)

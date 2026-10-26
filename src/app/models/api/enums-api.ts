@@ -2,7 +2,7 @@
  * Uniones de string equivalentes a los enums del backend. En el JSON los enums
  * viajan como su nombre (`name()`), exactamente con estos valores.
  *
- * @author Integración backend
+ * @author Sebas Constante
  */
 
 /** `Riesgo` (eeasa_ci_conflicto). */

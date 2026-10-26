@@ -18,7 +18,7 @@ import { mapearPlan } from './plan.mapeo';
  * (`PADRE` = B es el padre de A) y `PARENTESCO_INVERSO` qué es A para B.
  * Por eso `rolB` sale de `PARENTESCO` y `rolA` de `PARENTESCO_INVERSO`.
  *
- * @author Integración backend
+ * @author Sebas Constante
  */
 
 /**
@@ -98,7 +98,7 @@ function conFicha(base: Persona, ficha: FichaPersonaApi | null, jefe: DirectorAp
  * @param api Conflicto del backend.
  * @param planes Planes del conflicto (los del expediente o del detalle).
  * @returns El conflicto del modelo.
- * @author Integración backend
+ * @author Sebas Constante
  */
 export function mapearConflicto(api: ConflictoApi, planes: readonly PlanApi[] | null = []): Conflicto {
   const parentesco = api.PARENTESCO;
@@ -137,7 +137,7 @@ export function mapearConflicto(api: ConflictoApi, planes: readonly PlanApi[] | 
  *
  * @param api Detalle del backend.
  * @returns El conflicto del modelo.
- * @author Integración backend
+ * @author Sebas Constante
  */
 export function mapearConflictoDetalle(api: ConflictoDetalleApi): Conflicto {
   const planes = api.PLANES ?? (api.PLAN ? [api.PLAN] : []);

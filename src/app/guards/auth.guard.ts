@@ -11,7 +11,11 @@ export const authGuard: CanActivateFn = (route, state) => {
   const rutasPermitidas = RUTAS_PERMITIDAS;
 
   // Regla especial: si el usuario navega explícitamente al login de SISCI,
+  // [PNIP-CI] Sebas Constante - 26/10/2026
+  // Qué hace: comentario actualizado: el token propio ahora es
+  //   TOKEN-SISCI.
   // siempre limpiamos cualquier token previo (Intranet / Sisci) y
+  // [FIN PNIP-CI]
   // permitimos permanecer en la pantalla de login, aunque estuviera autenticado.
     if (url === '/login') {
     authService.logout();

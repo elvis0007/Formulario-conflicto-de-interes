@@ -15,7 +15,7 @@ import { datosDe, idEnRuta, todasLasPaginas, urlApi } from './peticiones';
  * Los endpoints de `/conflictos` son solo de A y R: con el rol P
  * (responsable) el backend responde 403 y aquí se devuelve la lista vacía.
  *
- * @author Integración backend
+ * @author Sebas Constante
  */
 @Injectable({
   providedIn: 'root'

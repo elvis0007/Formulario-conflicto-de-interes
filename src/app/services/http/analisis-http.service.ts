@@ -26,7 +26,7 @@ const ERROR_ACCION = 'No se pudo completar la acción. Inténtalo de nuevo.';
  * - Las acciones que devuelven vacío o `false` al fallar dejan el `mensaje`
  *   del backend en `ultimoError`.
  *
- * @author Integración backend
+ * @author Sebas Constante
  */
 @Injectable({
   providedIn: 'root'

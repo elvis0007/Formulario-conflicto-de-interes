@@ -7,7 +7,7 @@ import { ParentescoApi } from '../../../models/api';
  * Sentido (plan maestro §4): `PARENTESCO` es qué es B para A (`PADRE` = B
  * es el padre de A).
  *
- * @author Integración backend
+ * @author Sebas Constante
  */
 
 /** Texto de cada parentesco. */
@@ -42,7 +42,7 @@ const ETIQUETA_SIMETRICA: Readonly<Partial<Record<ParentescoApi, string>>> = {
  * @param parentesco Parentesco del backend.
  * @returns Su texto («Padre»); el código tal cual si no se conoce; vacío
  * si no viene.
- * @author Integración backend
+ * @author Sebas Constante
  */
 export function textoDeParentesco(parentesco: string | null): string {
   return parentesco === null ? '' : TEXTO_PARENTESCO[parentesco as ParentescoApi] ?? parentesco;
@@ -52,7 +52,7 @@ export function textoDeParentesco(parentesco: string | null): string {
  * @param parentesco Parentesco del backend.
  * @returns Etiqueta si el vínculo es simétrico («Hermanos»); `undefined`
  * si no lo es.
- * @author Integración backend
+ * @author Sebas Constante
  */
 export function etiquetaSimetrica(parentesco: string | null): string | undefined {
   return parentesco === null ? undefined : ETIQUETA_SIMETRICA[parentesco as ParentescoApi];
@@ -66,7 +66,7 @@ export function etiquetaSimetrica(parentesco: string | null): string | undefined
  * @param parentesco Parentesco del backend.
  * @param nombreA Nombre de la persona A.
  * @returns El texto; vacío si no viene.
- * @author Integración backend
+ * @author Sebas Constante
  */
 export function textoParentescoBandeja(parentesco: string | null, nombreA: string): string {
   const simetrica = etiquetaSimetrica(parentesco);

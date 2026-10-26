@@ -5,13 +5,13 @@ import { ActividadApi, ConflictoApi, EvidenciaApi, PlanApi } from '../models/api
  * pruebas de los mapeos y de los servicios HTTP. Cada función acepta los
  * campos a cambiar.
  *
- * @author Integración backend
+ * @author Sebas Constante
  */
 
 /**
  * @param cambios Campos a cambiar.
  * @returns Evidencia pendiente de ejemplo (id 7, actividad 3).
- * @author Integración backend
+ * @author Sebas Constante
  */
 export function evidenciaApi(cambios: Partial<EvidenciaApi> = {}): EvidenciaApi {
   return {
@@ -32,7 +32,7 @@ export function evidenciaApi(cambios: Partial<EvidenciaApi> = {}): EvidenciaApi 
 /**
  * @param cambios Campos a cambiar.
  * @returns Actividad en revisión de ejemplo (id 3) con la evidencia 7.
- * @author Integración backend
+ * @author Sebas Constante
  */
 export function actividadApi(cambios: Partial<ActividadApi> = {}): ActividadApi {
   return {
@@ -56,7 +56,7 @@ export function actividadApi(cambios: Partial<ActividadApi> = {}): ActividadApi 
 /**
  * @param cambios Campos a cambiar.
  * @returns Plan firmado de ejemplo (id 41, conflicto 1420).
- * @author Integración backend
+ * @author Sebas Constante
  */
 export function planApi(cambios: Partial<PlanApi> = {}): PlanApi {
   return {
@@ -82,7 +82,7 @@ export function planApi(cambios: Partial<PlanApi> = {}): PlanApi {
 /**
  * @param cambios Campos a cambiar.
  * @returns Conflicto de ejemplo (id 1420; B es el padre de A).
- * @author Integración backend
+ * @author Sebas Constante
  */
 export function conflictoApi(cambios: Partial<ConflictoApi> = {}): ConflictoApi {
   return {

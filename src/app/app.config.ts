@@ -5,7 +5,7 @@ import { firstValueFrom } from 'rxjs';
 import { AuthService } from './services/auth.service';
 import { solicitudInterceptor } from './interceptors/solicitudes.interceptor';
 import { routes } from './app.routes';
-// [PNIP-CI] Integración backend - 23/10/2026
+// [PNIP-CI] Sebas Constante - 26/10/2026
 // Qué hace: servicios simulados y su versión contra el backend.
 import { AnalisisMockService } from './services/analisis-mock.service';
 import { ConflictosMockService } from './services/conflictos-mock.service';
@@ -36,7 +36,7 @@ export const appConfig: ApplicationConfig = {
     provideHttpClient(
       withInterceptors([solicitudInterceptor])
     ),
-    // [PNIP-CI] Integración backend - 23/10/2026
+    // [PNIP-CI] Sebas Constante - 26/10/2026
     // Qué hace: con sesión real, las pantallas de gestión de conflictos leen
     // del backend; con la sesión simulada siguen con los datos simulados
     // (ver docs/INTEGRACION_BACKEND.md).

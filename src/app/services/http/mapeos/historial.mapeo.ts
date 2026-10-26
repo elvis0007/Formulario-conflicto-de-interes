@@ -6,7 +6,7 @@ import { AUTOR_SISTEMA, EventoReciente, TipoEvento } from '../../../utils/histor
  * Funciones puras que convierten la línea de tiempo y la actividad reciente
  * del backend a los eventos del Historial.
  *
- * @author Integración backend
+ * @author Sebas Constante
  */
 
 /** Texto de cada estado de seguimiento en los eventos. */
@@ -56,7 +56,7 @@ function textoTransicion(
  * @param api Fila de `LINEA_DE_TIEMPO`.
  * @param conflictoId Id del conflicto dueño de la línea.
  * @returns Evento de nivel conflicto.
- * @author Integración backend
+ * @author Sebas Constante
  */
 export function mapearProceso(api: ProcesoApi, conflictoId: string): EventoHistorial {
   return {
@@ -72,7 +72,7 @@ export function mapearProceso(api: ProcesoApi, conflictoId: string): EventoHisto
 /**
  * @param api Movimiento de `GET /conflictos/actividad-reciente`.
  * @returns Evento reciente, con los nombres de las dos personas en el texto.
- * @author Integración backend
+ * @author Sebas Constante
  */
 export function mapearActividadReciente(api: ActividadRecienteApi): EventoReciente {
   const conflictoId = String(api.CONFLICTO_ID ?? '');

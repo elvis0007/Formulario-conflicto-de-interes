@@ -43,6 +43,8 @@
       </div>
 
       <div *ngIf="isAdminOrRrhh && listSection === 'missing'" class="sin-archivo-panel">
+        <!-- [PNIP-CI] Sebas Constante - 08/10/2026
+             Qué hace: «Personal sin formulario» con conteo, filtro por departamento, búsqueda, columnas ordenables (nombre, departamento, cargo, correo), paginación y envío a los filtrados. -->
         <div class="sin-archivo-header">
           <h3>
             Personal sin formulario
@@ -180,9 +182,12 @@
             </button>
           </div>
         </div>
+        <!-- [FIN PNIP-CI] -->
       </div>
 
       <div *ngIf="listSection === 'forms'" class="list-header">
+        <!-- [PNIP-CI] Sebas Constante - 08/10/2026
+             Qué hace: banda azul con el título y «Exportar» (antes «Exportar» estaba en la barra de filtros). -->
         <div class="list-header-banda">
           <h2>
             Formularios recibidos
@@ -206,6 +211,7 @@
             </span>
           </button>
         </div>
+        <!-- [FIN PNIP-CI] -->
         <div class="list-header-actions">
           <div class="filters-container">
             <select
@@ -286,6 +292,8 @@
           <table class="admin-table">
             <thead>
               <tr>
+                <!-- [PNIP-CI] Sebas Constante - 08/10/2026
+                     Qué hace: columnas de «Formularios recibidos» ordenables. -->
                 <th *ngFor="let col of formsColumnas" [attr.aria-sort]="ariaOrden(formsSort, col.campo)">
                   <button type="button" class="th-sort" (click)="ordenarForms(col.campo)">
                     {{ col.titulo }}
@@ -294,6 +302,7 @@
                     </span>
                   </button>
                 </th>
+                <!-- [FIN PNIP-CI] -->
                 <th style="width: 80px; text-align: center;">Acciones</th>
               </tr>
             </thead>
@@ -394,8 +403,11 @@
 
           <div class="page-info">
             <span>
+              <!-- [PNIP-CI] Sebas Constante - 08/10/2026
+                   Qué hace: cantidad de registros junto a la página. -->
               Página {{ currentPage }} de {{ totalPages }} · {{ filteredForms.length }}
               {{ filteredForms.length === 1 ? 'registro' : 'registros' }}
+              <!-- [FIN PNIP-CI] -->
             </span>
           </div>
 

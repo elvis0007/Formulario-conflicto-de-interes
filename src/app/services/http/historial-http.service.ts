@@ -37,7 +37,7 @@ const LIMITE_MAXIMO_RECIENTES = 50;
  * revisada, vencimiento) se siguen derivando de las fechas del plan con
  * `armarHistorial`, igual que en el mock; no tienen autor real.
  *
- * @author Integración backend
+ * @author Sebas Constante
  */
 @Injectable({
   providedIn: 'root'

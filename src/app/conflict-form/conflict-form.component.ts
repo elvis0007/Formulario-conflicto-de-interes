@@ -1672,7 +1672,12 @@ export class ConflictFormComponent implements OnInit {
     }
 
     if (!this.authService.isAuthenticated()) {
+      // [PNIP-CI] Sebas Constante - 26/10/2026
+      // Qué hace: el token propio de SISCI se guarda como TOKEN-SISCI y el
+      //   usuario como USUARIO-SISCI (antes TOKEN-SISTEC / USUARIO-SISTEC;
+      //   alineado con el backend, svn r4079).
       const tieneToken = this.authService.tokenSisci() !== null || this.authService.tokenIntranet() !== null;
+      // [FIN PNIP-CI]
 
       if (tieneToken && !this.authService.getCurrentUser()) {
         this.showMessage('Su sesión está siendo validada. Por favor espere un momento e intente nuevamente.', 'info');

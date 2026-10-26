@@ -115,7 +115,7 @@ const TONO_ESTADO_SEGUIMIENTO: Readonly<Record<EstadoSeguimiento, Tono>> = {
 /**
  * @param estado Estado de seguimiento de un conflicto (`Conflicto.estado`).
  * @returns Texto de la insignia («En ejecución», «Finalizado»...).
- * @author Integración backend
+ * @author Sebas Constante
  */
 export function textoEstadoSeguimiento(estado: EstadoSeguimiento): string {
   return TEXTO_ESTADO_SEGUIMIENTO[estado] ?? estado;
@@ -126,7 +126,7 @@ export function textoEstadoSeguimiento(estado: EstadoSeguimiento): string {
  * @returns `DETECTADO`, `EN_ANALISIS` y `EN_PLANIFICACION` → ambar (falta
  * algo de RRHH), `EN_EJECUCION` → azul, `FINALIZADO` → verde,
  * `DESCARTADO` → gris.
- * @author Integración backend
+ * @author Sebas Constante
  */
 export function mapearEstadoSeguimientoATono(estado: EstadoSeguimiento): Tono {
   return TONO_ESTADO_SEGUIMIENTO[estado] ?? 'gris';

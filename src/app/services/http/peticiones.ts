@@ -8,7 +8,7 @@ import { PaginaApi, RespuestaApi } from '../../models/api';
  * URL base, desenvolver el sobre `{ estado, mensaje, datos }`, pedir todas
  * las paginas de un listado y sacar el mensaje de un error del backend.
  *
- * @author Integración backend
+ * @author Sebas Constante
  */
 
 /** Tamaño máximo de página que acepta el backend (`Paginas.TAMANO_MAXIMO`). */
@@ -23,7 +23,7 @@ export const ERROR_SIN_CONEXION = 'No se pudo conectar con el servidor. Inténta
  *
  * @param ruta Ruta que empieza con `/` (p. ej. `/conflictos/12`).
  * @returns URL absoluta.
- * @author Integración backend
+ * @author Sebas Constante
  */
 export function urlApi(ruta: string): string {
   return environment.urlSeguridad.replace('/auth/', '') + ruta;
@@ -34,7 +34,7 @@ export function urlApi(ruta: string): string {
  *
  * @param id Id del modelo.
  * @returns El id codificado para la ruta.
- * @author Integración backend
+ * @author Sebas Constante
  */
 export function idEnRuta(id: string): string {
   return encodeURIComponent(id.trim());
@@ -46,7 +46,7 @@ export function idEnRuta(id: string): string {
  * pasan por aqui.
  *
  * @returns Operador `RespuestaApi<T>` → `T` (`undefined` si no trae datos).
- * @author Integración backend
+ * @author Sebas Constante
  */
 export function datosDe<T>(): OperatorFunction<RespuestaApi<T>, T> {
   return map((respuesta) => respuesta.datos as T);
@@ -60,7 +60,7 @@ export function datosDe<T>(): OperatorFunction<RespuestaApi<T>, T> {
  * @param http Cliente HTTP.
  * @param ruta Ruta del listado (p. ej. `/conflictos/expedientes`).
  * @returns Todas las filas, en el orden del backend.
- * @author Integración backend
+ * @author Sebas Constante
  */
 export function todasLasPaginas<T>(http: HttpClient, ruta: string): Observable<T[]> {
   const pagina = (numero: number): Observable<PaginaApi<T>> => http
@@ -94,7 +94,7 @@ export function todasLasPaginas<T>(http: HttpClient, ruta: string): Observable<T
  * @param err Error capturado.
  * @param porDefecto Mensaje si el error no trae uno.
  * @returns Mensaje para mostrar.
- * @author Integración backend
+ * @author Sebas Constante
  */
 export function mensajeDeError(err: unknown, porDefecto: string): string {
   if (err instanceof HttpErrorResponse) {

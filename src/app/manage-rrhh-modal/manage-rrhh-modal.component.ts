@@ -83,7 +83,12 @@ export class ManageRrhhModalComponent implements OnInit {
       return;
     }
 
+    // [PNIP-CI] Sebas Constante - 26/10/2026
+    // Qué hace: el token propio de SISCI se guarda como TOKEN-SISCI y el
+    //   usuario como USUARIO-SISCI (antes TOKEN-SISTEC / USUARIO-SISTEC;
+    //   alineado con el backend, svn r4079).
     const token = localStorage.getItem('TOKEN-SISCI') || localStorage.getItem('TOKEN-INTRANET');
+    // [FIN PNIP-CI]
     console.log('[ManageRrhhModal] Token disponible:', !!token);
     console.log('[ManageRrhhModal] Usuario autenticado:', this.authService.getCurrentUser());
 

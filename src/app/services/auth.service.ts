@@ -32,6 +32,11 @@ export class AuthService {
   private readonly urlBase: string = environment.urlSeguridad;
   private readonly http: HttpClient = inject(HttpClient);
 
+  // [PNIP-CI] Sebas Constante - 26/10/2026
+  // Qué hace: el token propio de SISCI se guarda como TOKEN-SISCI y el
+  //   usuario como USUARIO-SISCI (antes TOKEN-SISTEC / USUARIO-SISTEC;
+  //   alineado con el backend, svn r4079). Incluye un comentario de Sebas
+  //   del 08/10 en el token de intranet.
   private _tokenIntranet = signal<string | null>(
     localStorage.getItem('TOKEN-INTRANET')
     //traer el token del localStorage
@@ -39,6 +44,7 @@ export class AuthService {
   private _tokenSisci = signal<string | null>(
     localStorage.getItem('TOKEN-SISCI')
   );
+  // [FIN PNIP-CI]
 
   private _huella = signal<String | null>(null);
   private _usuario = signal<null | IUsuario>(this.cargarUsuarioDesdeStorage());
@@ -46,7 +52,12 @@ export class AuthService {
 
   usuario = this._usuario.asReadonly();
   tokenIntranet = this._tokenIntranet.asReadonly();
+  // [PNIP-CI] Sebas Constante - 26/10/2026
+  // Qué hace: el token propio de SISCI se guarda como TOKEN-SISCI y el
+  //   usuario como USUARIO-SISCI (antes TOKEN-SISTEC / USUARIO-SISTEC;
+  //   alineado con el backend, svn r4079).
   tokenSisci = this._tokenSisci.asReadonly();
+  // [FIN PNIP-CI]
   roles = this._roles.asReadonly();
 
   constructor() {
@@ -55,8 +66,14 @@ export class AuthService {
 
   private cargarUsuarioDesdeStorage(): IUsuario | null {
     try {
+      // [PNIP-CI] Sebas Constante - 26/10/2026
+      // Qué hace: el token propio de SISCI se guarda como TOKEN-SISCI y el
+      //   usuario como USUARIO-SISCI (antes TOKEN-SISTEC / USUARIO-SISTEC;
+      //   alineado con el backend, svn r4079). Incluye una línea comentada de
+      //   Sebas del 08/10.
       //const usuarioStr = localStorage.getItem('USUARIO-SISCI');
       const usuarioStr = localStorage.getItem('USUARIO-SISCI');
+      // [FIN PNIP-CI]
       if (usuarioStr) {
         return JSON.parse(usuarioStr);
       }
@@ -277,6 +294,11 @@ export class AuthService {
       );
   }
 
+  // [PNIP-CI] Sebas Constante - 26/10/2026
+  // Qué hace: validarTokenSistec pasa a validarTokenSisci. el token propio
+  //   de SISCI se guarda como TOKEN-SISCI y el usuario como USUARIO-SISCI
+  //   (antes TOKEN-SISTEC / USUARIO-SISTEC; alineado con el backend, svn
+  //   r4079).
   /**
    * @Campo TOKEN-SISCI
    */
@@ -296,6 +318,7 @@ export class AuthService {
         catchError((err) => this.validarTokenIntranet())
       );
   }
+  // [FIN PNIP-CI]
 
   /**
    * Genera una clave temporal en el backend para la cédula indicada.
@@ -320,6 +343,10 @@ export class AuthService {
       );
   }
 
+  // [PNIP-CI] Sebas Constante - 26/10/2026
+  // Qué hace: el token propio de SISCI se guarda como TOKEN-SISCI y el
+  //   usuario como USUARIO-SISCI (antes TOKEN-SISTEC / USUARIO-SISTEC;
+  //   alineado con el backend, svn r4079).
   /**
    * Inicia sesión usando cédula y clave temporal generada por el backend.
    * Guarda el TOKEN-SISCI y un usuario mínimo con la cédula para llenar el formulario.
@@ -363,6 +390,7 @@ export class AuthService {
         })
       );
   }
+  // [FIN PNIP-CI]
 
   private procesarRespuestaLogin(res: IRespuestaLogin): boolean {
     console.log('[AuthService.procesarRespuestaLogin] Procesando respuesta:', {
@@ -382,21 +410,35 @@ export class AuthService {
     console.log('[AuthService.procesarRespuestaLogin] Estableciendo usuario:', res.usuario);
     this._usuario.set(res.usuario);
     this.actualizarRolesDesdeUsuario(res.usuario);
+    // [PNIP-CI] Sebas Constante - 26/10/2026
+    // Qué hace: el token propio de SISCI se guarda como TOKEN-SISCI y el
+    //   usuario como USUARIO-SISCI (antes TOKEN-SISTEC / USUARIO-SISTEC;
+    //   alineado con el backend, svn r4079).
     localStorage.setItem('USUARIO-SISCI', JSON.stringify(res.usuario));
+    // [FIN PNIP-CI]
 
     return true;
   }
 
+  // [PNIP-CI] Sebas Constante - 26/10/2026
+  // Qué hace: el token propio de SISCI se guarda como TOKEN-SISCI y el
+  //   usuario como USUARIO-SISCI (antes TOKEN-SISTEC / USUARIO-SISTEC;
+  //   alineado con el backend, svn r4079).
   guardarTokens(tokenSisci: string) {
     this._tokenSisci.set(tokenSisci);
     localStorage.setItem('TOKEN-SISCI', tokenSisci);
   }
+  // [FIN PNIP-CI]
 
   guardarTokenIntranet(tokenIntranet: string) {
     this._tokenIntranet.set(tokenIntranet);
     localStorage.setItem('TOKEN-INTRANET', tokenIntranet);
   }
 
+  // [PNIP-CI] Sebas Constante - 26/10/2026
+  // Qué hace: el token propio de SISCI se guarda como TOKEN-SISCI y el
+  //   usuario como USUARIO-SISCI (antes TOKEN-SISTEC / USUARIO-SISTEC;
+  //   alineado con el backend, svn r4079).
   isAuthenticated(): boolean {
     const tieneTokenSisci = this._tokenSisci() !== null;
     const tieneTokenIntranet = this._tokenIntranet() !== null;
@@ -416,6 +458,7 @@ export class AuthService {
 
     return tieneToken && tieneUsuario;
   }
+  // [FIN PNIP-CI]
 
   getCurrentUser(): IUsuario | null {
     return this._usuario();
@@ -429,6 +472,10 @@ export class AuthService {
     return this.hasRole('A');
   }
 
+  // [PNIP-CI] Sebas Constante - 26/10/2026
+  // Qué hace: el token propio de SISCI se guarda como TOKEN-SISCI y el
+  //   usuario como USUARIO-SISCI (antes TOKEN-SISTEC / USUARIO-SISTEC;
+  //   alineado con el backend, svn r4079).
   logout() {
     this._tokenSisci.set(null);
     this._tokenIntranet.set(null);
@@ -438,6 +485,7 @@ export class AuthService {
     localStorage.removeItem('USUARIO-SISCI');
     // window.location.href = environment.urlIntranet;
   }
+  // [FIN PNIP-CI]
 
   // [PNIP-CI DEV] Elvis Flores - 01/10/2026 - ELIMINAR ANTES DE PRODUCCIÓN
   // Qué hace: sesión simulada de desarrollo local (NO es parte del backend

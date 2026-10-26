@@ -23,7 +23,7 @@ import { textoParentescoBandeja } from './parentesco.mapeo';
  *
  * Los estados no se traducen: el modelo usa los mismos valores que la API.
  *
- * @author Integración backend
+ * @author Sebas Constante
  */
 
 /**
@@ -32,7 +32,7 @@ import { textoParentescoBandeja } from './parentesco.mapeo';
  *
  * @param planId Id del plan.
  * @returns `/planes/{id}/documento`.
- * @author Integración backend
+ * @author Sebas Constante
  */
 export function rutaDocumentoPlan(planId: string): string {
   return '/planes/' + planId + '/documento';
@@ -44,7 +44,7 @@ export function rutaDocumentoPlan(planId: string): string {
  *
  * @param evidenciaId Id de la evidencia.
  * @returns `/evidencias/{id}/archivo`.
- * @author Integración backend
+ * @author Sebas Constante
  */
 export function rutaArchivoEvidencia(evidenciaId: string): string {
   return '/evidencias/' + evidenciaId + '/archivo';
@@ -85,7 +85,7 @@ function tipoDeArchivo(info: ArchivoInfoApi | null): Archivo['tipo'] {
  * @param url Ruta de descarga (`rutaDocumentoPlan` o `rutaArchivoEvidencia`).
  * @param fechaSubida Fecha de subida, si se conoce.
  * @returns El archivo del modelo; nombre `archivo` si no lo trae.
- * @author Integración backend
+ * @author Sebas Constante
  */
 export function mapearArchivo(
   info: ArchivoInfoApi | null,
@@ -106,7 +106,7 @@ export function mapearArchivo(
  *
  * @param api Evidencia del backend.
  * @returns La evidencia del modelo (`PENDIENTE` si no trae estado).
- * @author Integración backend
+ * @author Sebas Constante
  */
 export function mapearEvidencia(api: EvidenciaApi): Evidencia {
   const id = texto(api.CODIGO);
@@ -133,7 +133,7 @@ export function mapearEvidencia(api: EvidenciaApi): Evidencia {
  *
  * @param api Actividad del backend.
  * @returns La actividad del modelo.
- * @author Integración backend
+ * @author Sebas Constante
  */
 export function mapearActividad(api: ActividadApi): Actividad {
   const evidencias = (api.EVIDENCIAS ?? []).map(mapearEvidencia);
@@ -167,7 +167,7 @@ export function mapearActividad(api: ActividadApi): Actividad {
  *
  * @param api Plan del backend.
  * @returns El plan del modelo.
- * @author Integración backend
+ * @author Sebas Constante
  */
 export function mapearPlan(api: PlanApi): PlanAccion {
   const id = texto(api.CODIGO);
@@ -205,7 +205,7 @@ export function mapearPlan(api: PlanApi): PlanAccion {
  * @param filas Actividades de la bandeja.
  * @param empleadoId Id del empleado que pidió la bandeja.
  * @returns Un elemento por plan, ordenados por conflicto y número.
- * @author Integración backend
+ * @author Sebas Constante
  */
 export function mapearPlanesDeResponsable(
   filas: readonly ActividadBandejaApi[],
@@ -267,7 +267,7 @@ export function mapearPlanesDeResponsable(
  * @param anterior El mismo plan como llegó del backend; `undefined` si es
  * nuevo.
  * @returns Cuerpo JSON (camelCase).
- * @author Integración backend
+ * @author Sebas Constante
  */
 export function crearPedidoPlan(plan: PlanAccion, anterior?: PlanApi): CrearPlanRequestApi {
   const involucrados: InvolucradoRequestApi[] = (anterior?.INVOLUCRADOS ?? [])

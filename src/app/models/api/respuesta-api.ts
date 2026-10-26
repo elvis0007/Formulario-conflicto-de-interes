@@ -12,7 +12,7 @@
  * - `LocalDateTime` llega como ISO-8601 sin zona, p. ej. `"2026-10-13T10:15:30.123456"`
  *   (la fracción de segundo puede faltar o tener hasta 9 dígitos).
  *
- * @author Integración backend
+ * @author Sebas Constante
  */
 
 /** Valor de `estado` en el sobre de respuesta. */

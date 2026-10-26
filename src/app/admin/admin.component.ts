@@ -10,6 +10,9 @@ import { ManageRrhhModalComponent } from '../manage-rrhh-modal/manage-rrhh-modal
 import * as XLSX from 'xlsx';
 import { AuthService } from '../services/auth.service';
 import { SidebarMenuComponent } from '../sidebar-menu/sidebar-menu.component';
+// [PNIP-CI] Sebas Constante - 08/10/2026
+// Qué hace: tipos para ordenar las tablas (OrdenTabla, ColumnaTabla) y
+//   operadores de RxJS para el envío de correos uno por uno.
 import { concatMap, from, of, tap, toArray } from 'rxjs';
 
 /** Columna por la que está ordenada una tabla; sin campo se respeta el orden en que llegó. */
@@ -22,6 +25,7 @@ interface ColumnaTabla {
   campo: string;
   titulo: string;
 }
+// [FIN PNIP-CI]
 
 @Component({
   selector: 'app-admin',
@@ -73,6 +77,9 @@ export class AdminComponent implements OnInit {
   historyByActiveId: Record<number, PlantillaTemporalDto[]> = {};
   loadingHistory: Record<number, boolean> = {};
   sinArchivoList: SinArchivoConflictoItem[] = [];
+  // [PNIP-CI] Sebas Constante - 08/10/2026
+  // Qué hace: estado de los filtros, el orden y la paginación en memoria
+  //   de «Personal sin formulario», y el orden de «Formularios recibidos».
   /** Lo que se ve en "No han llenado formulario" tras buscar, filtrar y ordenar. */
   sinArchivoFiltrados: SinArchivoConflictoItem[] = [];
   /** La página visible de sinArchivoFiltrados. La lista entera ya está en memoria: se pagina aquí. */
@@ -106,6 +113,7 @@ export class AdminComponent implements OnInit {
   ];
 
   private readonly comparador = new Intl.Collator('es', { numeric: true, sensitivity: 'base' });
+  // [FIN PNIP-CI]
   loadingSinArchivo = false;
   sendingAllSinArchivo = false;
   sendingSinArchivoByKey: Record<string, boolean> = {};
@@ -170,6 +178,11 @@ export class AdminComponent implements OnInit {
     this.backendService.getSinArchivoConflicto().subscribe({
       next: (items) => {
         this.sinArchivoList = items || [];
+        // [PNIP-CI] Sebas Constante - 08/10/2026
+        // Qué hace: «Personal sin formulario»: filtro por departamento,
+        //   búsqueda, orden por columna, paginación en memoria, textos en español
+        //   y envío masivo solo a los filtrados (uno por uno, con progreso y
+        //   confirmación).
         this.departamentosSinArchivo = Array.from(
           new Set(this.sinArchivoList.map((i) => this.getSinArchivoDepartamento(i)))
         ).sort(this.comparador.compare);
@@ -459,6 +472,7 @@ export class AdminComponent implements OnInit {
           this.sinArchivoError = 'El envío se interrumpió. Revise la conexión e intente de nuevo.';
         }
       });
+        // [FIN PNIP-CI]
   }
 
   @HostListener('window:resize')
@@ -528,8 +542,12 @@ export class AdminComponent implements OnInit {
       next: (history) => {
         // History must include only inactive records (state 0/INACTIVO).
         const inactive = (history || []).filter((h) => this.isEstadoInactivo((h as any).ESTADO));
+        // [PNIP-CI] Sebas Constante - 08/10/2026
+        // Qué hace: ordena los formularios anteriores del más reciente al más
+        //   antiguo.
         // Del más reciente al más antiguo; las fechas ISO se ordenan bien como texto.
         inactive.sort((a, b) => (b.FECHA_GENERACION || '').localeCompare(a.FECHA_GENERACION || ''));
+        // [FIN PNIP-CI]
         this.historyByActiveId[id] = inactive;
         this.loadingHistory[id] = false;
       },
@@ -851,6 +869,8 @@ export class AdminComponent implements OnInit {
       });
     }
 
+    // [PNIP-CI] Sebas Constante - 08/10/2026
+    // Qué hace: «Formularios recibidos» se puede ordenar por columna.
     this.filteredForms = this.ordenarFilas(result, this.formsSort, (form, campo) => {
       switch (campo) {
         case 'cedula':
@@ -867,6 +887,7 @@ export class AdminComponent implements OnInit {
           return form.NOMBRE || '';
       }
     });
+    // [FIN PNIP-CI]
     this.currentPage = 1;
     this.updatePagination();
   }

@@ -49,6 +49,8 @@
     <section id="s1" class="form-section section-card">
       <div class="section-header">
         <h3 class="section-title"><span class="section-num">01</span>Información Personal</h3>
+        <!-- [PNIP-CI] Sebas Constante - 08/10/2026
+             Qué hace: vuelve a mostrar el tipo de declaración (estaba comentado), solo al personal interno: la opción que corresponde (Inicial o Actualización) y «Final». A los externos no se les muestra. -->
         <!-- Tipo de declaración, solo para el personal interno.
 
              Inicial o Actualización lo decide el sistema según exista o no una
@@ -78,6 +80,7 @@
             Final
           </label>
         </div>
+        <!-- [FIN PNIP-CI] -->
       </div>
       <div formGroupName="personalInfo" class="form-grid form-grid-personal">
         <!-- Al personal interno el nombre le llega completo desde nómina.

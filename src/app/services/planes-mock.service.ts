@@ -124,7 +124,7 @@ export class PlanesMockService {
    * la pantalla pueda mostrar por que no se pudo. Vuelve a `null` cuando una
    * de esas acciones sale bien.
    *
-   * @author Integración backend
+   * @author Sebas Constante
    */
   ultimoError: string | null = null;
 
@@ -587,7 +587,7 @@ export class PlanesMockService {
    * @param planId Id del plan.
    * @param motivo Motivo del cierre.
    * @returns El plan cerrado, o el motivo por el que no se cerro.
-   * @author Integración backend
+   * @author Sebas Constante
    */
   cerrarPlan(planId: string, motivo: string): Observable<ResultadoCierre> {
     return defer(() => {
@@ -630,7 +630,7 @@ export class PlanesMockService {
    *
    * @param planId Id del plan.
    * @returns El archivo, o `null` si el plan no tiene documento o falla.
-   * @author Integración backend
+   * @author Sebas Constante
    */
   obtenerDocumentoPlan(planId: string): Observable<Blob | null> {
     const archivo = this.planes.find((p) => p.id === planId)?.documentoFirmado;
@@ -646,7 +646,7 @@ export class PlanesMockService {
    *
    * @param evidenciaId Id de la evidencia.
    * @returns El archivo, o `null` si no existe o falla.
-   * @author Integración backend
+   * @author Sebas Constante
    */
   obtenerArchivoEvidencia(evidenciaId: string): Observable<Blob | null> {
     const evidencia = this.planes

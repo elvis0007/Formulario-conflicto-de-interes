@@ -11,7 +11,7 @@ import {
  * Funciones puras de la consulta previa: arman el pedido del backend y
  * convierten su respuesta al modelo de la pantalla.
  *
- * @author Integración backend
+ * @author Sebas Constante
  */
 
 /** El mismo vínculo visto desde la otra persona (los demás son simétricos). */
@@ -59,7 +59,7 @@ const TEXTO_FUENTE: Readonly<Record<FuenteCoincidenciaApi, string>> = {
  * @param datos Datos del formulario (la cédula puede ir vacía en la
  * pantalla, pero el backend la exige).
  * @returns Cuerpo de `POST /consultas-previas` (siempre un aspirante).
- * @author Integración backend
+ * @author Sebas Constante
  */
 export function crearPedidoConsulta(datos: DatosCandidato): CrearConsultaRequestApi {
   return {
@@ -75,7 +75,7 @@ export function crearPedidoConsulta(datos: DatosCandidato): CrearConsultaRequest
  *
  * @param api Coincidencia del backend.
  * @returns Coincidencia del modelo.
- * @author Integración backend
+ * @author Sebas Constante
  */
 export function mapearCoincidencia(api: CoincidenciaApi): CoincidenciaCandidato {
   const delEmpleado = api.PARENTESCO;
@@ -111,7 +111,7 @@ export function mapearCoincidencia(api: CoincidenciaApi): CoincidenciaCandidato 
  * @param datos Datos que se enviaron (se devuelven en `datos`).
  * @param ahora Fecha de respaldo si la respuesta no trae `FECHA`.
  * @returns Consulta del modelo, con sus coincidencias.
- * @author Integración backend
+ * @author Sebas Constante
  */
 export function mapearConsulta(api: ConsultaPreviaApi, datos: DatosCandidato, ahora: Date): ConsultaPrevia {
   const fecha = api.FECHA ?? ahora.toISOString();

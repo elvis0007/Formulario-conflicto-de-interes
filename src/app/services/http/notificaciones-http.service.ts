@@ -18,7 +18,7 @@ const TAMANO_LISTA_CAMPANA = 50;
  * El backend filtra por el usuario del token y crea él mismo las
  * notificaciones, por eso no existe `agregarNotificaciones`.
  *
- * @author Integración backend
+ * @author Sebas Constante
  */
 @Injectable({
   providedIn: 'root'

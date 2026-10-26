@@ -5,14 +5,14 @@ import { AnalisisConflictos, Conflicto, ResumenAnalisis } from '../../../models'
  * Funciones puras que convierten los análisis del backend a los modelos de
  * la pantalla.
  *
- * @author Integración backend
+ * @author Sebas Constante
  */
 
 /**
  * Análisis vacío: el que hay antes de generar el primero.
  *
  * @returns Un análisis nuevo, sin estado ni casos.
- * @author Integración backend
+ * @author Sebas Constante
  */
 export function crearAnalisisVacio(): AnalisisConflictos {
   return { id: null, estado: null, fechaGeneracion: null, conflictos: [] };
@@ -22,7 +22,7 @@ export function crearAnalisisVacio(): AnalisisConflictos {
  * @param api Fila del historial de análisis.
  * @param conflictos Casos del análisis (vacío si no se necesitan).
  * @returns El análisis con sus casos.
- * @author Integración backend
+ * @author Sebas Constante
  */
 export function mapearAnalisis(api: AnalisisApi, conflictos: Conflicto[]): AnalisisConflictos {
   const analisis: AnalisisConflictos = {
@@ -47,7 +47,7 @@ export function mapearAnalisis(api: AnalisisApi, conflictos: Conflicto[]): Anali
  *
  * @param api Fila del historial de análisis.
  * @returns Fila del historial de la pantalla.
- * @author Integración backend
+ * @author Sebas Constante
  */
 export function mapearResumenAnalisis(api: AnalisisApi): ResumenAnalisis {
   return {

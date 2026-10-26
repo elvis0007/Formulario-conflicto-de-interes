@@ -454,6 +454,9 @@ app-sidebar-menu {
 }
 
 .btn-send-one {
+  // [PNIP-CI] Sebas Constante - 08/10/2026
+  // Qué hace: estilos de los filtros, el conteo, las cabeceras ordenables
+  //   y las celdas de «Personal sin formulario».
   white-space: nowrap;
   background-color: var(--ci-paper);
   border-color: var(--ci-accent);
@@ -579,6 +582,7 @@ app-sidebar-menu {
   white-space: nowrap;
 }
 
+  // [FIN PNIP-CI]
 .sin-archivo-message {
   color: #1f7a4d;
   font-size: 13px;
@@ -600,11 +604,15 @@ app-sidebar-menu {
 
 .sin-archivo-table {
   width: 100%;
+  // [PNIP-CI] Sebas Constante - 08/10/2026
+  // Qué hace: la tabla se desplaza dentro de su contenedor en pantallas
+  //   angostas.
   /* Por debajo de este ancho la tabla se desplaza dentro de su contenedor en vez de apretarse */
   min-width: 920px;
   border-collapse: collapse;
   border: 1px solid var(--ci-line);
   border-radius: 10px 10px 0 0;
+  // [FIN PNIP-CI]
   overflow: hidden;
 
   thead {
@@ -627,6 +635,8 @@ app-sidebar-menu {
     border-bottom: 1px solid var(--ci-line);
     font-size: 13px;
     color: var(--ci-text);
+    // [PNIP-CI] Sebas Constante - 08/10/2026
+    // Qué hace: celdas, botones y paginación de la tabla de pendientes.
     vertical-align: middle;
   }
 
@@ -653,6 +663,7 @@ app-sidebar-menu {
   td:nth-child(5) {
     width: 1%;
     white-space: nowrap;
+    // [FIN PNIP-CI]
   }
 }
 
@@ -707,6 +718,8 @@ app-sidebar-menu {
   }
 }
 
+// [PNIP-CI] Sebas Constante - 08/10/2026
+// Qué hace: banda azul del listado con el título y «Exportar».
 /* Banda azul del listado: título a la izquierda y Exportar a la derecha,
    para que el panel de filtros de abajo quede solo con campos alineados. */
 .list-header-banda {
@@ -747,6 +760,7 @@ app-sidebar-menu {
   }
 }
 
+// [FIN PNIP-CI]
 .list-header-actions {
   display: flex;
   align-items: center;
@@ -1300,10 +1314,13 @@ app-sidebar-menu {
     width: 100%;
   }
 
+  // [PNIP-CI] Sebas Constante - 08/10/2026
+  // Qué hace: «Exportar» de la banda en pantallas angostas.
   .btn-export.btn-export-banda {
     width: auto;
   }
 
+  // [FIN PNIP-CI]
   .search-container {
     min-width: 0;
     width: 100%;

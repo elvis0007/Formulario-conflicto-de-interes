@@ -10,10 +10,16 @@ export const solicitudInterceptor: HttpInterceptorFn = (req, next) => {
   if (url.includes('WSSisgerhServices'))
     token = localStorage.getItem('TOKEN-SISGERH');
   else if (req.url.includes('getUsuarioIntranet')) token = localStorage.getItem('TOKEN-INTRANET');
+  // [PNIP-CI] Sebas Constante - 26/10/2026
+  // Qué hace: el token propio de SISCI se guarda como TOKEN-SISCI y el
+  //   usuario como USUARIO-SISCI (antes TOKEN-SISTEC / USUARIO-SISTEC;
+  //   alineado con el backend, svn r4079). generarTokenSistec pasa a
+  //   generarTokenSisci.
   else if (req.url.includes('generarTokenSisci')) token = null;
   else if (req.url.includes('getUsuarioInformacionSisgerh')) token = localStorage.getItem('TOKEN-INTRANET');
   else if (url.includes('/sisgerh/')) token = localStorage.getItem('TOKEN-SISCI');
   else token = localStorage.getItem('TOKEN-SISCI');
+  // [FIN PNIP-CI]
 
   solicitudesTotales++;
 

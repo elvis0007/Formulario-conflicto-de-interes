@@ -17,7 +17,7 @@ const ERROR_CONSULTA = 'No se pudo hacer la consulta. Inténtalo de nuevo.';
  *
  * El backend solo calcula: no guarda las consultas ni las coincidencias.
  *
- * @author Integración backend
+ * @author Sebas Constante
  */
 @Injectable({
   providedIn: 'root'

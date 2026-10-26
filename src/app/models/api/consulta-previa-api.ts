@@ -9,7 +9,7 @@ import {
 /**
  * Interfaces de la consulta previa (aspirantes y proveedores), tal cual llegan del backend.
  *
- * @author Integración backend
+ * @author Sebas Constante
  */
 
 /**

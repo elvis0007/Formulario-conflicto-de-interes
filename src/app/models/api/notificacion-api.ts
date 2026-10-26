@@ -4,7 +4,7 @@ import { PaginaApi } from './respuesta-api';
 /**
  * Interfaces de notificaciones, tal cual llegan del backend.
  *
- * @author Integración backend
+ * @author Sebas Constante
  */
 
 /**
