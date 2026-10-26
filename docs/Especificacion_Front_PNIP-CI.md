@@ -496,3 +496,31 @@ interface Notificacion { id: string; titulo: string; texto: string; fecha: strin
 - **Alta:** Plan de Acción, Análisis, Revisión de Evidencias y Dashboard RRHH.
 - **Media:** Formularios, Bandeja del responsable, Historial e Informe.
 - **Baja:** Excusas, Consulta Previa y Dashboard del responsable.
+
+## 12. Cambios por la integración con el backend (26/10/2026)
+
+La integración con el backend `wssisci` (Sebas Constante, commit `38b38ae`)
+cambió algunas cosas respecto de lo que RRHH aprobó en esta especificación y
+en los mockups. Donde esta sección contradice a las anteriores, **manda esta
+sección** (es lo que hace el código). Los puntos marcados «por confirmar»
+están en la lista de preguntas de la bitácora (26/10/2026).
+
+| Tema | Lo aprobado (§3, §6, §7) | Lo que hace ahora | Estado |
+|---|---|---|---|
+| Clasificación del conflicto | Confirmado / pendiente / descartado | `D` declarado, `N` no declarado, `H` homónimo; `null` sin clasificar. `H` exige observación y descarta el caso | Por confirmar con RRHH |
+| Nivel de riesgo | Ninguno, Bajo, Moderado, Alto | `BAJO`, `MEDIO` (se muestra «Moderado»), `ALTO`, **`CRITICO`**; desaparece «Ninguno» | Por confirmar con RRHH |
+| Estado del conflicto | Derivado en el front (sin plan, en ejecución, con vencidas, cerrado) | Lo da el backend: `DETECTADO`, `EN_ANALISIS`, `EN_PLANIFICACION`, `EN_EJECUCION`, `FINALIZADO`, `DESCARTADO`. «Con vencidas» sigue calculándose en el front | Hecho |
+| Análisis | Se guarda | Además se **valida** (`BORRADOR` → `VALIDADO`) | Hecho |
+| Firma del plan | Subir el documento firmado y luego enviar | Firmar y enviar en **un solo paso** (`POST /planes/{id}/firmar`, multipart). «Quitar documento» solo existe en la pantalla, antes de enviar | Hecho |
+| Cierre del plan | Automático al aprobar la última actividad | Automático (`CUMPLIDO`) **y anticipado** (`ANTICIPADO`) con motivo obligatorio | Hecho |
+| Revisión de evidencias | Aprobar / rechazar, con «Deshacer» | Aprobar / rechazar es **definitivo**: **sin «Deshacer»** (el backend no lo tiene) | Por confirmar con RRHH |
+| Actividad no cumplida | No existía | Estado `NO_CUMPLIDA` (lo pone el backend) | Hecho |
+| Consulta previa | Con «Consultas recientes» | **Sin «Consultas recientes»** (el backend no guarda las consultas). Pide cédula, nombres y apellidos | Por confirmar con RRHH |
+| Tamaño máximo de archivos | 10 MB | **5 MB** para el plan firmado y las evidencias (PDF, PNG o JPG) | Por confirmar |
+| Excusas | Pantalla §6.4 | **Fuera del sprint, oculta.** La guía dice «se oculta del menú»; el menú no se tocó y solo tiene la descarga del PDF de excusa de siempre | Por confirmar |
+| Notificaciones | El front las agrega | Las crea y filtra el backend; el front solo las muestra y marca como leídas | Hecho |
+| Reglas de permisos | Las aplicaba el front | Las aplica el backend (403): quien sube no revisa y nadie decide sobre su propio conflicto. El front muestra el mensaje | Hecho |
+
+Con la sesión simulada de desarrollo, los mocks siguen estas mismas reglas
+y estados. Detalle técnico: [ARQUITECTURA.md](ARQUITECTURA.md#qué-es-real-y-qué-es-simulado)
+y [INTEGRACION_BACKEND.md](INTEGRACION_BACKEND.md).

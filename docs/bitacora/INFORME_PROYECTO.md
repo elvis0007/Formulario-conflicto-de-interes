@@ -1974,3 +1974,110 @@ guardan:
 - «Confirmados sin plan» es 0 con los datos de ejemplo (C-003 tiene un
   borrador): el filtro funciona, pero la tabla queda vacía.
 - La cabecera sigue mostrando el nombre de la sesión simulada.
+
+## Ordenar, verificar y documentar la integración con el backend (26/10/2026)
+
+Sebas Constante integró las pantallas de conflictos con el backend `wssisci`
+(commit `38b38ae`, guía en `docs/INTEGRACION_BACKEND.md`). Análisis completo
+en [ANALISIS_GUIA_BACKEND.md](ANALISIS_GUIA_BACKEND.md). Entrega: viernes
+30/10/2026.
+
+### Decisiones de Elvis
+
+- La rama de trabajo es `feature/integracion-backend`. `feature/pnip-ci`
+  queda como historial.
+- Los cambios de `9e80ba3` son de Sebas y **no se revierten**. La limpieza
+  acordada antes queda cancelada.
+- Solo se corrige lo que se rompió sin querer. No se cambia la lógica de la
+  integración.
+
+### Commits
+
+| Commit | Qué |
+|---|---|
+| `19a51d4` | `docs: análisis de la integración con el backend` |
+| `175bd03` | `fix: recupera la apertura del formulario desde el menú lateral`: vuelve el bloque `[PNIP-CI]` de `?vista=formulario` en `admin.component.ts`, sin tocar los filtros ni el envío de correos de Sebas |
+| `f6af749` | `docs: marcadores y autoría en la integración con el backend`: solo comentarios |
+| (este) | `docs: arquitectura y desarrollo local tras la integración con el backend` |
+
+### Paso 1 — Pruebas y builds sobre la integración
+
+- `ng test`: 626 OK. Fallan solo las 3 antiguas de `app.component.spec`
+  («No provider for HttpClient»), las mismas de siempre. El
+  `console.error` «Fecha inválida» de `planes.util` lo provoca una prueba a
+  propósito.
+- Builds de desarrollo y producción correctos (avisos de presupuesto de SCSS
+  del host).
+- No hubo specs desactualizadas que corregir ni errores de lógica que
+  reportar.
+
+### Paso 2 — Formulario desde el menú lateral
+
+- `9e80ba3` había reemplazado `admin.component.ts` y se perdió el bloque
+  que abre el formulario con `?vista=formulario`, que usa el menú cuando
+  está fuera de `/admin`.
+- Se agregó de nuevo al final del `queryParamMap.subscribe`, después de
+  `openManageRRHHModal()`.
+- Verificado: desde `/rrhh/dashboard` y `/rrhh/analisis-conflictos`, «Formulario»
+  abre `app-conflict-form` en `/admin`. El parámetro desaparece de la URL
+  porque el host hace `router.navigate([], { replaceUrl: true })`; es lo
+  esperado.
+
+### Paso 3 — Marcadores y autoría
+
+- 74 `@author Integración backend` → `@author Sebas Constante` en 28
+  archivos.
+- Bloques `[PNIP-CI] Sebas Constante - 08/10/2026` (commit `9e80ba3`):
+  `admin.component.ts/.scss/.html`, `footer.component.html/.scss`,
+  `conflict-form.component.html` y `mis-formularios.component.ts`.
+- Bloques `[PNIP-CI] Sebas Constante - 26/10/2026` (commit `38b38ae`):
+  `auth.service.ts` (9 bloques), `auth.guard.ts`,
+  `solicitudes.interceptor.ts`, `conflict-form.component.ts`,
+  `manage-rrhh-modal.component.ts`, `backend.service.ts` y las dos
+  cabeceras de `app.config.ts`.
+- Comprobado con el diff: solo cambian líneas de comentario. Pruebas: 626
+  OK, las mismas 3 antiguas.
+- **`fuente-datos.ts` no se cambió.** Usar
+  `PerfilUsuarioService.esSesionSimulada()` no es trivial: `usarBackend()`
+  corre al armar los proveedores de `app.config.ts`, antes de que exista
+  el inyector. Además, `PerfilUsuarioService` depende de `AuthService` →
+  `HttpClient`. Se queda leyendo `SISCI-DEV-SESION-SIMULADA` directamente.
+
+### Paso 4 — Documentación
+
+- `ARQUITECTURA.md`:
+  - carpetas `services/http/` y `models/api/`;
+  - cómo decide `fuente-datos.ts`;
+  - la tabla de estados del backend;
+  - qué hace el backend y qué el front.
+- `DESARROLLO_LOCAL.md`:
+  - sesión simulada → mocks; sesión real → backend de pruebas;
+  - `TOKEN-SISCI`;
+  - hueco **PENDIENTE** sobre cómo iniciar sesión real en local.
+- Especificación: nueva §12 «Cambios por la integración con el backend».
+
+### Preguntas abiertas para Sebas
+
+1. ¿Puedes subir o compartir `PLAN_MAESTRO_MODULO_CONFLICTOS.md` y el
+   `wssisci` de r4091, o la URL del Swagger de pruebas? Sin eso no se pueden
+   contrastar los DTO.
+2. **¿Cómo inicias sesión real en local** (usuario, roles y camino para
+   tener un `TOKEN-SISCI` válido) para probar contra el backend de pruebas?
+3. ¿El cambio a `TOKEN-SISCI` / `USUARIO-SISCI` lo pidió el backend
+   (r4079)? ¿Afecta a otras apps de la intranet o a sesiones ya guardadas
+   con `TOKEN-SISTEC`?
+4. ¿Se puede usar `GET /conflictos/resumen` para el dashboard, y los
+   filtros del servidor en lugar de bajar todas las páginas?
+5. ¿Para qué son `/conflictos/reporte` (¿el Excel del informe?) y
+   `/conflictos/{id}/plan/sugerencia`?
+6. ¿Hay endpoint para la lista completa de personal o para buscar por
+   código? Hoy `obtenerPersonas` y `obtenerPersonaPorId` del servicio HTTP
+   devuelven vacío.
+7. ¿Cómo se asigna el rol `P` y quién lo hace?
+8. Excusas: la guía dice «se oculta del menú», pero el menú no se tocó y
+   solo descarga el PDF. ¿Se deja así?
+9. ¿Se mantienen `CRITICO` y la clasificación `D`/`N`/`H` en las pantallas?
+   RRHH aprobó mockups con «Confirmado» y sin «Crítico».
+10. ¿5 MB es definitivo para documentos y evidencias?
+11. ¿Está bien que desaparezcan «Deshacer» y «Consultas recientes»? RRHH
+    los vio en los recorridos.

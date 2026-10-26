@@ -15,7 +15,7 @@ sugeridas (sección 5) son anteriores a la integración: las vigentes son
 | Parte | Qué hace | Rutas | Datos |
 |---|---|---|---|
 | **Declaración** | Login, formulario de declaración, «Mis declaraciones», administración de formularios recibidos, gestión de roles y claves temporales para externos. | `/login`, `/`, `/mis-formularios`, `/admin` | **Reales**: backend `wssisci` (vía `BackendService` y `AuthService`). |
-| **Gestión de conflictos** | Lo que RRHH hace con las declaraciones: análisis de conflictos, consulta previa, planes de acción, revisión de evidencias, informe general e historial. Y la bandeja de cada responsable de actividades. | `/rrhh/**`, `/responsable/**` | **Simulados** (mock), hasta que exista el backend. |
+| **Gestión de conflictos** | Lo que RRHH hace con las declaraciones: análisis de conflictos, consulta previa, planes de acción, revisión de evidencias, informe general e historial. Y la bandeja de cada responsable de actividades. | `/rrhh/**`, `/responsable/**` | **Reales** con sesión real (servicios de `services/http/`, backend `wssisci`); **simulados** (mock) con la sesión simulada de desarrollo. Ver «Fuente de datos». |
 
 Las dos comparten el mismo layout (cabecera, pie y menú lateral), la misma
 sesión (`AuthService`) y los mismos roles.
@@ -131,26 +131,107 @@ src/
     │                      simulada ([PNIP-CI DEV], se elimina antes de
     │                      producción)
     ├── interceptors/      token en cada petición HTTP
+    ├── models/api/        lo que llega y se envía al backend de conflictos
+    │                      (MAYÚSCULAS, tal cual la API)
     └── services/
-        ├── auth.service.ts, backend.service.ts...   reales
+        ├── auth.service.ts, backend.service.ts...   reales (host)
         ├── perfil-usuario.service.ts   rol de gestión y empleado actual
-        ├── *-mock.service.ts           datos simulados
-        └── mock-data/                  los datos de ejemplo
+        ├── *-mock.service.ts           datos simulados (sesión simulada)
+        ├── mock-data/                  los datos de ejemplo
+        └── http/                       versión real de cada mock
+            ├── *-http.service.ts       mismos métodos públicos que su mock
+            ├── mapeos/                 API → modelo, funciones puras
+            ├── peticiones.ts           URL base, sobre, páginas, errores
+            └── fuente-datos.ts         decide mock o backend
 ```
 
 ## Qué es real y qué es simulado
 
-| Real (backend `wssisci`) | Simulado |
+| Siempre real (backend `wssisci`) | Real con sesión real, simulado con la sesión simulada |
 |---|---|
-| Login, token de intranet, roles del usuario (`AuthService`) | Formularios, conflictos, planes, actividades, evidencias, excusas, notificaciones y personas de la gestión de conflictos (`services/*-mock.service.ts` con `services/mock-data/`) |
-| Guardar y consultar declaraciones, formularios recibidos, roles, claves temporales (`BackendService`) | El empleado actual en desarrollo (`SISCI-DEV-EMPLEADO`, ver `PerfilUsuarioService`) |
+| Login, tokens, roles del usuario (`AuthService`) | Análisis, conflictos, planes, actividades, evidencias, revisión, historial, notificaciones, consulta previa y búsqueda de personal de la gestión de conflictos |
+| Guardar y consultar declaraciones, formularios recibidos, roles, claves temporales, personal sin formulario (`BackendService`) | El empleado actual (`SISCI-DEV-EMPLEADO` solo con la sesión simulada; con sesión real, `DMPER_CODIGO`) |
 
 El PDF de la declaración (`ConflictoPdfService`) no usa backend: se arma en
 el navegador con los datos reales del formulario.
 
-Los servicios simulados ya devuelven `Observable` con la misma forma que
-tendrá el servicio HTTP: cuando exista el backend, se reemplaza cada
-`*MockService` sin tocar las pantallas.
+La integración la hizo Sebas Constante (commit `38b38ae`, 26/10/2026). Guía
+completa: [INTEGRACION_BACKEND.md](INTEGRACION_BACKEND.md); análisis:
+[bitacora/ANALISIS_GUIA_BACKEND.md](bitacora/ANALISIS_GUIA_BACKEND.md).
+
+### Capa `services/http/`
+
+- **Un servicio HTTP por mock** (`AnalisisHttpService`,
+  `ConflictosHttpService`, `PlanesHttpService`, `HistorialHttpService`,
+  `NotificacionesHttpService`, `ConsultaPreviaHttpService`,
+  `PersonasHttpService`), con **los mismos métodos públicos**. Las
+  pantallas siguen inyectando el `*MockService`: no saben de dónde vienen
+  los datos.
+- **`models/api/`**: interfaces de lo que llega del backend (campos en
+  MAYÚSCULAS dentro de `{ estado, mensaje, datos }`, listados en `PaginaApi`)
+  y de lo que se envía (camelCase).
+- **`mapeos/`**: funciones puras API → modelo del front (camelCase), con su
+  `.spec.ts`. Los ids numéricos del backend pasan a `string`.
+- **`peticiones.ts`**: URL base (`environment.urlSeguridad` sin `/auth/`),
+  desenvolver el sobre, pedir todas las páginas de un listado (200 por
+  página) y sacar el mensaje de un error (`mensaje` del backend en 400, 403,
+  404 y 409; «No se pudo conectar» si no hay respuesta).
+- El token lo pone el interceptor de siempre (`TOKEN-SISCI`).
+
+### Fuente de datos: mock o backend
+
+`services/http/fuente-datos.ts` registra en `app.config.ts`, para cada
+servicio, `{ provide: XxxMockService, useClass: … }`:
+
+| Situación | Servicio que reciben las pantallas |
+|---|---|
+| Producción | Siempre el HTTP (backend). |
+| Desarrollo con `SISCI-DEV-SESION-SIMULADA = 'true'` | El mock (no hay token real: el backend respondería 401). |
+| Desarrollo con sesión real | El HTTP (backend de pruebas). |
+
+Se decide una sola vez, al cargar la app: activar o salir de la sesión
+simulada ya recarga la página. `fuente-datos.ts` lee la bandera de
+`localStorage` por su cuenta, porque corre al armar los proveedores, antes
+de que exista el inyector (no puede usar `PerfilUsuarioService`).
+
+### Estados (los del backend)
+
+Los tipos de `models/tipos-conflicto.ts` usan los mismos valores que la
+API, sin traducir:
+
+| Tipo | Valores |
+|---|---|
+| `Riesgo` | `BAJO`, `MEDIO` (se muestra «Moderado»), `ALTO`, `CRITICO` |
+| `Clasificacion` | `D` declarado, `N` no declarado, `H` homónimo; `null` sin clasificar |
+| `EstadoSeguimiento` (`Conflicto.estado`) | `DETECTADO`, `EN_ANALISIS`, `EN_PLANIFICACION`, `EN_EJECUCION`, `FINALIZADO`, `DESCARTADO` |
+| `EstadoAnalisis` | `BORRADOR`, `VALIDADO` |
+| `EstadoPlan` | `BORRADOR`, `FIRMADO`, `CERRADO` (+ `tipoCierre`: `CUMPLIDO` / `ANTICIPADO`, `motivoCierre`) |
+| `EstadoActividad` | `PENDIENTE`, `EN_REVISION`, `ACEPTADA`, `RECHAZADA`, `NO_CUMPLIDA` |
+| `Evidencia.estado` | `PENDIENTE`, `APROBADA`, `RECHAZADA` |
+
+«Plan con vencidas» y «actividad vencida» no son estados del backend: se
+calculan en el front con la fecha límite (`utils/planes.util.ts`).
+
+### Qué hace el backend y qué hace el front
+
+| El backend (fuente de verdad) | El front |
+|---|---|
+| Clasificar (transición de estado del conflicto) y validar el análisis | No ofrece lo que va a fallar: no deja volver a «sin clasificar» y exige observación para `H` |
+| Un plan abierto por conflicto; crear otro sobre un `FINALIZADO` lo reabre | Muestra el estado y el error del backend si lo rechaza |
+| Firmar y enviar el plan en un solo paso (`POST /planes/{id}/firmar`), fechas límite, avisos a responsables | Valida el PDF (≤ 5 MB) antes de enviar; «Quitar documento» es solo de la pantalla |
+| Revisar evidencias (definitivo, sin «deshacer»); quien sube no revisa; nadie decide sobre su propio conflicto (403) | Valida la evidencia (PDF, PNG o JPG, ≤ 5 MB) antes de subir |
+| Cierre automático (`FINALIZADO` al aprobar la última) y cierre anticipado (motivo, condiciones) | Ofrece el cierre anticipado solo cuando se puede |
+| Notificaciones (las crea y filtra por usuario) | Las muestra en la campana |
+| Historial (`LINEA_DE_TIEMPO`, actividad reciente) | Lo dibuja |
+| Consulta previa (coincidencias con nómina y declaraciones) | Formulario y resultado |
+| — | Vencimientos, dashboards, Informe General y filtros: se calculan en el navegador con los listados completos |
+
+Tras cada acción, el servicio HTTP vuelve a pedir el conflicto en vez de
+deducir el nuevo estado, porque el backend cambia en cascada actividades,
+plan y conflicto.
+
+Con la sesión simulada, los mocks aplican las mismas reglas sobre los datos
+de ejemplo.
 
 ## Correr la app en local
 

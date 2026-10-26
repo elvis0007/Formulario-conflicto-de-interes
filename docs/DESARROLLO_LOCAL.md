@@ -11,6 +11,31 @@ token de intranet ni acceso a la red de la empresa.
   bloque de `app.config.ts` ni siquiera entra, y el método de `AuthService`
   sale en la primera línea.
 
+## Qué datos ve la gestión de conflictos (desde el 26/10/2026)
+
+Desde la integración con el backend (Sebas Constante, commit `38b38ae`), la
+sesión decide de dónde salen los datos de `/rrhh/**` y `/responsable/**`
+(`services/http/fuente-datos.ts`, ver
+[ARQUITECTURA.md](ARQUITECTURA.md#fuente-de-datos-mock-o-backend)):
+
+| Sesión | Datos de gestión de conflictos |
+|---|---|
+| **Simulada** (`SISCI-DEV-SESION-SIMULADA = 'true'`) | Los **mocks** (`services/mock-data/`), en memoria. No sale ninguna petición de conflictos al backend. |
+| **Real** (token de intranet o código) | El **backend de pruebas**: `http://172.20.35.209:7001/wssisci` (`environment.urlSeguridad` sin `/auth/`). Hace falta estar en la red de la empresa. |
+| Producción | Siempre el backend. |
+
+La decisión se toma al cargar la página; cambiar de sesión ya recarga.
+
+### Sesión real en local
+
+> **PENDIENTE: cómo iniciar sesión real en local (preguntar a Sebas).**
+>
+> El login de RRHH/Admin redirige a la intranet y no vuelve a `localhost`
+> (ver «Por qué no se prueba con el login real»). Falta saber cómo obtiene
+> Sebas un `TOKEN-SISCI` válido en local para probar contra el backend de
+> pruebas: con qué usuario, con qué roles (`A`, `R`, `P`) y por qué camino
+> (token de intranet en la URL, código de declarante u otro).
+
 ## Activar
 
 En la consola del navegador (F12), con la app abierta en `ng serve`:
@@ -44,10 +69,11 @@ El panel solo existe si `environment.production` es `false` **y**
 
 ### Por qué no se prueba con el login real
 
-Para probar como `A`, `R` o `P` **siempre se usa la sesión simulada**. El
-login real de RRHH/Admin redirige a la intranet, que está fuera de
-`localhost`, y no vuelve al servidor local. Es una limitación conocida del
-SSO, no un error de la app.
+Para probar como `A`, `R` o `P` **con los datos de ejemplo** se usa la
+sesión simulada. El login real de RRHH/Admin redirige a la intranet, que
+está fuera de `localhost`, y no vuelve al servidor local. Es una limitación
+conocida del SSO, no un error de la app. Para probar contra el backend hace
+falta una sesión real (ver «Sesión real en local», PENDIENTE).
 
 Esta es **la única forma de simular un rol** en toda la app. `authGuard`,
 `rolGuard` y `PerfilUsuarioService` consultan siempre
@@ -137,7 +163,7 @@ internos, que el login real llena a partir de la respuesta del backend:
 
 | Signal | Qué comprueba | Qué pone la simulación |
 |---|---|---|
-| `_tokenSistec` / `_tokenIntranet` | `isAuthenticated()`: ¿hay algún token? | `_tokenSistec = 'TOKEN-DEV-SIMULADO'` |
+| `_tokenSisci` / `_tokenIntranet` | `isAuthenticated()`: ¿hay algún token? | `_tokenSisci = 'TOKEN-DEV-SIMULADO'` |
 | `_usuario` | `isAuthenticated()`: ¿hay usuario? También lo leen `usuario()` y `getCurrentUser()` | Usuario ficticio «Usuario Desarrollo», cédula `0000000000` |
 | `_roles` | `hasRole(x)` | `[rol]`, calculado con el mismo `actualizarRolesDesdeUsuario()` del login real |
 
@@ -184,11 +210,11 @@ en memoria sigue viva hasta la recarga.
 ### Limitaciones mientras está activa
 
 - Las llamadas al backend real salen **sin token válido**: el interceptor
-  lee `TOKEN-SISTEC` de `localStorage`, y la simulación no lo escribe. Las
-  pantallas del host que consultan el backend (por ejemplo `/admin`) darán
-  error.
-- Las pantallas de gestión de conflictos usan datos simulados y funcionan
-  con normalidad.
+  lee `TOKEN-SISCI` de `localStorage` (antes `TOKEN-SISTEC`), y la
+  simulación no lo escribe. Las pantallas del host que consultan el backend
+  (por ejemplo `/admin` o el formulario de declaración) darán error.
+- Las pantallas de gestión de conflictos usan los mocks (no el backend) y
+  funcionan con normalidad.
 - El código del bloque **sí está** en el JavaScript del build de producción:
   el optimizador no lo elimina. No se ejecuta nunca, porque ahí
   `environment.production` es `true`.
