@@ -1,4 +1,4 @@
-import { Component, DestroyRef, OnDestroy, OnInit, inject } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { of, switchMap } from 'rxjs';
@@ -10,11 +10,12 @@ import {
   VALOR_SIN_PLAN,
   rutaPlanAccion
 } from '../app.paths';
-import { AnalisisConflictos, Conflicto, PlanAccion, ResumenAnalisis } from '../models';
+import { AnalisisConflictos, Conflicto, FiltroReporte, PlanAccion, ResumenAnalisis } from '../models';
 import { FechaLargaPipe } from '../pipes/fecha-larga.pipe';
 import { GradoParentescoPipe } from '../pipes/grado-parentesco.pipe';
 import { AnalisisMockService } from '../services/analisis-mock.service';
 import { BadgeComponent } from '../shared/badge/badge.component';
+import { BotonExcelComponent } from '../shared/boton-excel/boton-excel.component';
 import { ColumnaTabla, DataTableComponent } from '../shared/data-table/data-table.component';
 import { DetalleTablaDirective, FilaTablaDirective } from '../shared/data-table/plantillas-tabla';
 import { EmptyStateComponent } from '../shared/empty-state/empty-state.component';
@@ -40,7 +41,6 @@ import {
   textoEstadoAnalisis,
   textoRiesgo
 } from '../utils/analisis.util';
-import { ConfirmacionTemporal } from '../utils/confirmacion-temporal';
 import { formatearFecha, parsearFecha } from '../utils/fechas.util';
 import { TODOS } from '../utils/filtros-listados.util';
 import { RELOJ } from '../utils/reloj';
@@ -135,8 +135,9 @@ export interface FilaAnalisis {
  * - Encabezado: titulo, codigo, insignia Borrador / Validado, fecha de
  *   generacion, casos pendientes y «Análisis anteriores» (historial).
  *   Botones «Generar análisis» (pide confirmacion si el actual esta
- *   Validado), «Ver formularios», «Descargar Excel» y «Validar análisis»
- *   (solo sin pendientes, con confirmacion).
+ *   Validado), «Ver formularios», «Descargar Excel» (RG.02 del backend,
+ *   con el analisis y el riesgo elegido) y «Validar análisis» (solo sin
+ *   pendientes, con confirmacion).
  * - Filtro por riesgo en pildoras con conteos (sobre todos los casos).
  * - Tabla paginada de involucrados con «Ver detalles» (modal con la
  *   clasificacion) y la columna «Plan de acción».
@@ -148,6 +149,7 @@ export interface FilaAnalisis {
   selector: 'app-analisis-conflicto',
   imports: [
     BadgeComponent,
+    BotonExcelComponent,
     DataTableComponent,
     DetalleConflictoComponent,
     DetalleTablaDirective,
@@ -164,7 +166,7 @@ export interface FilaAnalisis {
   templateUrl: './analisis-conflicto.component.html',
   styleUrl: './analisis-conflicto.component.scss'
 })
-export class AnalisisConflictoComponent implements OnInit, OnDestroy {
+export class AnalisisConflictoComponent implements OnInit {
   /** Analisis cargado; `null` mientras llega la primera respuesta. */
   analisis: AnalisisConflictos | null = null;
 
@@ -191,9 +193,6 @@ export class AnalisisConflictoComponent implements OnInit, OnDestroy {
 
   /** Casos pendientes de clasificar (de todo el analisis). */
   pendientes = 0;
-
-  /** Confirmacion pasajera de «Descargar Excel». */
-  readonly descargado = new ConfirmacionTemporal();
 
   /** Caso abierto en «Ver detalles»; `null` con el modal cerrado. */
   detalle: FilaAnalisis | null = null;
@@ -332,13 +331,6 @@ export class AnalisisConflictoComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Detiene el temporizador de «Descargado ✓».
-   */
-  ngOnDestroy(): void {
-    this.descargado.cancelar();
-  }
-
-  /**
    * «Generar análisis»: si el actual esta Validado, primero pide
    * confirmacion; si no, genera directamente.
    */
@@ -369,13 +361,17 @@ export class AnalisisConflictoComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Por ahora solo confirma visualmente («Descargado ✓»), sin archivo.
+   * Filtros del Excel (RG.02): el analisis actual y el riesgo elegido. El
+   * backend no filtra por clasificacion ni por «sin plan».
+   *
+   * @returns Filtros para `GET /conflictos/reporte`.
+   * @author Elvis Flores
    */
-  descargarExcel(): void {
-    if (this.descargado.activa) {
-      return;
-    }
-    this.descargado.disparar();
+  get filtroExcel(): FiltroReporte {
+    return {
+      ...(this.analisis?.id ? { analisisId: this.analisis.id } : {}),
+      ...(this.filtroRiesgo !== TODOS ? { riesgo: this.filtroRiesgo } : {})
+    };
   }
 
   /**

@@ -41,15 +41,7 @@
         Ver formularios
       </button>
       @if (hayAnalisis) {
-        <button
-          type="button"
-          class="boton"
-          [class.boton--hecho]="descargado.activa"
-          [attr.aria-disabled]="descargado.activa"
-          (click)="descargarExcel()">
-          <app-icono nombre="excel" [tamano]="16" />
-          {{ descargado.activa ? 'Descargado ✓' : 'Descargar Excel' }}
-        </button>
+        <app-boton-excel tipo="RG.02" [filtro]="filtroExcel" />
       }
       @if (hayAnalisis && !estaValidado) {
         <button

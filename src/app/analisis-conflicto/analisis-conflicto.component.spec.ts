@@ -3,6 +3,7 @@ import { PerfilUsuarioFalso, proveerPerfilFalso } from '../testing/perfil-usuari
 import { Router, provideRouter } from '@angular/router';
 import { Observable, of } from 'rxjs';
 import { AnalisisMockService, LATENCIA_GENERACION_MS } from '../services/analisis-mock.service';
+import { ReportesMockService } from '../services/reportes-mock.service';
 import { LATENCIA_SIMULADA_MS } from '../services/mock-data/simular-respuesta';
 import { AnalisisConflictoComponent } from './analisis-conflicto.component';
 
@@ -242,15 +243,22 @@ describe('AnalisisConflictoComponent', () => {
       expect(navegar).toHaveBeenCalledWith(['/admin']);
     }));
 
-    it('«Descargar Excel» solo confirma visualmente', fakeAsync(() => {
+    it('«Descargar Excel» pide el RG.02 del análisis actual con el riesgo elegido; sin backend avisa', fakeAsync(() => {
       crear();
       generarDesdeVacio();
+      const reportes = TestBed.inject(ReportesMockService);
 
+      spyOn(reportes, 'descargarReporte').and.callThrough();
+      fixture.componentInstance.cambiarFiltro('ALTO');
+      fixture.detectChanges();
       boton('.acciones-encabezado button', 'Descargar Excel').click();
       fixture.detectChanges();
-      expect(boton('.acciones-encabezado button', 'Descargado ✓')).toBeDefined();
+      expect(reportes.descargarReporte).toHaveBeenCalledOnceWith(
+        'RG.02', { analisisId: fixture.componentInstance.analisis?.id as string, riesgo: 'ALTO' }
+      );
+      expect(boton('.acciones-encabezado button', 'Disponible con sesión real')).toBeDefined();
 
-      tick(2000);
+      tick(4000);
       fixture.detectChanges();
       expect(boton('.acciones-encabezado button', 'Descargar Excel')).toBeDefined();
     }));

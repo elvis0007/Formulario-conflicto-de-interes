@@ -1,0 +1,35 @@
+@use '../../../styles/listados';
+
+@include listados.estilos;
+
+.contenedor {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.boton[aria-busy='true'] {
+  cursor: progress;
+  opacity: 0.75;
+}
+
+// Sesion simulada: no hay backend del que sacar el reporte.
+.boton--aviso,
+.boton--aviso:hover:enabled {
+  border-color: var(--amber);
+  background-color: var(--amber-fill);
+  color: var(--amber-text);
+}
+
+.error {
+  max-width: 320px;
+  margin: 0;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background-color: var(--red-fill);
+  color: var(--red-text);
+  font-size: 12.5px;
+  font-weight: 600;
+  text-align: right;
+}

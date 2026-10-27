@@ -3,15 +3,7 @@
     <h2 class="titulo">Informe General</h2>
     <span class="codigo">PNIP.CI.RG.03</span>
   </div>
-  <button
-    type="button"
-    class="boton"
-    [class.boton--hecho]="descargado.activa"
-    [attr.aria-disabled]="descargado.activa"
-    (click)="descargarExcel()">
-    <app-icono nombre="excel" [tamano]="16" />
-    {{ descargado.activa ? 'Descargado ✓' : 'Descargar Excel' }}
-  </button>
+  <app-boton-excel tipo="RG.03" [filtro]="filtroExcel" />
 </header>
 
 @if (cargando) {

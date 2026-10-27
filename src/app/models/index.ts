@@ -18,6 +18,7 @@ export * from './notificacion';
 export * from './persona';
 export * from './plan-accion';
 export * from './plan-de-responsable';
+export * from './reporte';
 export * from './respuesta-login';
 export * from './rol-gestion';
 export * from './tipos-conflicto';

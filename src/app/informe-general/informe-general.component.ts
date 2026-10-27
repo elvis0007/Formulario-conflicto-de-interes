@@ -1,19 +1,18 @@
-import { Component, DestroyRef, OnDestroy, OnInit, inject } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { PARAMETRO_ESTADO, rutaPlanAccion } from '../app.paths';
-import { Actividad, Conflicto, PlanAccion, Riesgo } from '../models';
+import { Actividad, Conflicto, FiltroReporte, PlanAccion, Riesgo } from '../models';
 import { ConflictosMockService } from '../services/conflictos-mock.service';
 import { PlanesMockService } from '../services/planes-mock.service';
 import { BadgeComponent } from '../shared/badge/badge.component';
 import { BarraAvanceComponent } from '../shared/barra-avance/barra-avance.component';
+import { BotonExcelComponent } from '../shared/boton-excel/boton-excel.component';
 import { EmptyStateComponent } from '../shared/empty-state/empty-state.component';
 import { ExpandArrowButtonComponent } from '../shared/expand-arrow-button/expand-arrow-button.component';
-import { IconoComponent } from '../shared/icono/icono.component';
 import { OpcionPill, PillsComponent } from '../shared/pills/pills.component';
 import { RIESGOS, textoParentesco, textoRiesgo } from '../utils/analisis.util';
-import { ConfirmacionTemporal } from '../utils/confirmacion-temporal';
 import { calcularDiasRestantes, formatearFecha, parsearFecha } from '../utils/fechas.util';
 import { TODOS } from '../utils/filtros-listados.util';
 import {
@@ -65,7 +64,8 @@ export const GRUPOS_POR_PAGINA = 5;
  *   actividades (fecha limite en rojo si vencio).
  * - «Expandir todo» / «Contraer todo»; paginacion por grupos; el numero
  *   del conflicto lleva a su plan actual en Plan de Acción.
- * - «Descargar Excel»: solo confirmacion visual (sin archivo todavia).
+ * - «Descargar Excel» (RG.03 del backend): con el estado y el riesgo
+ *   elegidos; la busqueda y el responsable no los filtra el backend.
  *
  * No usa `DataTableComponent` porque esa tabla pagina por filas.
  *
@@ -76,16 +76,16 @@ export const GRUPOS_POR_PAGINA = 5;
   imports: [
     BadgeComponent,
     BarraAvanceComponent,
+    BotonExcelComponent,
     EmptyStateComponent,
     ExpandArrowButtonComponent,
-    IconoComponent,
     PillsComponent,
     RouterLink
   ],
   templateUrl: './informe-general.component.html',
   styleUrl: './informe-general.component.scss'
 })
-export class InformeGeneralComponent implements OnInit, OnDestroy {
+export class InformeGeneralComponent implements OnInit {
   /** Todavia no llego la respuesta. */
   cargando = true;
 
@@ -103,9 +103,6 @@ export class InformeGeneralComponent implements OnInit, OnDestroy {
 
   /** Pagina actual (desde 1). */
   pagina = 1;
-
-  /** Confirmacion de «Descargar Excel». */
-  readonly descargado = new ConfirmacionTemporal();
 
   readonly riesgos = RIESGOS;
   readonly todos = TODOS;
@@ -177,13 +174,6 @@ export class InformeGeneralComponent implements OnInit, OnDestroy {
           console.error('[InformeGeneralComponent.ngOnInit]', err);
         }
       });
-  }
-
-  /**
-   * Detiene el temporizador de la confirmacion.
-   */
-  ngOnDestroy(): void {
-    this.descargado.cancelar();
   }
 
   /**
@@ -271,12 +261,22 @@ export class InformeGeneralComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * «Descargar Excel»: por ahora solo la confirmacion.
+   * Filtros del Excel (RG.03). La pildora de estado pasa al estado del
+   * conflicto: «En ejecución» → `EN_EJECUCION`, «Con vencidas» →
+   * `vencido`, «Cerrados» → `FINALIZADO`.
+   *
+   * @returns Filtros para `GET /conflictos/reporte`.
+   * @author Elvis Flores
    */
-  descargarExcel(): void {
-    if (!this.descargado.activa) {
-      this.descargado.disparar();
-    }
+  get filtroExcel(): FiltroReporte {
+    const { estado, riesgo } = this.filtros;
+
+    return {
+      ...(riesgo !== TODOS ? { riesgo } : {}),
+      ...(estado === 'en-ejecucion' ? { estado: 'EN_EJECUCION' as const } : {}),
+      ...(estado === 'cerrados' ? { estado: 'FINALIZADO' as const } : {}),
+      ...(estado === 'con-vencidas' ? { vencido: true } : {})
+    };
   }
 
   /** @param g Grupo. @returns URL de su plan actual en Plan de Acción. */

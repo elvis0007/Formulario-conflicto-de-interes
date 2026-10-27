@@ -1,0 +1,16 @@
+<div class="contenedor">
+  <button
+    type="button"
+    class="boton"
+    [class.boton--hecho]="descargado.activa"
+    [class.boton--aviso]="sinBackend.activa"
+    [attr.aria-disabled]="ocupado"
+    [attr.aria-busy]="descargando"
+    (click)="descargar()">
+    <app-icono nombre="excel" [tamano]="16" />
+    <span role="status">{{ texto }}</span>
+  </button>
+  @if (error) {
+    <p class="error" role="alert">{{ error }}</p>
+  }
+</div>

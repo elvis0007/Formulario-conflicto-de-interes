@@ -23,6 +23,11 @@ import { PersonasMockService } from './services/personas-mock.service';
 import { PersonasHttpService } from './services/http/personas-http.service';
 import { proveerFuente } from './services/http/fuente-datos';
 // [FIN PNIP-CI]
+// [PNIP-CI] Elvis Flores - 27/10/2026
+// Qué hace: servicio de los reportes en Excel y su versión contra el backend.
+import { ReportesMockService } from './services/reportes-mock.service';
+import { ReportesHttpService } from './services/http/reportes-http.service';
+// [FIN PNIP-CI]
 // [PNIP-CI DEV] Elvis Flores - 30/09/2026 - ELIMINAR ANTES DE PRODUCCIÓN
 // Qué hace: import que solo usa la sesión simulada de desarrollo (ver el
 // bloque [PNIP-CI DEV] más abajo). Se elimina junto con ese bloque.
@@ -47,6 +52,12 @@ export const appConfig: ApplicationConfig = {
     proveerFuente(NotificacionesMockService, NotificacionesHttpService),
     proveerFuente(ConsultaPreviaMockService, ConsultaPreviaHttpService),
     proveerFuente(PersonasMockService, PersonasHttpService),
+    // [FIN PNIP-CI]
+    // [PNIP-CI] Elvis Flores - 27/10/2026
+    // Qué hace: «Descargar Excel» de Análisis (RG.02) e Informe General
+    // (RG.03): con sesión real, GET /conflictos/reporte; con la sesión
+    // simulada avisa que solo está disponible con sesión real.
+    proveerFuente(ReportesMockService, ReportesHttpService),
     // [FIN PNIP-CI]
     provideAppInitializer(() => {
       const authSrv = inject(AuthService);

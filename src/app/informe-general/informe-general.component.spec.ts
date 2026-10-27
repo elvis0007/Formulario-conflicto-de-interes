@@ -7,6 +7,7 @@ import { CONFLICTOS } from '../services/mock-data/conflictos.data';
 import { PLANES } from '../services/mock-data/planes.data';
 import { LATENCIA_SIMULADA_MS } from '../services/mock-data/simular-respuesta';
 import { PlanesMockService } from '../services/planes-mock.service';
+import { ReportesMockService } from '../services/reportes-mock.service';
 import { RELOJ } from '../utils/reloj';
 import { GRUPOS_POR_PAGINA, InformeGeneralComponent } from './informe-general.component';
 
@@ -92,13 +93,28 @@ describe('InformeGeneralComponent', () => {
     });
   });
 
-  it('encabezado con el código y «Descargar Excel» con confirmación', fakeAsync(() => {
+  it('encabezado con el código y «Descargar Excel» (RG.03): sin backend avisa', fakeAsync(() => {
     crear();
+    const reportes = TestBed.inject(ReportesMockService);
 
+    spyOn(reportes, 'descargarReporte').and.callThrough();
     expect(limpio(raiz.querySelector('.codigo')?.textContent)).toBe('PNIP.CI.RG.03');
     pulsar('Descargar Excel');
-    expect(raiz.textContent).toContain('Descargado ✓');
-    tick(3000);
+    expect(reportes.descargarReporte).toHaveBeenCalledOnceWith('RG.03', {});
+    expect(raiz.textContent).toContain('Disponible con sesión real');
+    tick(4000);
+  }));
+
+  it('el Excel lleva la píldora de estado y el riesgo como filtros del backend', fakeAsync(() => {
+    crear();
+    const componente = fixture.componentInstance;
+
+    componente.filtros = { ...componente.filtros, estado: 'en-ejecucion', riesgo: 'ALTO' };
+    expect(componente.filtroExcel).toEqual({ riesgo: 'ALTO', estado: 'EN_EJECUCION' });
+    componente.filtros = { ...componente.filtros, estado: 'con-vencidas', riesgo: '' };
+    expect(componente.filtroExcel).toEqual({ vencido: true });
+    componente.filtros = { ...componente.filtros, estado: 'cerrados' };
+    expect(componente.filtroExcel).toEqual({ estado: 'FINALIZADO' });
   }));
 
   it('columnas de la §6.7 y fila de grupo de un conflicto con dos planes', fakeAsync(() => {
