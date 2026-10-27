@@ -2081,3 +2081,149 @@ en [ANALISIS_GUIA_BACKEND.md](ANALISIS_GUIA_BACKEND.md). Entrega: viernes
 10. ¿5 MB es definitivo para documentos y evidencias?
 11. ¿Está bien que desaparezcan «Deshacer» y «Consultas recientes»? RRHH
     los vio en los recorridos.
+
+## Excel, actividades sugeridas y errores del backend (27/10/2026)
+
+Todavía no hay sesión real (se espera a Sebas): no se hizo ninguna petición
+al backend de pruebas. Todo se verificó con pruebas unitarias
+(HttpTestingController) y con la sesión simulada. `wssisci` no se tocó.
+Base: [ANALISIS_BACKEND_WSSISCI.md](ANALISIS_BACKEND_WSSISCI.md) (r4093).
+
+### Commits
+
+| Commit | Qué |
+|---|---|
+| `b80cdf4` | `docs: análisis del backend wssisci r4093` |
+| `0806a1c` | Paso 1: Excel de Análisis (RG.02) e Informe General (RG.03) con `/conflictos/reporte` |
+| `39f76ee` | Paso 2: actividades sugeridas en Plan de Acción con `/conflictos/{id}/plan/sugerencia` |
+| `d256693` | Paso 4: manejo común de los errores del backend |
+| (este) | Documentación (Paso 3 y Paso 5) |
+
+### Paso 1 — Excel reales
+
+- `GET /conflictos/reporte` **no devuelve un archivo**: devuelve la lista de
+  conflictos en JSON (`ConflictoDto`, sin paginar, mismos filtros que
+  `GET /conflictos`). El `.xlsx` se arma en el front con `xlsx` (ya estaba
+  instalado; lo usa el «Exportar» de `/admin`).
+- Nombre: `PNIP.CI.RG.02_aaaa-mm-dd.xlsx` / `PNIP.CI.RG.03_aaaa-mm-dd.xlsx`.
+  El backend no manda nombre.
+- Botón compartido `app-boton-excel`: «Descargando…», «Descargado ✓», el
+  motivo si falla y, con la sesión simulada, «Disponible con sesión real».
+- Filtros que se mandan:
+  - RG.02: el análisis actual y el riesgo elegido.
+  - RG.03: la píldora de estado y el riesgo.
+- El backend no filtra por clasificación, «sin plan», búsqueda ni
+  responsable: esos filtros de la pantalla no llegan al Excel.
+- El RG.03 del backend es una fila por conflicto (estado y «actividades
+  vencidas»), sin el detalle de planes y actividades que muestra la
+  pantalla. Columnas por confirmar con RRHH.
+- «Cerrados» del Informe se manda como `estado=FINALIZADO`: un conflicto
+  con el plan cerrado anticipadamente vuelve a `EN_PLANIFICACION` y no
+  entra en ese Excel.
+- Archivos nuevos:
+  - `ReportesMockService` y `ReportesHttpService`, registrados con
+    `proveerFuente` en `app.config.ts`, con marcador;
+  - `mapeos/reporte.mapeo.ts`;
+  - `models/reporte.ts`;
+  - `shared/boton-excel/`.
+- El host declara `xlsx` sin tipos (`src/typings.d.ts`). Por eso
+  `reporte.mapeo.ts` define su propio `LibroExcel`.
+
+### Paso 2 — Actividades sugeridas
+
+- Plan de Acción no usaba el endpoint. Ahora, en un borrador editable,
+  «Cargar actividades sugeridas» agrega las sugeridas al final de la tabla.
+  - Si la tabla ya tiene filas, pide confirmación.
+  - Las filas llegan sin responsable y con el plazo del backend (1 mes; el
+    seguimiento, 6).
+- El backend propone un responsable (`RESPONSABLE`: código de nómina de la
+  persona A o de su director), pero **no manda el nombre**. Por eso no se
+  preselecciona: RRHH lo elige.
+- Mock (`sugerirActividades`): las mismas reglas que
+  `SugerenciaPlan.generar` del backend.
+  - Excusa y seguimiento siempre.
+  - Reasignar la supervisión con riesgo Alto o Crítico.
+  - Evaluar la reubicación con Crítico.
+  - Resultado: 2 actividades (Bajo, Moderado), 3 (Alto) o 4 (Crítico). El
+    pedido decía «2 o 3»; se dejó el 4 de Crítico para que coincida con el
+    backend.
+
+### Paso 3 — Dashboard con `/conflictos/resumen`: no se cambió
+
+El resumen no cubre bien los indicadores del dashboard:
+- Cuenta los conflictos de **todos** los análisis, no los del análisis
+  vigente, que es lo que muestra el dashboard.
+- No trae «Pendientes de clasificar», «Confirmados sin plan», planes
+  activos o cerrados, ni evidencias por revisar.
+- Su «actividades vencidas» cuenta las no aceptadas de conflictos
+  `EN_EJECUCION` con la fecha pasada (incluye las que están en revisión).
+  El front cuenta las de planes enviados que vencieron sin evidencia en
+  revisión.
+- Las barras y «Requiere atención» necesitan igual todos los expedientes.
+
+Usarlo cambiaría números y no ahorraría la descarga. Se deja como está.
+Queda la pregunta a Sebas de si conviene un resumen por análisis.
+
+### Paso 4 — Errores del backend
+
+- `mensajeDeError` / `tipoDeError` (`peticiones.ts`):
+  - 401 → «Tu sesión venció. Vuelve a iniciar sesión.»
+  - 403 → el motivo del backend si lo explica; si es el genérico de falta
+    de rol, «No tienes permiso para esta acción.»
+  - 413 → límite de 5 MB y tipos permitidos.
+  - 0 o 5xx → «No se pudo conectar con el servidor.»
+  - El resto → el `mensaje` del backend solo si es entendible (corto y sin
+    rastros de Java, SQL o excepciones).
+- `erroresBackendInterceptor`, solo para las rutas de gestión de
+  conflictos, y `AvisoBackendComponent` en `app.component.html`, con
+  marcadores:
+  - 401 → aviso con «Iniciar sesión»;
+  - listas sin conexión → aviso con «Reintentar» (recarga la pantalla);
+  - 403 al leer → aviso de permiso, y la pantalla sigue.
+- Las acciones siguen con su mensaje en la pantalla.
+- Visor de documentos: si el backend responde 403 al documento del plan
+  (quien es solo `P`), muestra «El documento del plan solo lo puede ver
+  RRHH.» en lugar de un error. **Pendiente con Sebas**: decidir si el
+  responsable debe poder verlo.
+
+### Paso 5 — Verificación
+
+- `ng test`: **676 OK**. Fallan solo las 3 antiguas de `AppComponent`.
+  Nuevas:
+  - mapeo y servicio HTTP de reportes (filtros, nombre, contenido del
+    `.xlsx`, error del backend, sin conexión);
+  - mock de reportes y botón Excel;
+  - sugerencias (util, mock, HTTP y pantalla: plan vacío, confirmación,
+    cancelar, error, solo lectura);
+  - `mensajeDeError` / `tipoDeError`, interceptor, aviso flotante y
+    descarga de archivos con 403;
+  - visor con el motivo del servicio.
+- Builds de desarrollo y producción correctos. Avisos de presupuesto de
+  SCSS del host y de CommonJS de `canvg` (lo usa `jspdf` del host).
+- Recorrido en Edge headless con la sesión simulada (backend bloqueado):
+  - **R**:
+    - el Excel de Análisis e Informe muestra «Disponible con sesión real»
+      y vuelve a «Descargar Excel»;
+    - en PL-004 (C-003, Crítico) pide confirmación y agrega 4 sugeridas
+      (de 2 a 6 filas) con su aviso;
+    - no aparece ningún aviso de backend.
+  - **P**: «Ver documento del plan» abre el visor sin error.
+  - Recorrido completo A, R, P y R+P igual que ayer. El menú abre el
+    formulario.
+  - Las únicas peticiones bloqueadas son del host (`plantilla-temporal`,
+    `sisgerh`).
+  - Por la fecha de hoy, A-017 (EMP-010, límite 26/10/2026) pasó a
+    vencida: «Actividades vencidas» 3 y, en el dashboard de `P`, Pendientes
+    0 y Vencidas 2. No es una regresión. La tabla de
+    `DESARROLLO_LOCAL.md` todavía la muestra como «Pendiente».
+
+### Pendiente
+
+- Probar todo con sesión real cuando Sebas confirme cómo iniciarla.
+  Prioridad: el Excel real, las sugerencias y los mensajes de 401 y 403.
+- Sebas:
+  - documento del plan para `P` (403);
+  - resumen por análisis;
+  - si el Excel lo debería generar el backend;
+  - la redirección de correos en el WAR de pruebas.
+- RRHH: columnas de los Excel RG.02 y RG.03.

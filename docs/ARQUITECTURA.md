@@ -164,7 +164,8 @@ completa: [INTEGRACION_BACKEND.md](INTEGRACION_BACKEND.md); análisis:
 - **Un servicio HTTP por mock** (`AnalisisHttpService`,
   `ConflictosHttpService`, `PlanesHttpService`, `HistorialHttpService`,
   `NotificacionesHttpService`, `ConsultaPreviaHttpService`,
-  `PersonasHttpService`), con **los mismos métodos públicos**. Las
+  `PersonasHttpService`, `ReportesHttpService`), con **los mismos métodos
+  públicos**. Las
   pantallas siguen inyectando el `*MockService`: no saben de dónde vienen
   los datos.
 - **`models/api/`**: interfaces de lo que llega del backend (campos en
@@ -174,9 +175,52 @@ completa: [INTEGRACION_BACKEND.md](INTEGRACION_BACKEND.md); análisis:
   `.spec.ts`. Los ids numéricos del backend pasan a `string`.
 - **`peticiones.ts`**: URL base (`environment.urlSeguridad` sin `/auth/`),
   desenvolver el sobre, pedir todas las páginas de un listado (200 por
-  página) y sacar el mensaje de un error (`mensaje` del backend en 400, 403,
-  404 y 409; «No se pudo conectar» si no hay respuesta).
+  página) y convertir un error en un mensaje (ver «Errores del backend»).
 - El token lo pone el interceptor de siempre (`TOKEN-SISCI`).
+
+### Errores del backend (27/10/2026)
+
+`mensajeDeError` (en `peticiones.ts`) da el texto de cada error, y
+`tipoDeError` lo clasifica:
+
+| Respuesta | Mensaje | Además |
+|---|---|---|
+| 401 | «Tu sesión venció. Vuelve a iniciar sesión.» | Aviso flotante con «Iniciar sesión» (cierra la sesión y va a `/login`) |
+| 403 | El `mensaje` del backend si explica el motivo (p. ej. nadie decide sobre su propio conflicto); si es el genérico de falta de rol, «No tienes permiso para esta acción.» | Al leer una lista: aviso flotante; la pantalla sigue con lo que cargó |
+| 413 | «El archivo no se aceptó: debe ser PDF, PNG o JPG y pesar hasta 5 MB.» | — |
+| 0 o 5xx | «No se pudo conectar con el servidor. Inténtalo de nuevo.» | Al leer una lista: aviso flotante con «Reintentar» (recarga la pantalla) |
+| 400, 404, 409 | El `mensaje` del backend si es entendible (corto y sin rastros de Java, SQL o excepciones); si no, el de la acción | — |
+
+- Los avisos flotantes los da `interceptors/errores-backend.interceptor.ts`,
+  solo para las rutas de gestión de conflictos (`/conflictos`, `/planes`,
+  `/actividades`, `/evidencias`, `/notificaciones`, `/consultas-previas`).
+  Las del host (`/plantilla-temporal`, `/sisgerh`…) no cambian.
+- `AvisosBackendService` guarda el aviso vigente (la sesión vencida no se
+  tapa con otro) y `AvisoBackendComponent` lo pinta, una sola vez, en
+  `app.component.html`.
+- Las acciones (guardar, enviar, revisar, cerrar, subir) siguen mostrando su
+  mensaje en la pantalla; las descargas de archivos dejan el motivo en
+  `ultimoError` y el visor lo muestra.
+
+### Reportes en Excel (RG.02 y RG.03)
+
+`GET /conflictos/reporte` devuelve los conflictos **en JSON** (sin
+paginar, con los mismos filtros que `GET /conflictos`); el backend no arma
+el archivo. `ReportesHttpService` arma el `.xlsx` con `xlsx` (la misma
+librería del «Exportar» de `/admin`) y lo descarga como
+`PNIP.CI.RG.0x_aaaa-mm-dd.xlsx`. Las columnas salen de
+`mapeos/reporte.mapeo.ts`.
+
+- Análisis (RG.02): el análisis actual y el riesgo elegido.
+- Informe General (RG.03): la píldora de estado («En ejecución» →
+  `EN_EJECUCION`, «Con vencidas» → `vencido`, «Cerrados» → `FINALIZADO`) y
+  el riesgo; quedan fuera los conflictos que nunca tuvieron un plan
+  enviado. El reporte no trae planes ni actividades: es una fila por
+  conflicto.
+- La búsqueda y el responsable de la pantalla no los filtra el backend.
+- Con la sesión simulada, `ReportesMockService` responde «sin backend» y el
+  botón dice «Disponible con sesión real».
+- El RG.01 es el «Exportar» de `/admin` (host), que no se tocó.
 
 ### Fuente de datos: mock o backend
 
@@ -224,7 +268,9 @@ calculan en el front con la fecha límite (`utils/planes.util.ts`).
 | Notificaciones (las crea y filtra por usuario) | Las muestra en la campana |
 | Historial (`LINEA_DE_TIEMPO`, actividad reciente) | Lo dibuja |
 | Consulta previa (coincidencias con nómina y declaraciones) | Formulario y resultado |
-| — | Vencimientos, dashboards, Informe General y filtros: se calculan en el navegador con los listados completos |
+| Actividades sugeridas para un plan (`GET /conflictos/{id}/plan/sugerencia`: catálogo según riesgo y si es proveedor, no se guarda) | «Cargar actividades sugeridas» las agrega al borrador, sin responsable |
+| Datos de los reportes (`GET /conflictos/reporte`) | Arma el Excel |
+| — | Vencimientos, dashboards, Informe General y filtros: se calculan en el navegador con los listados completos. `GET /conflictos/resumen` no se usa: cuenta los conflictos de todos los análisis y no trae varios indicadores (ver la bitácora, 27/10/2026) |
 
 Tras cada acción, el servicio HTTP vuelve a pedir el conflicto en vez de
 deducir el nuevo estado, porque el backend cambia en cascada actividades,
