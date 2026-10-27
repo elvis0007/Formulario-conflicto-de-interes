@@ -41,6 +41,7 @@ import { PLANES } from './mock-data/planes.data';
 import { simularRespuesta } from './mock-data/simular-respuesta';
 import { NotificacionesMockService } from './notificaciones-mock.service';
 import { PerfilUsuarioService } from './perfil-usuario.service';
+import { MENSAJE_SIN_PERMISO } from './http/peticiones';
 
 /** Resultado de subir el documento firmado. */
 export interface ResultadoDocumento {
@@ -651,13 +652,22 @@ export class PlanesMockService {
    * (URL `blob:`) se lee de ahi; los datos de ejemplo no tienen contenido
    * real y devuelven un texto de relleno.
    *
+   * Como el backend (`GET /planes/{id}/documento`, solo A y R), solo lo
+   * ve RRHH: a quien no tiene el rol `rrhh` le responde «sin permiso».
+   *
    * @param planId Id del plan.
-   * @returns El archivo, o `null` si el plan no tiene documento o falla.
+   * @returns El archivo, o `null` si el plan no tiene documento, si quien
+   * lo pide no es de RRHH (motivo en `ultimoError`) o si falla.
    * @author Sebas Constante
+   * @author Elvis Flores
    */
   obtenerDocumentoPlan(planId: string): Observable<Blob | null> {
     const archivo = this.planes.find((p) => p.id === planId)?.documentoFirmado;
 
+    if (!this.injector.get(PerfilUsuarioService).tieneRol('rrhh')) {
+      this.ultimoError = MENSAJE_SIN_PERMISO;
+      return simularRespuesta<Blob | null>(null);
+    }
     // El visor muestra ultimoError si no llega nada: no debe quedar uno viejo.
     this.ultimoError = null;
     return this.contenidoSimulado(archivo).pipe(

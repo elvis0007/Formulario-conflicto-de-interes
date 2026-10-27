@@ -3,6 +3,7 @@ import { ActivatedRoute, ParamMap, convertToParamMap, provideRouter } from '@ang
 import { BehaviorSubject, map, of } from 'rxjs';
 import { ConflictosMockService } from '../services/conflictos-mock.service';
 import { LATENCIA_SIMULADA_MS } from '../services/mock-data/simular-respuesta';
+import { PerfilUsuarioService } from '../services/perfil-usuario.service';
 import { PlanesMockService } from '../services/planes-mock.service';
 import { PerfilUsuarioFalso, proveerPerfilFalso } from '../testing/perfil-usuario-falso';
 import { ERROR_EVIDENCIA_GRANDE, ERROR_EVIDENCIA_TIPO } from '../utils/documento.util';
@@ -193,7 +194,24 @@ describe('PlanResponsableDetalleComponent', () => {
     expect(limpio(raiz.querySelector('app-document-viewer')?.textContent)).toContain('A-008-captura-sistema.png');
   }));
 
-  it('«Ver documento del plan» abre el documento firmado', fakeAsync(() => {
+  /** Usuario R+P: ve el documento firmado del plan. */
+  function comoRrhhYResponsable(): void {
+    TestBed.overrideProvider(PerfilUsuarioService, {
+      useValue: new PerfilUsuarioFalso(['rrhh', 'responsable'], 'EMP-010', 'Fernando José Andrade Vela')
+    });
+  }
+
+  it('solo P: no ofrece «Ver documento del plan» (el backend solo deja a RRHH)', fakeAsync(() => {
+    crear('PL-002');
+
+    expect(boton(raiz, 'Ver documento del plan')).toBeUndefined();
+    fixture.componentInstance.verDocumentoPlan();
+    fixture.detectChanges();
+    expect(raiz.querySelector('app-document-viewer')).toBeNull();
+  }));
+
+  it('R+P: «Ver documento del plan» abre el documento firmado', fakeAsync(() => {
+    comoRrhhYResponsable();
     crear('PL-002');
 
     boton(raiz, 'Ver documento del plan')?.click();
@@ -233,7 +251,8 @@ describe('PlanResponsableDetalleComponent', () => {
     expect(limpio(actividad('Capacitar al personal').querySelector('app-badge')?.textContent)).toBe('Pendiente');
   }));
 
-  it('«Ver documento del plan» pide el documento al servicio (no usa la URL directa)', fakeAsync(() => {
+  it('R+P: «Ver documento del plan» pide el documento al servicio (no usa la URL directa)', fakeAsync(() => {
+    comoRrhhYResponsable();
     const planes = TestBed.inject(PlanesMockService);
     const pedir = spyOn(planes, 'obtenerDocumentoPlan').and.returnValue(of(new Blob(['%PDF'])));
     const original = planes.obtenerPlanDeResponsable.bind(planes);

@@ -2227,3 +2227,33 @@ Queda la pregunta a Sebas de si conviene un resumen por análisis.
   - si el Excel lo debería generar el backend;
   - la redirección de correos en el WAR de pruebas.
 - RRHH: columnas de los Excel RG.02 y RG.03.
+
+### Respuestas de Sebas (27/10/2026)
+
+| Pregunta | Respuesta | Estado |
+|---|---|---|
+| ¿Qué valor tiene `sisci.conflictos.correo-redirigir-a` en el WAR de pruebas? (análisis del backend, pregunta nueva 1; alerta de la §5.3) | Los correos de pruebas se redirigen a Sebas | **Resuelta**: se puede probar sin escribirle al personal real |
+| ¿Existe el rol `P` en `DRI_CI_ROL` de pruebas (`BDD/rol_responsable.sql`)? (pregunta nueva 2; bitácora 26/10, pregunta 7) | Sí, existe | **Resuelta**: firmar un plan no falla por el rol |
+| ¿Está bien que el módulo inserte en `DRI_CI_ROL_USUARIO`? (pregunta nueva 3; alerta moderada de la §5.1) | Sí: la firma inserta `P` ahí | **Resuelta**: la alerta queda cerrada |
+| ¿El Responsable puede ver el documento firmado del plan? (pregunta nueva 4; §4.5) | No: `GET /planes/{id}/documento` sigue siendo solo para `A` y `R` | **Resuelta**: ver el cambio de abajo |
+| ¿Cómo se inicia sesión real en local? (pregunta nueva 5; bitácora 26/10, pregunta 2) | — | **Sigue abierta** |
+
+#### Cambio: el Responsable no ve el documento firmado del plan
+
+- `plan-responsable-detalle`: «Ver documento del plan» solo aparece con el
+  rol `rrhh` (`A` o `R`). Un `R+P` lo ve; quien es solo `P`, no.
+- Se quitó el aviso especial del 403 («El documento del plan solo lo puede
+  ver RRHH.» y su constante en `PlanesHttpService`).
+- Queda el manejo general: un 403 al pedir el archivo deja «No tienes
+  permiso para esta acción.» en `ultimoError` y el visor lo muestra.
+- Mock: `obtenerDocumentoPlan` aplica la misma regla. Sin el rol `rrhh`
+  devuelve `null` con «No tienes permiso para esta acción.», como el 403
+  del backend.
+- `DESARROLLO_LOCAL.md`: se anotaron las respuestas de Sebas y se corrigió
+  la tabla de actividades de `EMP-010`. A-017 ya cuenta como vencida desde
+  el 27/10/2026.
+- Especificación §12: la fila «Documento del plan para el Responsable»
+  pasa a Hecho (solo RRHH).
+
+Sigue pendiente **cómo iniciar sesión real en local**. Sin eso no se probó
+nada contra el backend de pruebas.

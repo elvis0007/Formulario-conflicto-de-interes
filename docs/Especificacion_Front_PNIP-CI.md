@@ -523,7 +523,7 @@ están en la lista de preguntas de la bitácora (26/10/2026).
 | Descargar Excel (Análisis RG.02, Informe General RG.03) | Solo confirmación visual | Descarga el `.xlsx` real con los datos de `GET /conflictos/reporte` (27/10/2026). Una fila por conflicto: el Excel del RG.03 no trae el detalle de planes y actividades. Con la sesión simulada: «Disponible con sesión real» | Hecho; por confirmar columnas con RRHH |
 | Plan de mitigación sugerido (§3) | El sistema sugiere y RRHH completa | «Cargar actividades sugeridas» en el borrador (27/10/2026): excusa y seguimiento siempre; reasignar la supervisión con riesgo Alto o Crítico; evaluar la reubicación con Crítico. Se agregan sin responsable; si la tabla ya tiene actividades, pide confirmación | Hecho |
 | Errores del backend | — | Sesión vencida: aviso con «Iniciar sesión». Sin conexión: aviso con «Reintentar». Sin permiso: aviso, la pantalla sigue. Archivos: límite de 5 MB y tipos permitidos (27/10/2026) | Hecho |
-| Documento del plan para el Responsable (§6.12) | El responsable ve el plan firmado | El backend solo deja verlo a RRHH: quien es solo `P` ve «El documento del plan solo lo puede ver RRHH.» | **Pendiente con Sebas** |
+| Documento del plan para el Responsable (§6.12) | El responsable ve el plan firmado | **Solo RRHH** (confirmado por Sebas el 27/10/2026): la pantalla del Responsable no muestra «Ver documento del plan» a quien no tiene `A` ni `R`; un `R+P` sí lo ve | Hecho |
 
 Con la sesión simulada de desarrollo, los mocks siguen estas mismas reglas
 y estados. Detalle técnico: [ARQUITECTURA.md](ARQUITECTURA.md#qué-es-real-y-qué-es-simulado)

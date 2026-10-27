@@ -295,12 +295,23 @@ export class PlanResponsableDetalleComponent implements OnInit {
   }
 
   /**
-   * Abre el documento firmado del plan.
+   * El documento firmado del plan solo lo ve RRHH (`GET /planes/{id}/documento`
+   * es solo para A y R, confirmado por Sebas). Un R+P si lo ve.
+   *
+   * @returns `true` si el usuario tiene el rol `rrhh`.
+   * @author Elvis Flores
+   */
+  get puedeVerDocumentoPlan(): boolean {
+    return this.perfil.tieneRol('rrhh');
+  }
+
+  /**
+   * Abre el documento firmado del plan (solo RRHH).
    */
   verDocumentoPlan(): void {
     const archivo = this.plan?.documentoFirmado;
 
-    if (archivo && this.plan) {
+    if (archivo && this.plan && this.puedeVerDocumentoPlan) {
       this.documento = {
         titulo: 'Documento del plan',
         archivo,

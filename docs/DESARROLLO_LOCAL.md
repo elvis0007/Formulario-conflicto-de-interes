@@ -26,6 +26,19 @@ sesión decide de dónde salen los datos de `/rrhh/**` y `/responsable/**`
 
 La decisión se toma al cargar la página; cambiar de sesión ya recarga.
 
+### Lo que confirmó Sebas sobre el backend de pruebas (27/10/2026)
+
+- **Correos:** los correos del módulo en pruebas se redirigen a Sebas
+  (`sisci.conflictos.correo-redirigir-a` en el WAR desplegado). Probar
+  firmas, subidas y revisiones no le escribe al personal real.
+- **Rol `P`:** existe en `DRI_CI_ROL` de la base de pruebas. Firmar un plan
+  se lo da a los responsables.
+- **`DRI_CI_ROL_USUARIO`:** está bien que la firma inserte ahí el rol `P`.
+- **Documento firmado del plan:** solo para RRHH (`A` y `R`).
+  `GET /planes/{id}/documento` responde 403 a quien es solo `P`. La pantalla
+  del Responsable no ofrece «Ver documento del plan» a quien no tiene `A` ni
+  `R` (un `R+P` sí lo ve), y el mock aplica la misma regla.
+
 ### Sesión real en local
 
 > **PENDIENTE: cómo iniciar sesión real en local (preguntar a Sebas).**
@@ -106,11 +119,15 @@ localStorage.setItem('SISCI-DEV-EMPLEADO', 'EMP-001');
 ```
 
 Con el empleado por defecto (`EMP-010`) las pantallas del Responsable
-muestran actividades en todos los estados y en varios planes:
+muestran actividades en todos los estados y en varios planes. Lo vencido se
+calcula con la fecha de hoy, así que los números cambian con el tiempo. Al
+27/10/2026 el dashboard de `EMP-010` muestra Pendientes 0, En revisión 1,
+Rechazadas 1, Vencidas 2 y Aprobadas 3, y el de RRHH 3 actividades
+vencidas:
 
 | Actividad | Plan | Estado |
 |---|---|---|
-| A-017 | PL-002 (C-001) | Pendiente |
+| A-017 | PL-002 (C-001) | Vencida desde el 27/10/2026 (límite 26/10/2026; antes salía «Pendiente») |
 | A-018 | PL-002 (C-001) | Vencida (se muestra «Pendiente» con el plazo en rojo) |
 | A-015 | PL-002 (C-001) | Rechazada con motivo |
 | A-004 | PL-002 (C-001) | Aprobada |

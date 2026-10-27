@@ -22,7 +22,7 @@
         <span class="dato">Inicio del plan: {{ fecha(plan.fechaInicio) }}</span>
       }
     </div>
-    @if (plan.documentoFirmado) {
+    @if (plan.documentoFirmado && puedeVerDocumentoPlan) {
       <button type="button" class="boton" (click)="verDocumentoPlan()">
         <app-icono nombre="documento" [tamano]="16" />
         Ver documento del plan

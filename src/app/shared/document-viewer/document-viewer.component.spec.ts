@@ -180,15 +180,15 @@ describe('DocumentViewerComponent', () => {
       expect(raiz.textContent).not.toContain('Descargado ✓');
     });
 
-    it('si no llega y el servicio explica el motivo, muestra ese motivo (403: solo RRHH)', () => {
+    it('si no llega y el servicio explica el motivo (p. ej. 403), muestra ese motivo', () => {
       spyOn(planes, 'obtenerDocumentoPlan').and.callFake(() => {
-        planes.ultimoError = 'El documento del plan solo lo puede ver RRHH.';
+        planes.ultimoError = 'No tienes permiso para esta acción.';
         return of(null);
       });
 
       crearConId({ nombre: 'plan.pdf', url: '/planes/41/documento', tipo: 'pdf' }, { planId: '41' });
 
-      expect(raiz.querySelector('[role="alert"]')?.textContent).toContain('El documento del plan solo lo puede ver RRHH.');
+      expect(raiz.querySelector('[role="alert"]')?.textContent).toContain('No tienes permiso para esta acción.');
       expect(raiz.textContent).not.toContain(ERROR_CARGA_ARCHIVO);
     });
 

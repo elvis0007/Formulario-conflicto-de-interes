@@ -3,7 +3,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { TestBed } from '@angular/core/testing';
 import { PerfilUsuarioFalso, proveerPerfilFalso } from '../../testing/perfil-usuario-falso';
 import { ERROR_SIN_CONEXION, MENSAJE_SIN_PERMISO, urlApi } from './peticiones';
-import { MENSAJE_DOCUMENTO_SOLO_RRHH, PlanesHttpService } from './planes-http.service';
+import { PlanesHttpService } from './planes-http.service';
 
 describe('PlanesHttpService · descarga de archivos con error', () => {
   let servicio: PlanesHttpService;
@@ -24,7 +24,7 @@ describe('PlanesHttpService · descarga de archivos con error', () => {
 
   afterEach(() => http.verify());
 
-  it('documento del plan con 403 (solo P): null y «solo lo puede ver RRHH»', () => {
+  it('documento del plan con 403 (solo P): null y el aviso general de permiso', () => {
     let resultado: Blob | null | undefined;
 
     servicio.obtenerDocumentoPlan('41').subscribe((r) => resultado = r);
@@ -32,7 +32,7 @@ describe('PlanesHttpService · descarga de archivos con error', () => {
       .flush(new Blob(['{}']), { status: 403, statusText: 'Forbidden' });
 
     expect(resultado).toBeNull();
-    expect(servicio.ultimoError).toBe(MENSAJE_DOCUMENTO_SOLO_RRHH);
+    expect(servicio.ultimoError).toBe(MENSAJE_SIN_PERMISO);
   });
 
   it('documento del plan que llega bien: limpia el motivo anterior', () => {
