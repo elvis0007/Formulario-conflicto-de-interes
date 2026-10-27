@@ -299,14 +299,31 @@
                   } @empty {
                     <tr>
                       <td colspan="5" class="sin-actividades">
-                        Aún no hay actividades. Agrega la primera con «+ Agregar actividad».
+                        Aún no hay actividades. Agrega la primera con «+ Agregar actividad»
+                        o carga las sugeridas para este conflicto.
                       </td>
                     </tr>
                   }
                 </tbody>
               </table>
             </div>
-            <button type="button" class="boton boton--agregar" (click)="agregarActividad()">+ Agregar actividad</button>
+            <div class="acciones-actividades">
+              <button type="button" class="boton" (click)="agregarActividad()">+ Agregar actividad</button>
+              <button
+                type="button"
+                class="boton"
+                [disabled]="cargandoSugeridas"
+                [attr.aria-busy]="cargandoSugeridas"
+                (click)="pedirSugeridas()">
+                {{ cargandoSugeridas ? 'Cargando sugeridas…' : 'Cargar actividades sugeridas' }}
+              </button>
+            </div>
+            @if (avisoSugeridas) {
+              <p class="aviso-sugeridas" role="status">{{ avisoSugeridas }}</p>
+            }
+            @if (errorSugeridas) {
+              <p class="error-sugeridas" role="alert">{{ errorSugeridas }}</p>
+            }
           </form>
         } @else {
           <h3 class="seccion-titulo">Actividades</h3>
@@ -483,6 +500,20 @@
     }
   }
 }
+
+<app-modal
+  titulo="Cargar actividades sugeridas"
+  [abierto]="confirmandoSugeridas"
+  (cerrar)="confirmandoSugeridas = false">
+  <p class="confirmacion-texto">
+    La tabla ya tiene {{ actividades.length === 1 ? '1 actividad' : actividades.length + ' actividades' }}.
+    Las sugeridas se agregan al final; no se borra ni se cambia ninguna.
+  </p>
+  <div class="confirmacion-botones">
+    <button type="button" class="boton" (click)="confirmandoSugeridas = false">Cancelar</button>
+    <button type="button" class="boton boton--primario" (click)="cargarSugeridas()">Agregar las sugeridas</button>
+  </div>
+</app-modal>
 
 <app-modal
   titulo="Enviar y notificar"

@@ -27,7 +27,7 @@ import { PlazoTextoPipe } from '../pipes/plazo-texto.pipe';
 import { AnalisisMockService } from '../services/analisis-mock.service';
 import { ConflictosMockService } from '../services/conflictos-mock.service';
 import { PersonasMockService } from '../services/personas-mock.service';
-import { PlanesMockService } from '../services/planes-mock.service';
+import { ERROR_SUGERENCIA, PlanesMockService } from '../services/planes-mock.service';
 import { validarDocumentoFirmado } from '../utils/documento.util';
 import { RELOJ } from '../utils/reloj';
 import { BadgeComponent } from '../shared/badge/badge.component';
@@ -83,6 +83,18 @@ export const MENSAJE_CIERRE_EN_REVISION =
 const ERROR_GUARDADO = 'No se pudo guardar el borrador. Inténtalo de nuevo.';
 const ERROR_ENVIO = 'No se pudo enviar el plan. Revisa que esté completo e inténtalo de nuevo.';
 const ERROR_CIERRE_GENERICO = 'No se pudo cerrar el plan. Inténtalo de nuevo.';
+
+/** Aviso si el backend no sugiere ninguna actividad. */
+export const MENSAJE_SIN_SUGERIDAS = 'No hay actividades sugeridas para este conflicto.';
+
+/**
+ * @param cantidad Actividades agregadas.
+ * @returns Aviso tras cargar las sugeridas.
+ */
+export function mensajeSugeridasCargadas(cantidad: number): string {
+  return (cantidad === 1 ? 'Se agregó 1 actividad sugerida' : 'Se agregaron ' + cantidad + ' actividades sugeridas')
+    + '. Revisa el texto, el plazo y asigna un responsable a cada una.';
+}
 
 /**
  * Clase que la pantalla pone en <body> mientras esta abierta: activa las
@@ -253,6 +265,18 @@ export class PlanAccionDetalleComponent implements OnInit, OnDestroy, ConCambios
 
   /** Visor del documento del plan abierto. */
   viendoDocumento = false;
+
+  /** «Cargar actividades sugeridas» en curso. */
+  cargandoSugeridas = false;
+
+  /** Modal «La tabla ya tiene actividades» abierto. */
+  confirmandoSugeridas = false;
+
+  /** Resultado de la ultima carga de sugeridas (aviso o error). */
+  avisoSugeridas: string | null = null;
+
+  /** Error de la ultima carga de sugeridas. */
+  errorSugeridas: string | null = null;
 
   /** Fecha que sale en el formulario impreso (dd/mm/aaaa). */
   fechaImpresion = '';
@@ -643,6 +667,66 @@ export class PlanAccionDetalleComponent implements OnInit, OnDestroy, ConCambios
   agregarActividad(): void {
     this.actividades.push(this.crearFilaActividad());
     this.formulario.markAsDirty();
+  }
+
+  /**
+   * «Cargar actividades sugeridas»: si la tabla ya tiene actividades, antes
+   * pide confirmacion (las sugeridas se agregan, no reemplazan nada).
+   *
+   * @author Elvis Flores
+   */
+  pedirSugeridas(): void {
+    if (this.cargandoSugeridas) {
+      return;
+    }
+    if (this.actividades.length > 0) {
+      this.confirmandoSugeridas = true;
+      return;
+    }
+    this.cargarSugeridas();
+  }
+
+  /**
+   * Pide las actividades sugeridas del conflicto y las agrega al final de
+   * la tabla, sin responsable: RRHH las edita, elige responsables y ajusta
+   * los plazos antes de guardar.
+   *
+   * @author Elvis Flores
+   */
+  cargarSugeridas(): void {
+    const plan = this.plan;
+
+    this.confirmandoSugeridas = false;
+    if (plan === null || !this.editable || this.cargandoSugeridas) {
+      return;
+    }
+    this.cargandoSugeridas = true;
+    this.avisoSugeridas = null;
+    this.errorSugeridas = null;
+    this.planesServicio.obtenerActividadesSugeridas(plan.conflictoId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((sugeridas) => {
+        this.cargandoSugeridas = false;
+        if (sugeridas === null) {
+          this.errorSugeridas = this.planesServicio.ultimoError ?? ERROR_SUGERENCIA;
+          return;
+        }
+        for (const s of sugeridas) {
+          this.actividades.push(this.crearFilaActividad({
+            id: '',
+            descripcion: s.descripcion,
+            responsableId: '',
+            responsableNombre: '',
+            plazoMeses: s.plazoMeses,
+            plazoDias: s.plazoDias,
+            estado: 'PENDIENTE'
+          }));
+        }
+        if (sugeridas.length > 0) {
+          this.formulario.markAsDirty();
+        }
+        this.avisoSugeridas = sugeridas.length > 0 ? mensajeSugeridasCargadas(sugeridas.length) : MENSAJE_SIN_SUGERIDAS;
+      });
   }
 
   /**

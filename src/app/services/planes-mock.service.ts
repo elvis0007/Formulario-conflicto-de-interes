@@ -15,6 +15,7 @@ import {
 } from 'rxjs';
 import {
   Actividad,
+  ActividadSugerida,
   Archivo,
   EstadoActividad,
   Notificacion,
@@ -34,6 +35,7 @@ import {
 } from '../utils/planes.util';
 import { RELOJ } from '../utils/reloj';
 import { esPlanActivo } from '../utils/revision.util';
+import { sugerirActividades } from '../utils/sugerencia-plan.util';
 import { CONFLICTOS } from './mock-data/conflictos.data';
 import { PLANES } from './mock-data/planes.data';
 import { simularRespuesta } from './mock-data/simular-respuesta';
@@ -99,6 +101,9 @@ export const ERROR_CIERRE_SIN_VENCIDAS =
 
 /** Mensaje si el cierre falla por otra razon. */
 export const ERROR_CIERRE = 'No se pudo cerrar el plan. Inténtalo de nuevo.';
+
+/** Mensaje si no se pudieron traer las actividades sugeridas. */
+export const ERROR_SUGERENCIA = 'No se pudieron cargar las actividades sugeridas. Inténtalo de nuevo.';
 
 /** Mensaje generico de una accion que fallo sin motivo conocido. */
 const ERROR_ACCION = 'No se pudo completar la acción. Inténtalo de nuevo.';
@@ -188,6 +193,24 @@ export class PlanesMockService {
         []
       )
     );
+  }
+
+  /**
+   * Actividades que el sistema sugiere para el plan de un conflicto, segun
+   * su riesgo (`sugerirActividades`, mismas reglas que el backend).
+   *
+   * Con el backend: `GET /conflictos/{id}/plan/sugerencia`.
+   *
+   * @param conflictoId Id del conflicto.
+   * @returns Las sugeridas; `null` si el conflicto no existe (el motivo
+   * queda en `ultimoError`).
+   * @author Elvis Flores
+   */
+  obtenerActividadesSugeridas(conflictoId: string): Observable<ActividadSugerida[] | null> {
+    const conflicto = CONFLICTOS.find((c) => c.id === conflictoId);
+
+    this.ultimoError = conflicto ? null : ERROR_SUGERENCIA;
+    return simularRespuesta(conflicto ? sugerirActividades(conflicto) : null);
   }
 
   /**

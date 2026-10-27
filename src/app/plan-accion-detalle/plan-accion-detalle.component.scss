@@ -283,8 +283,31 @@
   }
 }
 
-.boton--agregar {
+.acciones-actividades {
+  display: flex;
+  flex-wrap: wrap;
   align-self: flex-start;
+  gap: 10px;
+}
+
+.aviso-sugeridas,
+.error-sugeridas {
+  align-self: flex-start;
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.aviso-sugeridas {
+  background-color: var(--accent-100);
+  color: var(--accent-700);
+}
+
+.error-sugeridas {
+  background-color: var(--red-fill);
+  color: var(--red-text);
 }
 
 .boton--peligro {

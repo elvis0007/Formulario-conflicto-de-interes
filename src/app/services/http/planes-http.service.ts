@@ -13,9 +13,10 @@ import {
   tap,
   throwError
 } from 'rxjs';
-import { PlanAccion, PlanDeResponsable } from '../../models';
+import { ActividadSugerida, PlanAccion, PlanDeResponsable } from '../../models';
 import {
   ActividadBandejaApi,
+  ActividadSugeridaApi,
   ConflictoDetalleApi,
   EvidenciaApi,
   ExpedienteApi,
@@ -37,7 +38,7 @@ import {
   ResultadoDocumento,
   ResultadoEvidencia
 } from '../planes-mock.service';
-import { crearPedidoPlan, mapearPlan, mapearPlanesDeResponsable } from './mapeos/plan.mapeo';
+import { crearPedidoPlan, mapearActividadSugerida, mapearPlan, mapearPlanesDeResponsable } from './mapeos/plan.mapeo';
 import { datosDe, idEnRuta, mensajeDeError, todasLasPaginas, urlApi } from './peticiones';
 
 /** Tamaño máximo de archivo del backend (`ValidadorArchivo.TAMANIO_MAXIMO`): 5 MB. */
@@ -168,6 +169,27 @@ export class PlanesHttpService implements Pick<PlanesMockService, keyof PlanesMo
       map((detalle) => this.recordar(planesDelDetalle(detalle)).sort((a, b) => a.numero - b.numero)),
       manejarError<PlanAccion[]>('PlanesHttpService.obtenerPlanesDeConflicto', [])
     );
+  }
+
+  /**
+   * Actividades sugeridas para el plan: `GET /conflictos/{id}/plan/sugerencia`
+   * (catálogo del backend según el riesgo y si es proveedor; no se guarda).
+   *
+   * @param conflictoId Id del conflicto.
+   * @returns Las sugeridas; `null` si falla (el motivo queda en
+   * `ultimoError`).
+   * @author Elvis Flores
+   */
+  obtenerActividadesSugeridas(conflictoId: string): Observable<ActividadSugerida[] | null> {
+    return this.http
+      .get<RespuestaApi<ActividadSugeridaApi[]>>(urlApi('/conflictos/' + idEnRuta(conflictoId) + '/plan/sugerencia'))
+      .pipe(
+        datosDe<ActividadSugeridaApi[]>(),
+        map((lista): ActividadSugerida[] | null => [...(lista ?? [])]
+          .sort((a, b) => a.ORDEN - b.ORDEN)
+          .map(mapearActividadSugerida)),
+        this.fallar<ActividadSugerida[] | null>('PlanesHttpService.obtenerActividadesSugeridas', null)
+      );
   }
 
   /**

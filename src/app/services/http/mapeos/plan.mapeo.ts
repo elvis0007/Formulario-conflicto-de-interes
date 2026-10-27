@@ -1,5 +1,6 @@
 import {
   Actividad,
+  ActividadSugerida,
   Archivo,
   Evidencia,
   PlanAccion,
@@ -8,6 +9,7 @@ import {
 import {
   ActividadApi,
   ActividadBandejaApi,
+  ActividadSugeridaApi,
   ArchivoInfoApi,
   CrearPlanRequestApi,
   EvidenciaApi,
@@ -285,5 +287,22 @@ export function crearPedidoPlan(plan: PlanAccion, anterior?: PlanApi): CrearPlan
       orden: indice + 1
     })),
     involucrados
+  };
+}
+
+/**
+ * Convierte una actividad sugerida (`GET /conflictos/{id}/plan/sugerencia`).
+ *
+ * @param api Sugerencia del backend.
+ * @returns La actividad sugerida del modelo; `RESPONSABLE` es un código de
+ * nómina (sin nombre), o `null` si RRHH debe elegirlo.
+ * @author Elvis Flores
+ */
+export function mapearActividadSugerida(api: ActividadSugeridaApi): ActividadSugerida {
+  return {
+    descripcion: api.DESCRIPCION ?? '',
+    responsableSugeridoId: api.RESPONSABLE,
+    plazoMeses: api.PLAZO_MESES,
+    plazoDias: api.PLAZO_DIAS
   };
 }

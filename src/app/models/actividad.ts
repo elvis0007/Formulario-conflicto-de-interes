@@ -32,3 +32,22 @@ export interface Actividad {
    */
   evidenciasAnteriores?: Evidencia[];
 }
+
+/**
+ * Actividad que el sistema sugiere para el plan de un conflicto
+ * (`GET /conflictos/{id}/plan/sugerencia`). No se guarda: RRHH la carga
+ * en la tabla del plan, la edita y le asigna un responsable.
+ *
+ * @author Elvis Flores
+ */
+export interface ActividadSugerida {
+  descripcion: string;
+  /**
+   * Codigo de nomina del responsable que propone el backend (la persona A o
+   * su director); `null` si RRHH debe elegirlo. La pantalla no lo usa: el
+   * backend no manda el nombre.
+   */
+  responsableSugeridoId: string | null;
+  plazoMeses: number;
+  plazoDias: number;
+}

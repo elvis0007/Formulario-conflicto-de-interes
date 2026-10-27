@@ -12,7 +12,8 @@ import {
   MENSAJE_PLAN_VIGENTE,
   NOTA_REABRE_CONFLICTO,
   PlanAccionDetalleComponent,
-  TEXTO_SIN_FECHA_LIMITE
+  TEXTO_SIN_FECHA_LIMITE,
+  mensajeSugeridasCargadas
 } from './plan-accion-detalle.component';
 
 describe('PlanAccionDetalleComponent', () => {
@@ -751,6 +752,85 @@ describe('PlanAccionDetalleComponent', () => {
 
       expect(texto('app-modal .mensaje--error')).toBe('Hay una evidencia por revisar');
       expect(raiz.querySelector('app-modal .dialogo')).not.toBeNull();
+    }));
+  });
+  describe('«Cargar actividades sugeridas»', () => {
+    /** @returns Descripciones de las filas de la tabla editable. */
+    function descripciones(): string[] {
+      return Array.from(raiz.querySelectorAll<HTMLTextAreaElement | HTMLInputElement>('[formcontrolname=descripcion]'))
+        .map((c) => c.value);
+    }
+
+    it('plan nuevo vacío: carga las sugeridas sin responsable y avisa', fakeAsync(() => {
+      analisisValidadoConC005Confirmado();
+      abrir('C-005', 'nuevo');
+      expect(descripciones()).toEqual([]);
+
+      boton('button', 'Cargar actividades sugeridas').click();
+      fixture.detectChanges();
+      expect(boton('button', 'Cargando sugeridas')?.disabled).toBeTrue();
+      tick(LATENCIA_SIMULADA_MS);
+      fixture.detectChanges();
+
+      expect(descripciones().length).toBe(2);
+      expect(descripciones()[0]).toMatch(/^Firmar una declaración de excusa/);
+      expect(fixture.componentInstance.actividades.controls.map((f) => f.controls.responsableId.value)).toEqual(['', '']);
+      expect(fixture.componentInstance.actividades.controls[1].controls.plazoMeses.value).toBe(6);
+      expect(texto('.aviso-sugeridas')).toBe(mensajeSugeridasCargadas(2));
+      expect(fixture.componentInstance.formulario.dirty).toBeTrue();
+    }));
+
+    it('con actividades en la tabla pide confirmación; «Cancelar» no agrega nada', fakeAsync(() => {
+      abrir('C-003', 'PL-004');
+      const antes = descripciones();
+
+      expect(antes.length).toBeGreaterThan(0);
+      boton('button', 'Cargar actividades sugeridas').click();
+      fixture.detectChanges();
+      expect(texto('app-modal .confirmacion-texto')).toContain('Las sugeridas se agregan al final');
+
+      boton('app-modal button', 'Cancelar').click();
+      fixture.detectChanges();
+      tick(LATENCIA_SIMULADA_MS);
+      expect(descripciones()).toEqual(antes);
+    }));
+
+    it('al confirmar, las agrega al final sin tocar las que había', fakeAsync(() => {
+      abrir('C-003', 'PL-004');
+      const antes = descripciones();
+
+      boton('button', 'Cargar actividades sugeridas').click();
+      fixture.detectChanges();
+      boton('app-modal button', 'Agregar las sugeridas').click();
+      fixture.detectChanges();
+      tick(LATENCIA_SIMULADA_MS);
+      fixture.detectChanges();
+
+      // C-003 es de riesgo Crítico: 4 sugeridas.
+      expect(descripciones().slice(0, antes.length)).toEqual(antes);
+      expect(descripciones().length).toBe(antes.length + 4);
+      expect(texto('.aviso-sugeridas')).toBe(mensajeSugeridasCargadas(4));
+    }));
+
+    it('si falla muestra el motivo del servicio y no cambia la tabla', fakeAsync(() => {
+      abrir('C-003', 'PL-004');
+      const servicio = TestBed.inject(PlanesMockService);
+      const antes = descripciones();
+
+      spyOn(servicio, 'obtenerActividadesSugeridas').and.callFake(() => {
+        servicio.ultimoError = 'No tienes permiso para esta acción.';
+        return of(null);
+      });
+      fixture.componentInstance.cargarSugeridas();
+      fixture.detectChanges();
+
+      expect(texto('.error-sugeridas')).toBe('No tienes permiso para esta acción.');
+      expect(descripciones()).toEqual(antes);
+    }));
+
+    it('en solo lectura no aparece el botón', fakeAsync(() => {
+      abrir('C-001', 'PL-002');
+      expect(boton('button', 'Cargar actividades sugeridas')).toBeUndefined();
     }));
   });
 });
