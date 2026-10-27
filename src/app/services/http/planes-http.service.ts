@@ -39,7 +39,7 @@ import {
   ResultadoEvidencia
 } from '../planes-mock.service';
 import { crearPedidoPlan, mapearActividadSugerida, mapearPlan, mapearPlanesDeResponsable } from './mapeos/plan.mapeo';
-import { datosDe, idEnRuta, mensajeDeError, todasLasPaginas, urlApi } from './peticiones';
+import { datosDe, idEnRuta, mensajeDeError, tipoDeError, todasLasPaginas, urlApi } from './peticiones';
 
 /** Tamaño máximo de archivo del backend (`ValidadorArchivo.TAMANIO_MAXIMO`): 5 MB. */
 export const TAMANO_MAXIMO_BACKEND_BYTES = 5 * 1024 * 1024;
@@ -52,6 +52,12 @@ export const ERROR_ARCHIVO_TIPO = 'Tipo de archivo no permitido: solo se aceptan
 
 /** Error: se pide algo de un plan que este servicio aún no cargó. */
 export const ERROR_PLAN_DESCONOCIDO = 'No se encontró el plan. Recarga la página e inténtalo de nuevo.';
+
+/**
+ * 403 de `GET /planes/{id}/documento` para quien es solo responsable (P):
+ * el backend solo deja ver el documento firmado a RRHH. Pendiente con Sebas.
+ */
+export const MENSAJE_DOCUMENTO_SOLO_RRHH = 'El documento del plan solo lo puede ver RRHH.';
 
 /**
  * Cómo se registra la firma del plan. El FR.02 se imprime, se firma a mano
@@ -453,13 +459,19 @@ export class PlanesHttpService implements Pick<PlanesMockService, keyof PlanesMo
   /**
    * Descarga el documento firmado: `GET /planes/{id}/documento`.
    *
+   * El backend solo deja a RRHH (A y R): quien es solo responsable (P)
+   * recibe 403 y el visor muestra `MENSAJE_DOCUMENTO_SOLO_RRHH`. Pendiente
+   * de decidir con Sebas si el responsable debe poder verlo.
+   *
    * @param planId Id del plan.
-   * @returns El archivo, o `null` si no tiene o falla.
+   * @returns El archivo, o `null` si no tiene o falla (el motivo queda en
+   * `ultimoError`).
    * @author Sebas Constante
+   * @author Elvis Flores
    */
   obtenerDocumentoPlan(planId: string): Observable<Blob | null> {
     return this.http.get(urlApi('/planes/' + idEnRuta(planId) + '/documento'), { responseType: 'blob' }).pipe(
-      manejarError<Blob | null>('PlanesHttpService.obtenerDocumentoPlan', null)
+      this.fallarArchivo('PlanesHttpService.obtenerDocumentoPlan', MENSAJE_DOCUMENTO_SOLO_RRHH)
     );
   }
 
@@ -467,12 +479,14 @@ export class PlanesHttpService implements Pick<PlanesMockService, keyof PlanesMo
    * Descarga el archivo de una evidencia: `GET /evidencias/{id}/archivo`.
    *
    * @param evidenciaId Id de la evidencia (`Evidencia.id`).
-   * @returns El archivo, o `null` si no existe, no es suya o falla.
+   * @returns El archivo, o `null` si no existe, no es suya o falla (el
+   * motivo queda en `ultimoError`).
    * @author Sebas Constante
+   * @author Elvis Flores
    */
   obtenerArchivoEvidencia(evidenciaId: string): Observable<Blob | null> {
     return this.http.get(urlApi('/evidencias/' + idEnRuta(evidenciaId) + '/archivo'), { responseType: 'blob' }).pipe(
-      manejarError<Blob | null>('PlanesHttpService.obtenerArchivoEvidencia', null)
+      this.fallarArchivo('PlanesHttpService.obtenerArchivoEvidencia', null)
     );
   }
 
@@ -692,10 +706,36 @@ export class PlanesHttpService implements Pick<PlanesMockService, keyof PlanesMo
    * @returns Operador.
    */
   private fallar<T>(origen: string, valor: T): MonoTypeOperatorFunction<T> {
+    return this.fallarCon(origen, valor, null);
+  }
+
+  /**
+   * Como `fallar`, para la descarga de un archivo: emite `null` y deja el
+   * motivo en `ultimoError`. La respuesta de error de un blob no trae el
+   * `mensaje` del backend legible, así que el 403 usa `mensaje403`.
+   *
+   * @param origen `Clase.metodo`, para el log.
+   * @param mensaje403 Motivo propio de un 403; `null` usa el general.
+   * @returns Operador.
+   * @author Elvis Flores
+   */
+  private fallarArchivo(origen: string, mensaje403: string | null): MonoTypeOperatorFunction<Blob | null> {
+    return this.fallarCon<Blob | null>(origen, null, mensaje403);
+  }
+
+  /**
+   * @param origen `Clase.metodo`, para el log.
+   * @param valor Valor que se emite si falla.
+   * @param mensaje403 Motivo propio de un 403; `null` usa `mensajeDeError`.
+   * @returns Operador de `fallar` y `fallarArchivo`.
+   */
+  private fallarCon<T>(origen: string, valor: T, mensaje403: string | null): MonoTypeOperatorFunction<T> {
     return pipe(
       tap(() => this.ultimoError = null),
       catchError((err: unknown) => {
-        this.ultimoError = mensajeDeError(err, ERROR_ACCION);
+        this.ultimoError = mensaje403 !== null && tipoDeError(err) === 'permiso'
+          ? mensaje403
+          : mensajeDeError(err, ERROR_ACCION);
         console.error('[' + origen + ']', this.ultimoError, err);
         return of(valor);
       })

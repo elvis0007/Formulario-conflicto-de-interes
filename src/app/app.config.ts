@@ -28,6 +28,10 @@ import { proveerFuente } from './services/http/fuente-datos';
 import { ReportesMockService } from './services/reportes-mock.service';
 import { ReportesHttpService } from './services/http/reportes-http.service';
 // [FIN PNIP-CI]
+// [PNIP-CI] Elvis Flores - 27/10/2026
+// Qué hace: manejo común de los errores del backend de conflictos.
+import { erroresBackendInterceptor } from './interceptors/errores-backend.interceptor';
+// [FIN PNIP-CI]
 // [PNIP-CI DEV] Elvis Flores - 30/09/2026 - ELIMINAR ANTES DE PRODUCCIÓN
 // Qué hace: import que solo usa la sesión simulada de desarrollo (ver el
 // bloque [PNIP-CI DEV] más abajo). Se elimina junto con ese bloque.
@@ -39,7 +43,12 @@ export const appConfig: ApplicationConfig = {
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(routes, withHashLocation()),
     provideHttpClient(
-      withInterceptors([solicitudInterceptor])
+      // [PNIP-CI] Elvis Flores - 27/10/2026
+      // Qué hace: agrega erroresBackendInterceptor, que da el aviso general
+      // de sesión vencida (401), sin conexión y sin permiso de las rutas de
+      // gestión de conflictos. El de siempre (solicitudInterceptor) no cambia.
+      withInterceptors([solicitudInterceptor, erroresBackendInterceptor])
+      // [FIN PNIP-CI]
     ),
     // [PNIP-CI] Sebas Constante - 26/10/2026
     // Qué hace: con sesión real, las pantallas de gestión de conflictos leen

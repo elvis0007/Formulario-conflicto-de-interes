@@ -1,0 +1,63 @@
+// Aviso flotante abajo al centro, encima del contenido. El selector de rol
+// de desarrollo vive abajo a la derecha: no se tapan en escritorio.
+.aviso {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  z-index: 1000;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+  width: max-content;
+  max-width: calc(100% - 32px);
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background-color: var(--paper);
+  box-shadow: 0 6px 24px rgb(0 0 0 / 18%);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  transform: translateX(-50%);
+}
+
+.aviso--sesion {
+  border-color: var(--red);
+  background-color: var(--red-fill);
+  color: var(--red-text);
+}
+
+.aviso--conexion {
+  border-color: var(--amber);
+  background-color: var(--amber-fill);
+  color: var(--amber-text);
+}
+
+.aviso-texto {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.aviso-acciones {
+  display: flex;
+  gap: 8px;
+}
+
+.aviso-boton {
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background-color: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.aviso-boton--principal {
+  border-color: var(--accent);
+  background-color: var(--accent);
+  color: var(--paper);
+}

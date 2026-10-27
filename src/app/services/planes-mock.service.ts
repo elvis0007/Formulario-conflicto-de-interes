@@ -658,6 +658,8 @@ export class PlanesMockService {
   obtenerDocumentoPlan(planId: string): Observable<Blob | null> {
     const archivo = this.planes.find((p) => p.id === planId)?.documentoFirmado;
 
+    // El visor muestra ultimoError si no llega nada: no debe quedar uno viejo.
+    this.ultimoError = null;
     return this.contenidoSimulado(archivo).pipe(
       manejarError<Blob | null>('PlanesMockService.obtenerDocumentoPlan', null)
     );
@@ -677,6 +679,7 @@ export class PlanesMockService {
       .flatMap((a) => [...(a.evidenciasAnteriores ?? []), ...(a.evidencia ? [a.evidencia] : [])])
       .find((e) => e.id === evidenciaId);
 
+    this.ultimoError = null;
     return this.contenidoSimulado(evidencia?.archivo).pipe(
       manejarError<Blob | null>('PlanesMockService.obtenerArchivoEvidencia', null)
     );

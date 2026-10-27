@@ -180,6 +180,18 @@ describe('DocumentViewerComponent', () => {
       expect(raiz.textContent).not.toContain('Descargado ✓');
     });
 
+    it('si no llega y el servicio explica el motivo, muestra ese motivo (403: solo RRHH)', () => {
+      spyOn(planes, 'obtenerDocumentoPlan').and.callFake(() => {
+        planes.ultimoError = 'El documento del plan solo lo puede ver RRHH.';
+        return of(null);
+      });
+
+      crearConId({ nombre: 'plan.pdf', url: '/planes/41/documento', tipo: 'pdf' }, { planId: '41' });
+
+      expect(raiz.querySelector('[role="alert"]')?.textContent).toContain('El documento del plan solo lo puede ver RRHH.');
+      expect(raiz.textContent).not.toContain(ERROR_CARGA_ARCHIVO);
+    });
+
     it('la URL local del archivo recién subido se muestra directo, sin pedir nada ni liberarla', () => {
       const pedir = spyOn(planes, 'obtenerArchivoEvidencia');
 

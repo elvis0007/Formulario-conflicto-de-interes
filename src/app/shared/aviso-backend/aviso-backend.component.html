@@ -1,0 +1,19 @@
+@if (aviso(); as a) {
+  <div [class]="'aviso aviso--' + a.tipo" role="alert">
+    <p class="aviso-texto">{{ a.mensaje }}</p>
+    <div class="aviso-acciones">
+      @switch (a.tipo) {
+        @case ('sesion') {
+          <button type="button" class="aviso-boton aviso-boton--principal" (click)="iniciarSesion()">Iniciar sesión</button>
+        }
+        @case ('conexion') {
+          <button type="button" class="aviso-boton aviso-boton--principal" (click)="reintentar()">Reintentar</button>
+          <button type="button" class="aviso-boton" (click)="cerrar()">Cerrar</button>
+        }
+        @default {
+          <button type="button" class="aviso-boton" (click)="cerrar()">Cerrar</button>
+        }
+      }
+    </div>
+  </div>
+}

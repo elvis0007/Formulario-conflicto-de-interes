@@ -223,7 +223,9 @@ export class DocumentViewerComponent implements OnChanges, OnDestroy {
       next: (contenido) => {
         this.cargandoArchivo = false;
         if (contenido === null) {
-          this.errorArchivo = ERROR_CARGA_ARCHIVO;
+          // El motivo del servicio si lo hay (p. ej. el documento del plan solo
+          // lo ve RRHH: 403 para el responsable).
+          this.errorArchivo = this.planesServicio.ultimoError ?? ERROR_CARGA_ARCHIVO;
           return;
         }
         // Tipo fijo según el archivo, no el que diga la respuesta: un blob

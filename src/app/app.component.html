@@ -14,6 +14,11 @@
     <router-outlet />
   </main>
   <app-footer *ngIf="!esLoginRoute"></app-footer>
+  <!-- [PNIP-CI] Elvis Flores - 27/10/2026
+       Qué hace: aviso flotante de sesión vencida, sin conexión o sin permiso
+       del backend de gestión de conflictos (no se pinta si no hay aviso). -->
+  <app-aviso-backend></app-aviso-backend>
+  <!-- [FIN PNIP-CI] -->
   <!-- [PNIP-CI DEV] Elvis Flores - 02/10/2026 - ELIMINAR ANTES DE PRODUCCIÓN
        Qué hace: selector de rol de la sesión simulada. Solo se pinta en
        desarrollo y con SISCI-DEV-SESION-SIMULADA = true. -->

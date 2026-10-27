@@ -13,6 +13,10 @@ import { esRutaPermitida } from './app.routes';
 import { esRutaDeGestion } from './app.paths';
 import { SidebarMenuComponent } from './sidebar-menu/sidebar-menu.component';
 // [FIN PNIP-CI]
+// [PNIP-CI] Elvis Flores - 27/10/2026
+// Qué hace: aviso de los errores generales del backend de conflictos.
+import { AvisoBackendComponent } from './shared/aviso-backend/aviso-backend.component';
+// [FIN PNIP-CI]
 // [PNIP-CI DEV] Elvis Flores - 02/10/2026 - ELIMINAR ANTES DE PRODUCCIÓN
 // Qué hace: selector de rol de la sesión simulada de desarrollo.
 import { SelectorRolDevComponent } from './dev/selector-rol-dev/selector-rol-dev.component';
@@ -20,9 +24,10 @@ import { SelectorRolDevComponent } from './dev/selector-rol-dev/selector-rol-dev
 
 @Component({
   selector: 'app-root',
-  // [PNIP-CI] Elvis Flores - 30/09/2026
-  // Qué hace: agrega SidebarMenuComponent a los imports.
-  imports: [CommonModule, RouterOutlet, HeaderComponent, FooterComponent, SidebarMenuComponent,
+  // [PNIP-CI] Elvis Flores - 27/10/2026
+  // Qué hace: agrega SidebarMenuComponent y AvisoBackendComponent (aviso de
+  // sesión vencida, sin conexión o sin permiso del backend) a los imports.
+  imports: [CommonModule, RouterOutlet, HeaderComponent, FooterComponent, SidebarMenuComponent, AvisoBackendComponent,
     // [PNIP-CI DEV] Elvis Flores - 02/10/2026 - ELIMINAR ANTES DE PRODUCCIÓN
     // Qué hace: agrega el selector de rol de desarrollo a los imports.
     SelectorRolDevComponent
